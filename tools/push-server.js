@@ -81,12 +81,53 @@ app.post('/send', async (req, res) => {
   res.json({ results });
 });
 
+// Simple dashboard to view subscriptions and send test pushes
+app.get('/dashboard', (req, res) => {
+  const subs = loadSubs();
+  const html = `
+  <!doctype html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <title>Push Server Dashboard</title>
+    <style>body{font-family:Arial,Helvetica,sans-serif;padding:20px} pre{background:#f4f4f4;padding:10px;border-radius:6px;overflow:auto}button{padding:8px 12px}</style>
+  </head>
+  <body>
+    <h1>Push Server Dashboard</h1>
+    <p>Subscriptions stored: <strong>${subs.length}</strong></p>
+    <div>
+      <button id="refresh">Refresh</button>
+      <button id="send" style="margin-left:8px">Send Demo Push to All</button>
+      <input id="msg" placeholder="Message" style="margin-left:8px;padding:6px;width:300px"/>
+    </div>
+    <h2>Subscriptions</h2>
+    <div id="subs">
+      ${subs.map(s => `<div style="margin-bottom:8px"><pre>${JSON.stringify(s, null, 2)}</pre></div>`).join('')}
+    </div>
+    <script>
+      document.getElementById('refresh').addEventListener('click', ()=> location.reload());
+      document.getElementById('send').addEventListener('click', async ()=>{
+        const msg = document.getElementById('msg').value || 'Demo Nachricht vom Dashboard';
+        try {
+          const r = await fetch('/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
+          const j = await r.json();
+          alert('Send result: '+ JSON.stringify(j));
+        } catch(e){ alert('Send failed: '+e.message); }
+      });
+    </script>
+  </body>
+  </html>
+  `;
+  res.setHeader('Content-Type','text/html');
+  res.send(html);
+});
+
 app.get('/keys', (req, res) => {
   res.json({ publicKey });
 });
 
 app.get('/', (req, res) => {
-  res.send(`Push server running. POST /subscribe and POST /send. PublicKey: ${publicKey ? 'set' : 'missing'}`);
+  res.send(`Push server running. Use <a href="/dashboard">/dashboard</a> to view subscriptions. POST /subscribe and POST /send. PublicKey: ${publicKey ? 'set' : 'missing'}`);
 });
 
 app.listen(PORT, () => {

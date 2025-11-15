@@ -559,6 +559,22 @@ body.dark-mode .hourly-section {
   scrollbar-color: var(--accent) transparent;
 }
 
+/* small hourly inside forecast cards */
+.hourly-scroll.small {
+  gap: 8px;
+  padding: 8px 4px;
+}
+.hourly-item.small {
+  width: 72px;
+  background: rgba(0,0,0,0.03);
+  padding: 8px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+.hourly-item.small .hour-emoji { font-size: 1.25rem; }
+.forecast-item .forecast-hourly { margin-top: 10px; }
+
 .hourly-scroll::-webkit-scrollbar {
   height: 6px;
 }

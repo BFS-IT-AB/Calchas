@@ -161,41 +161,86 @@ class WeatherDisplayComponent {
     if (!this.forecastContainer) return;
 
     try {
-      const forecastHtml = `
-        <div class="weather-forecast">
-          <h2>📅 5-Tage Vorhersage</h2>
-          <div class="forecast-grid">
-            ${dailyData.map((day) => {
-              const date = new Date(day.date);
-              const dateStr = date.toLocaleDateString('de-DE', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric'
-              });
+      // If appState has byDay grouped hourly data, prefer that for an expanded 7-day view
+      const byDay = window.appState?.renderData?.openMeteo?.byDay || null;
+      const days = byDay && byDay.length ? byDay : (dailyData || []);
 
-              const formatTempDay = (c) => {
-                const unit = window.appState?.units?.temperature || 'C';
-                if (typeof c !== 'number') return '--';
-                if (unit === 'F') return `${(c * 9/5 + 32).toFixed(0)}°F`;
-                return `${c.toFixed(0)}°C`;
-              };
+      const dateLabel = (dateStr) => {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('de-DE', { weekday: 'short', month: 'short', day: 'numeric' });
+      };
 
-              return `
-                <div class="forecast-item">
-                  <div class="forecast-date">${dateStr}</div>
-                  <div class="forecast-emoji">${day.emoji || '❓'}</div>
-                  <div class="forecast-temps">
-                    <div class="forecast-max">${formatTempDay(day.tempMax)}</div>
-                    <div class="forecast-min">${formatTempDay(day.tempMin)}</div>
-                  </div>
+      // Temperatures in `byDay` are already converted to the user's units in buildRenderData,
+      // so formatting should simply append the unit marker.
+      const formatTempDay = (value) => {
+        const unit = window.appState?.units?.temperature || 'C';
+        if (typeof value !== 'number') return '--';
+        return `${Math.round(value)}°${unit}`;
+      };
+
+      const forecastHtml = [`<div class="weather-forecast"><h2>📅 7-Tage Vorhersage</h2><div class="forecast-grid">`];
+
+      // If byDay contains objects {date, hours}, use them; else dailyData is used
+      if (byDay && byDay.length) {
+        // Render up to 7 days
+        byDay.slice(0,7).forEach((dayObj, idx) => {
+          const dateStr = dateLabel(dayObj.date);
+          // For first 3 days include hourly scroller
+          let hourlyHtml = '';
+          if (idx < 3 && Array.isArray(dayObj.hours)) {
+            hourlyHtml = `<div class="forecast-hourly">
+                <div class="hourly-scroll small">
+                  ${dayObj.hours.map(h => {
+                    const hour = new Date(h.time).getHours().toString().padStart(2,'0');
+                    const temp = (typeof h.temperature === 'number') ? `${h.temperature.toFixed(0)}°` : '--';
+                    return `<div class="hourly-item small"><div class="hour-time">${hour}:00</div><div class="hour-emoji">${h.emoji||'❓'}</div><div class="hour-temp">${temp}</div></div>`;
+                  }).join('')}
                 </div>
-              `;
-            }).join('')}
-          </div>
-        </div>
-      `;
+              </div>`;
+          }
 
-      this.forecastContainer.innerHTML = forecastHtml;
+          // Derive daily min/max from hours if possible
+          const temps = dayObj.hours ? dayObj.hours.map(h=> (typeof h.temperature==='number')?h.temperature:null).filter(x=>x!==null) : [];
+          const max = temps.length ? Math.max(...temps) : null;
+          const min = temps.length ? Math.min(...temps) : null;
+
+          forecastHtml.push(`
+            <div class="forecast-item">
+              <div class="forecast-date">${dateStr}</div>
+              <div class="forecast-emoji">${dayObj.hours && dayObj.hours[6] ? dayObj.hours[6].emoji || '❓' : '❓'}</div>
+              <div class="forecast-temps">
+                <div class="forecast-max">${formatTempDay(max)}</div>
+                <div class="forecast-min">${formatTempDay(min)}</div>
+              </div>
+              ${hourlyHtml}
+            </div>
+          `);
+        });
+      } else {
+        // Fallback: render dailyData
+        (dailyData || []).slice(0,7).forEach(day => {
+          const date = new Date(day.date);
+          const dateStr = dateLabel(day.date);
+          forecastHtml.push(`
+            <div class="forecast-item">
+              <div class="forecast-date">${dateStr}</div>
+              <div class="forecast-emoji">${day.emoji || '❓'}</div>
+              <div class="forecast-temps">
+                <div class="forecast-max">${formatTempDay(day.tempMax)}</div>
+                <div class="forecast-min">${formatTempDay(day.tempMin)}</div>
+              </div>
+            </div>
+          `);
+        });
+      }
+
+      forecastHtml.push('</div></div>');
+      this.forecastContainer.innerHTML = forecastHtml.join('');
+
+      // Setup small hourly scrolls
+      this.forecastContainer.querySelectorAll('.hourly-scroll.small').forEach(el => {
+        el.style.display = 'flex'; el.style.overflowX = 'auto'; el.style.gap = '8px';
+      });
     } catch (error) {
       console.error('Fehler beim Anzeigen der Vorhersage:', error);
       this.forecastContainer.innerHTML = '<p>Fehler beim Laden der Vorhersage</p>';

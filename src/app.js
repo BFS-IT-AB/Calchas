@@ -226,6 +226,24 @@ function buildRenderData(rawData, units) {
       });
 
       result.openMeteo = { hourly: convertedHourly, daily: convertedDaily };
+      // Group hourly into days for 7-day view (first 3 days will include per-hour slices)
+      function groupHourlyByDay(hourlyArray, maxDays = 7) {
+        const map = new Map();
+        hourlyArray.forEach(h => {
+          try {
+            const d = new Date(h.time);
+            const dateKey = d.toISOString().split('T')[0];
+            if (!map.has(dateKey)) map.set(dateKey, []);
+            map.get(dateKey).push(h);
+          } catch (e) {
+            // ignore malformed time
+          }
+        });
+        // Convert map to array and limit to maxDays
+        const arr = Array.from(map.entries()).map(([date, hours]) => ({ date, hours }));
+        return arr.slice(0, maxDays);
+      }
+      result.openMeteo.byDay = groupHourlyByDay(convertedHourly, 7);
     }
 
     if (rawData.brightSky) {
