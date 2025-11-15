@@ -1,0 +1,217 @@
+
+/* Haupt-CSS-Datei - Design und Layout */
+  /* Definiert Farben, Layouts und Stilelemente für die Wetter-App */
+
+:root {
+  /* 🌞 Light Mode */
+  --bg-light: linear-gradient(#87CEFA, #E0F7FA);
+  --text-light: #003366;
+  --box-light: #ffffff;
+
+  /* 🌙 Dark Mode */
+  --bg-dark: linear-gradient(#1e272e, #485460);
+  --text-dark: #f1f2f6;
+  --box-dark: #6b748a;
+
+  /* 🎨 Akzentfarben */
+  --accent: #007BFF;
+  --button-bg: #007BFF;
+  --button-hover: #0056b3;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: var(--bg-light);
+  color: var(--text-light);
+  min-height: 100vh;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: background 0.5s, color 0.5s;
+}
+
+body.dark-mode {
+  background: var(--bg-dark);
+  color: var(--text-dark);
+}
+
+h1 {
+  margin-top: 60px;
+  font-size: 60px;
+}
+
+.search-section {
+  margin-top: 20px;
+}
+
+input {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  width: 250px;
+}
+
+button {
+  margin-left: 10px;
+  background-color: var(--button-bg);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  background-color: var(--button-hover);
+}
+
+/* === Quellen Navigation === */
+.api-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 50px;
+}
+
+.api-container {
+  width: 700px;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+.api-track {
+  display: flex;
+  gap: 30px;
+  transform: translateX(0);
+  transition: transform 0.6s ease;
+}
+
+/* === Boxen === */
+.api-box {
+  background: var(--box-light);
+  color: var(--text-light);
+  border-radius: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  padding: 25px;
+  width: 650px;
+  height: 400px;
+  text-align: center;
+  flex-shrink: 0;
+  transition: background 0.4s, color 0.4s, box-shadow 0.4s;
+}
+
+body.dark-mode .api-box {
+  background: var(--box-dark);
+  color: var(--text-dark);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+}
+
+/* === Stundenanzeige === */
+.hourly {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+  cursor: grab;
+  padding: 20px 0;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 50%;
+  mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+}
+
+.hourly::-webkit-scrollbar {
+  display: none;
+}
+
+.hourly.dragging {
+  cursor: grabbing;
+  scroll-behavior: auto !important;
+}
+
+.hour {
+  flex: 0 0 calc((100% - 60px) / 6);
+  margin: 0 5px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.25);
+  padding: 10px;
+  text-align: center;
+  font-size: 14px;
+  scroll-snap-align: center;
+}
+
+body.dark-mode .hour {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* === Pfeile === */
+.api-navigation button {
+  background-color: var(--button-bg);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  width: 60px;
+  height: 45px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.api-navigation button:hover {
+  background-color: var(--button-hover);
+  transform: scale(1.05);
+}
+
+.hourly {
+    width: 100%;
+    overflow: hidden;
+    margin-top: 20px;
+}
+
+.hour-scroll {
+    display: flex;
+    overflow-x: scroll;
+    gap: 10px;
+    padding-bottom: 10px;
+    scroll-behavior: auto;
+}
+
+.hour {
+    min-width: 70px;
+    padding: 10px;
+    text-align: center;
+    background: var(--box-bg);
+    border-radius: 10px;
+    user-select: none;
+}
+
+.hour-chart {
+    width: 100%;
+    height: 180px;
+    margin-top: 10px;
+}
+/* === Hintergrund hinter Stundenblöcken (Lila + nur oben/unten schwarze Ränder) === */
+.hourly-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 70%;                          /* etwas niedriger als die Stundenblöcke */
+    width: 100%;
+    background: rgba(150, 80, 255, 0.35); /* halbtransparentes Lila */
+    
+    border-top: 8px solid black;          /* oberer Rand */
+    border-bottom: 8px solid black;       /* unterer Rand */
+    
+    border-left: none;                    /* kein Rand links */
+    border-right: none;                   /* kein Rand rechts */
+    
+    border-radius: 0;                     /* keine Rundungen, damit der Rand gerade ist */
+    z-index: 1;                           /* bleibt hinter den Stunden */
+}

@@ -1,0 +1,1 @@
+/* Caching-Logik für API-Antworten */

@@ -1,0 +1,44 @@
+
+# EINSTIEGSPUNKT der App - Struktur der Webseite in HTML 
+  # Erstellt Gerüst (Buttons, Textfelder, Divs)
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wetter App</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Wetter App</h1>
+
+  <div class="search-section">
+    <input id="cityInput" type="text" placeholder="Ort eingeben...">
+    <button id="searchBtn">🔍 Suchen</button>
+    <button id="modeToggle">🌙 Dark Mode</button>
+  </div>
+
+  <p id="result"></p>
+
+  <div class="api-navigation">
+    <button id="prevBtn">⬅</button>
+    <div class="api-container">
+      <div class="api-track" id="apiTrack">
+        <div class="api-box">
+          <h2>Open-Meteo</h2>
+          <div id="api1Result" class="hourly"></div>
+        </div>
+
+        <div class="api-box">
+          <h2>BrightSky</h2>
+          <div id="api2Result" class="hourly"></div>
+        </div>
+      </div>
+    </div>
+    <button id="nextBtn">➡</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
