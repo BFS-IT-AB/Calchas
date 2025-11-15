@@ -210,7 +210,17 @@ function buildRenderData(rawData, units) {
         const rawWind = (typeof h.windSpeed === 'number') ? h.windSpeed : null; // likely km/h
         const wind_mps = rawWind === null ? null : (rawWind / 3.6);
         const temp = tC === null ? null : (units.temperature === 'F' ? (tC * 9/5 + 32) : tC);
-        const wind = wind_mps === null ? null : (units.wind === 'm/s' ? wind_mps : (wind_mps * 3.6));
+        // Wind conversion: m/s -> km/h (multiply by 3.6) or m/s -> mph (multiply by 2.237)
+        let wind = null;
+        if (wind_mps !== null) {
+          if (units.wind === 'm/s') {
+            wind = wind_mps;
+          } else if (units.wind === 'mph') {
+            wind = wind_mps * 2.237; // 1 m/s = 2.237 mph
+          } else {
+            wind = wind_mps * 3.6; // Default: km/h
+          }
+        }
         // compute feels-like in °C using internal values, then convert if needed
         const feelsC = (tC === null) ? null : computeFeelsLike(tC, h.humidity ?? null, wind_mps);
         const feels = feelsC === null ? null : (units.temperature === 'F' ? (feelsC * 9/5 + 32) : feelsC);
@@ -252,7 +262,17 @@ function buildRenderData(rawData, units) {
         const tC = (typeof h.temperature === 'number') ? h.temperature : null; // assume °C
         const wind_mps = (typeof h.windSpeed === 'number') ? h.windSpeed : null; // assume m/s
         const temp = tC === null ? null : (units.temperature === 'F' ? (tC * 9/5 + 32) : tC);
-        const wind = wind_mps === null ? null : (units.wind === 'm/s' ? wind_mps : (wind_mps * 3.6));
+        // Wind conversion: m/s -> km/h or m/s -> mph
+        let wind = null;
+        if (wind_mps !== null) {
+          if (units.wind === 'm/s') {
+            wind = wind_mps;
+          } else if (units.wind === 'mph') {
+            wind = wind_mps * 2.237; // 1 m/s = 2.237 mph
+          } else {
+            wind = wind_mps * 3.6; // Default: km/h
+          }
+        }
         const feelsC = (tC === null) ? null : computeFeelsLike(tC, h.relativeHumidity ?? h.humidity ?? null, wind_mps);
         const feels = feelsC === null ? null : (units.temperature === 'F' ? (feelsC * 9/5 + 32) : feelsC);
         return Object.assign({}, h, { temperature: temp, windSpeed: wind, feelsLike: feels });

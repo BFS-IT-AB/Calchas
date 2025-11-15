@@ -240,18 +240,160 @@ self.addEventListener('periodicsync', event => {
   if (event.tag === 'update-weather') {
     event.waitUntil(updateWeatherData());
   }
+  if (event.tag === 'sync-favorites') {
+    event.waitUntil(syncFavoritesData());
+  }
 });
 
-// Message Events von Client
-self.addEventListener('message', event => {
-  console.log('Service Worker: Message received', event.data);
+// Background Sync für Failed API Calls (Browser unterstützen dies?)
+self.addEventListener('sync', event => {
+  if (event.tag === 'retry-failed-requests') {
+    event.waitUntil(retryFailedRequests());
+  }
+});
+
+// Helper: Retry Failed API Requests
+async function retryFailedRequests() {
+  try {
+    const db = await openIndexedDB();
+    const failedRequests = await getFailedRequests(db);
+    
+    for (const req of failedRequests) {
+      try {
+        const response = await fetch(req.url, req.options);
+        if (response.ok) {
+          // Success - remove from failed list
+          await removeFailedRequest(db, req.id);
+          console.log('✅ Retried request succeeded:', req.url);
+        }
+      } catch (err) {
+        console.warn('⚠️ Retry still failed:', req.url, err.message);
+      }
+    }
+  } catch (err) {
+    console.error('Background Sync: Retry failed', err);
+  }
+}
+
+// Helper: Sync Favorites Data (for periodic sync)
+async function syncFavoritesData() {
+  try {
+    console.log('🔄 Syncing favorites data in background...');
+    // Attempt to fetch fresh weather for all favorites
+    const storage = await getFromStorage('wetter_favorites');
+    const favorites = storage ? JSON.parse(storage) : [];
+    
+    for (const fav of favorites) {
+      try {
+        // Try to fetch weather data for this favorite
+        const lat = fav.coords?.latitude;
+        const lng = fav.coords?.longitude;
+        if (lat && lng) {
+          // Attempt fetch (won't update UI, just updates cache)
+          await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,precipitation,weathercode&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto`)
+            .then(r => r.json())
+            .catch(() => null);
+        }
+      } catch (err) {
+        console.warn('Could not sync favorite:', fav.city, err.message);
+      }
+    }
+    console.log('✅ Favorites sync completed');
+  } catch (err) {
+    console.error('Favorites sync error:', err);
+  }
+}
+
+// IndexedDB Helper (for storing failed requests)
+async function openIndexedDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('WetterAppDB', 1);
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => resolve(req.result);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('failedRequests')) {
+        db.createObjectStore('failedRequests', { keyPath: 'id' });
+      }
+    };
+  });
+}
+
+async function getFailedRequests(db) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('failedRequests', 'readonly');
+    const store = tx.objectStore('failedRequests');
+    const req = store.getAll();
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => resolve(req.result);
+  });
+}
+
+async function removeFailedRequest(db, id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('failedRequests', 'readwrite');
+    const store = tx.objectStore('failedRequests');
+    const req = store.delete(id);
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => resolve();
+  });
+}
+
+// Helper: Get from LocalStorage in Worker
+function getFromStorage(key) {
+  // Note: LocalStorage not available in Service Worker - use Cache API
+  return caches.open(CACHE_NAME).then(cache => {
+    return cache.match('/data/' + key).then(r => r ? r.text() : null);
+  }).catch(() => null);
+}
+
+/**
+ * Stale-While-Revalidate Strategy:
+ * Return cached response immediately, fetch fresh data in background
+ */
+async function staleWhileRevalidate(request) {
+  const cached = await caches.match(request);
   
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+  const fetchPromise = fetch(request).then(response => {
+    if (!response || response.status !== 200 || response.type === 'error') {
+      return response;
+    }
+    
+    const responseClone = response.clone();
+    try {
+      const reqUrl = new URL(request.url);
+      if ((reqUrl.protocol === 'http:' || reqUrl.protocol === 'https:') &&
+          reqUrl.origin === self.location.origin) {
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(request, responseClone);
+        });
+      }
+    } catch (err) {
+      console.warn('Stale-while-revalidate: cache.put failed', err);
+    }
+    
+    return response;
+  });
+
+  return cached || fetchPromise;
+}
+
+// Message: Register Periodic Sync (Client -> SW)
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'REGISTER_PERIODIC_SYNC') {
+    if ('periodicSync' in self.registration) {
+      self.registration.periodicSync.register('update-weather', { minInterval: 60 * 60 * 1000 }) // 1 hour
+        .then(() => console.log('✅ Periodic sync registered'))
+        .catch(err => console.warn('Periodic sync registration failed:', err));
+    }
   }
   
-  if (event.data && event.data.type === 'REQUEST_WEATHER_UPDATE') {
-    event.waitUntil(updateWeatherData());
+  if (event.data && event.data.type === 'REGISTER_FAVORITES_SYNC') {
+    if ('periodicSync' in self.registration) {
+      self.registration.periodicSync.register('sync-favorites', { minInterval: 12 * 60 * 60 * 1000 }) // 12 hours
+        .then(() => console.log('✅ Favorites sync registered'))
+        .catch(err => console.warn('Favorites sync registration failed:', err));
+    }
   }
 });
 
