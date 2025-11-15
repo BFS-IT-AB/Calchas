@@ -95,8 +95,19 @@
     <!-- Forecast Section -->
     <section id="forecast-container" class="forecast-section" aria-label="Wochenvorhersage"></section>
 
+    <!-- Extra Features Tabs -->
+    <section class="extra-features-section" aria-label="Erweiterte Funktionen">
+      <div class="tabs-container">
+        <button class="tab-btn active" data-tab="sources" aria-label="API Quellen anzeigen">📊 API Quellen</button>
+        <button class="tab-btn" data-tab="maps" aria-label="Karte anzeigen">🗺️ Karte</button>
+        <button class="tab-btn" data-tab="alerts" aria-label="Wetterwarnungen anzeigen">🚨 Warnungen</button>
+        <button class="tab-btn" data-tab="historical" aria-label="Historische Daten anzeigen">📈 Historie</button>
+        <button class="tab-btn" data-tab="analytics" aria-label="Analytics anzeigen">📊 Analytics</button>
+      </div>
+    </section>
+
     <!-- API Sources Comparison -->
-    <section id="sources-comparison" class="sources-section" aria-label="Vergleich der Wetterdatenquellen">
+    <section id="sources-comparison" class="sources-section tab-content active" data-tab-content="sources" aria-label="Vergleich der Wetterdatenquellen">
       <h2>📊 API Quellen Vergleich</h2>
       <div class="sources-grid" role="region">
         <article id="source-openmeteo" class="source-card" aria-label="Open-Meteo Wetterdaten">
@@ -107,6 +118,55 @@
           <h3>☁️ BrightSky</h3>
           <div class="source-content"></div>
         </article>
+      </div>
+    </section>
+
+    <!-- Maps Section -->
+    <section id="maps-section" class="maps-section tab-content" data-tab-content="maps" aria-label="Interaktive Wetterkarte" style="display:none;">
+      <h2>🗺️ Wetterkarte</h2>
+      <div id="map-container" style="height: 500px; background: #e0e0e0; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+        <p style="color: #666;">🗺️ Karte wird geladen... (Leaflet Integration)</p>
+      </div>
+    </section>
+
+    <!-- Alerts Section -->
+    <section id="alerts-section" class="alerts-section tab-content" data-tab-content="alerts" aria-label="Wetterwarnungen" style="display:none;">
+      <h2>🚨 Wetterwarnungen</h2>
+      <div id="alerts-container">
+        <p style="color: #666; padding: 20px; text-align: center;">Keine aktuellen Warnungen für diesen Standort.</p>
+      </div>
+    </section>
+
+    <!-- Historical Section -->
+    <section id="historical-section" class="historical-section tab-content" data-tab-content="historical" aria-label="Historische Wetterdaten" style="display:none;">
+      <h2>📈 Historische Daten</h2>
+      <div id="historical-chart" style="height: 400px; background: #f5f5f5; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+        <p style="color: #666;">📊 Chart wird geladen... (Canvas Charts)</p>
+      </div>
+    </section>
+
+    <!-- Analytics Section -->
+    <section id="analytics-section" class="analytics-section tab-content" data-tab-content="analytics" aria-label="Analytics Übersicht" style="display:none;">
+      <h2>📊 Analytics</h2>
+      <div id="analytics-container">
+        <div style="padding: 20px; background: #f9f9f9; border-radius: 8px; margin-bottom: 16px;">
+          <h3 style="margin-bottom: 12px;">📈 Nutzungsstatistiken</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+            <div style="background: white; padding: 16px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+              <div style="font-size: 2rem; font-weight: bold; color: #007BFF;">0</div>
+              <div style="color: #666; margin-top: 4px;">Suchanfragen</div>
+            </div>
+            <div style="background: white; padding: 16px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+              <div style="font-size: 2rem; font-weight: bold; color: #28a745;">0</div>
+              <div style="color: #666; margin-top: 4px;">API Calls</div>
+            </div>
+            <div style="background: white; padding: 16px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+              <div style="font-size: 2rem; font-weight: bold; color: #ffc107;">0</div>
+              <div style="color: #666; margin-top: 4px;">Cache Hits</div>
+            </div>
+          </div>
+        </div>
+        <button id="export-analytics-btn" class="btn-secondary" style="margin-top: 16px;">📥 Analytics exportieren</button>
       </div>
     </section>
 

@@ -8,14 +8,14 @@
 }
 
 :root {
-  /* 🌞 Light Mode */
-  --bg-light: linear-gradient(135deg, #f6fbff 0%, #f3f9fc 100%);
-  --text-light: #0b2b44; /* darker body text for contrast */
-  --text-heading: #062033; /* stronger heading color */
-  --text-muted: rgba(6, 32, 51, 0.7);
+  /* 🌞 Light Mode - IMPROVED CONTRAST */
+  --bg-light: linear-gradient(135deg, #e8f4f8 0%, #d4e9f2 100%);
+  --text-light: #1a2332; /* Much darker body text */
+  --text-heading: #0a1628; /* Very strong heading color */
+  --text-muted: rgba(10, 22, 40, 0.75);
   --box-light: #ffffff;
-  --border-light: #d9e6ef;
-  --shadow-light: 0 6px 20px rgba(6, 32, 51, 0.08);
+  --border-light: #b8d4e3;
+  --shadow-light: 0 6px 20px rgba(6, 32, 51, 0.15);
   
   /* 🌙 Dark Mode */
   --bg-dark: linear-gradient(135deg, #1e272e 0%, #485460 100%);
@@ -1443,4 +1443,178 @@ label {
 ::placeholder {
   color: var(--text-muted);
   opacity: 0.8;
+}
+
+/* ============================================
+   TABS FOR EXTRA FEATURES
+   ============================================ */
+
+.extra-features-section {
+  margin: var(--spacing-xl) 0;
+}
+
+.tabs-container {
+  display: flex;
+  gap: var(--spacing-sm);
+  border-bottom: 2px solid var(--border-light);
+  padding-bottom: var(--spacing-sm);
+  overflow-x: auto;
+  scroll-behavior: smooth;
+}
+
+body.dark-mode .tabs-container {
+  border-bottom-color: var(--border-dark);
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-bottom: 3px solid transparent;
+  transition: var(--transition);
+  white-space: nowrap;
+  min-height: 44px;
+}
+
+.tab-btn:hover {
+  color: var(--accent);
+  background: rgba(0, 123, 255, 0.05);
+}
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 700;
+}
+
+.tab-content {
+  padding: var(--spacing-lg) 0;
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Maps Section */
+.maps-section h2,
+.alerts-section h2,
+.historical-section h2,
+.analytics-section h2 {
+  margin-bottom: var(--spacing-md);
+  font-size: 1.5rem;
+}
+
+/* ============================================
+   MODAL IMPROVEMENTS
+   ============================================ */
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: none;
+}
+
+.modal-overlay.active {
+  display: block;
+}
+
+.modal-content {
+  background: var(--box-light);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1001;
+}
+
+body.dark-mode .modal-content {
+  background: var(--box-dark);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--border-light);
+}
+
+body.dark-mode .modal-header {
+  border-bottom-color: var(--border-dark);
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  line-height: 1;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: var(--transition);
+}
+
+.modal-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--danger);
+}
+
+.modal-body {
+  padding: var(--spacing-lg);
+}
+
+/* ============================================
+   RESPONSIVE IMPROVEMENTS
+   ============================================ */
+
+@media (max-width: 768px) {
+  .tabs-container {
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .tab-btn {
+    font-size: 0.9rem;
+    padding: var(--spacing-sm);
+  }
+  
+  .modal-content {
+    margin: var(--spacing-sm);
+  }
 }

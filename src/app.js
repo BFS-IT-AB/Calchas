@@ -559,6 +559,72 @@ function initApp() {
 
   document.getElementById('modeToggle')?.addEventListener('click', toggleDarkMode);
 
+  // Settings Button - Toggle Modal
+  const settingsBtn = document.getElementById('settingsBtn');
+  const settingsModal = document.getElementById('settings-modal');
+  const modalOverlay = document.getElementById('modal-overlay');
+  
+  if (settingsBtn && settingsModal) {
+    settingsBtn.addEventListener('click', () => {
+      settingsModal.classList.add('active');
+      settingsModal.setAttribute('aria-hidden', 'false');
+      modalOverlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    });
+  }
+
+  // Modal Close Handlers
+  const closeModalBtns = document.querySelectorAll('.modal-close');
+  closeModalBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const modalId = btn.dataset.close;
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+        modalOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+    });
+  });
+
+  // Close modal on overlay click
+  if (modalOverlay) {
+    modalOverlay.addEventListener('click', () => {
+      document.querySelectorAll('.modal.active').forEach(modal => {
+        modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+      });
+      modalOverlay.classList.remove('active');
+      document.body.style.overflow = '';
+    });
+  }
+
+  // Tab Switching for Extra Features
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const tabContents = document.querySelectorAll('.tab-content');
+  
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabName = btn.dataset.tab;
+      
+      // Remove active from all
+      tabButtons.forEach(b => b.classList.remove('active'));
+      tabContents.forEach(c => {
+        c.classList.remove('active');
+        c.style.display = 'none';
+      });
+      
+      // Add active to clicked
+      btn.classList.add('active');
+      const targetContent = document.querySelector(`[data-tab-content="${tabName}"]`);
+      if (targetContent) {
+        targetContent.classList.add('active');
+        targetContent.style.display = 'block';
+      }
+    });
+  });
+
   // Units selects initial state and handlers
   const tempSelect = document.getElementById('temp-unit-select');
   const windSelect = document.getElementById('wind-unit-select');
@@ -684,6 +750,29 @@ function initApp() {
       }
     });
   }
+
+  // AUTO-FETCH VAPID on app init (fixes push notification issue)
+  (async () => {
+    try {
+      const existingKey = localStorage.getItem('wetter_vapid_public');
+      if (!existingKey || existingKey.length < 20) {
+        console.log('🔑 Lade VAPID Key automatisch vom Server...');
+        const key = await fetchVapidFromServer();
+        if (key) {
+          localStorage.setItem('wetter_vapid_public', key);
+          const vapidInput = document.getElementById('vapidKeyInput');
+          if (vapidInput) vapidInput.value = key;
+          console.log('✅ VAPID Key automatisch geladen');
+        }
+      } else {
+        console.log('✅ VAPID Key bereits vorhanden');
+        const vapidInput = document.getElementById('vapidKeyInput');
+        if (vapidInput) vapidInput.value = existingKey;
+      }
+    } catch (e) {
+      console.warn('⚠️ VAPID Auto-Fetch fehlgeschlagen:', e.message);
+    }
+  })();
 
   // Test: Zeige empty state
   weatherDisplay.showEmpty();
