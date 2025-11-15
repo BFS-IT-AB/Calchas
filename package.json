@@ -1,18 +1,61 @@
 {
   "name": "wetter-app",
-  "version": "0.1.0",
-  "description": "Weather app (local dev scripts)",
+  "version": "0.2.0",
+  "description": "PWA Weather App with Push Notifications, Dual APIs, Favorites, Maps, Alerts",
   "main": "src/app.js",
   "scripts": {
+    "start": "node tools/http-server.js",
+    "dev": "http-server -p 8000 -c-1",
+    "push-server": "node tools/push-server.js",
     "push-demo": "node tools/push-demo.js",
-    "push-server": "node tools/push-server.js"
+    "test": "jest --coverage",
+    "test:watch": "jest --watch",
+    "test:browser": "http-server tests/ -p 9000",
+    "lint": "eslint src/ --fix",
+    "build": "echo 'No build step needed for PWA'",
+    "predeploy": "npm test && npm run lint"
   },
   "dependencies": {
     "express": "^4.18.2",
     "body-parser": "^1.20.2",
     "web-push": "^4.2.0"
   },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "eslint": "^8.50.0",
+    "@jest/globals": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/service-worker.js",
+      "!src/app.js"
+    ],
+    "testMatch": [
+      "tests/**/*.test.js"
+    ],
+    "collectCoverage": true,
+    "coverageDirectory": "coverage",
+    "coverageThreshold": {
+      "global": {
+        "branches": 50,
+        "functions": 50,
+        "lines": 50,
+        "statements": 50
+      }
+    }
+  },
   "engines": {
     "node": ">=14"
-  }
+  },
+  "keywords": [
+    "weather",
+    "pwa",
+    "app",
+    "push-notifications",
+    "offline"
+  ],
+  "author": "BFS IT Team",
+  "license": "MIT"
 }

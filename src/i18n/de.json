@@ -1,0 +1,130 @@
+{
+  "app": {
+    "title": "🌦️ Wetter App",
+    "subtitle": "PWA Wettervorhersage mit Push-Benachrichtigungen"
+  },
+  "weather": {
+    "current": "Aktuelle Bedingungen",
+    "hourly": "Stündliche Vorhersage",
+    "daily": "Tagesvorhersage",
+    "weekly": "Wochenvorhersage",
+    "temperature": "Temperatur",
+    "feelsLike": "Gefühlte Temperatur",
+    "humidity": "Luftfeuchtigkeit",
+    "windSpeed": "Windgeschwindigkeit",
+    "windGust": "Windböen",
+    "pressure": "Luftdruck",
+    "precipitation": "Niederschlag",
+    "cloudCover": "Bewölkung",
+    "uvIndex": "UV-Index",
+    "visibility": "Sicht",
+    "sunrise": "Sonnenaufgang",
+    "sunset": "Sonnenuntergang"
+  },
+  "search": {
+    "placeholder": "Ort eingeben (z.B. Berlin, München)...",
+    "search": "🔍 Suchen",
+    "noResults": "Keine Ergebnisse gefunden",
+    "enterLocation": "Geben Sie einen Ort ein um Wetterdaten zu sehen"
+  },
+  "favorites": {
+    "title": "⭐ Favoriten",
+    "add": "Zu Favoriten hinzufügen",
+    "remove": "Aus Favoriten entfernen",
+    "empty": "Keine Favoriten gespeichert",
+    "recent": "Zuletzt angesehene Orte"
+  },
+  "settings": {
+    "title": "⚙️ Einstellungen",
+    "units": "Einheiten",
+    "temperature": "🌡️ Temperatureinheit",
+    "windSpeed": "💨 Windgeschwindigkeit",
+    "tempCelsius": "Celsius (°C)",
+    "tempFahrenheit": "Fahrenheit (°F)",
+    "windKmh": "Kilometer pro Stunde (km/h)",
+    "windMs": "Meter pro Sekunde (m/s)",
+    "windMph": "Meilen pro Stunde (mph)",
+    "cache": "💾 Cache-Einstellungen",
+    "cacheEnabled": "Caching aktivieren",
+    "clearCache": "🧹 Cache leeren",
+    "clearRecent": "🗑️ Verlauf löschen",
+    "pushNotifications": "🔔 Push-Benachrichtigungen",
+    "fetchVapid": "Fetch VAPID",
+    "saveVapid": "Speichern",
+    "subscribe": "Abonnieren",
+    "subscribed": "Abonniert",
+    "apiKeys": "🔑 Optionale API Keys",
+    "language": "🌐 Sprache",
+    "apiStatus": "📊 API Status",
+    "darkMode": "🌙 Dunkelmodus",
+    "about": "ℹ️ Über"
+  },
+  "buttons": {
+    "search": "Suchen",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "delete": "Löschen",
+    "ok": "OK",
+    "yes": "Ja",
+    "no": "Nein"
+  },
+  "errors": {
+    "noConnection": "Keine Internetverbindung",
+    "apiError": "API-Fehler: {error}",
+    "invalidLocation": "Ungültiger Ort",
+    "locationNotFound": "Ort nicht gefunden",
+    "fetchError": "Fehler beim Abrufen der Daten",
+    "cacheError": "Cache-Fehler",
+    "pushError": "Push-Benachrichtigungsfehler: {error}",
+    "retry": "Erneut versuchen",
+    "tryAgain": "Bitte versuchen Sie es später erneut"
+  },
+  "success": {
+    "cacheCleaned": "Cache wurde gelöscht",
+    "recentCleaned": "Verlauf wurde gelöscht",
+    "favoriteAdded": "{location} wurde zu Favoriten hinzugefügt",
+    "favoriteRemoved": "{location} wurde aus Favoriten entfernt",
+    "subscribed": "Erfolgreich zu Push-Benachrichtigungen abonniert",
+    "unsubscribed": "Abmeldung von Push-Benachrichtigungen erfolgreich"
+  },
+  "time": {
+    "today": "Heute",
+    "tomorrow": "Morgen",
+    "yesterday": "Gestern",
+    "monday": "Montag",
+    "tuesday": "Dienstag",
+    "wednesday": "Mittwoch",
+    "thursday": "Donnerstag",
+    "friday": "Freitag",
+    "saturday": "Samstag",
+    "sunday": "Sonntag",
+    "january": "Januar",
+    "february": "Februar",
+    "march": "März",
+    "april": "April",
+    "may": "Mai",
+    "june": "Juni",
+    "july": "Juli",
+    "august": "August",
+    "september": "September",
+    "october": "Oktober",
+    "november": "November",
+    "december": "Dezember"
+  },
+  "sources": {
+    "openMeteo": "Open-Meteo",
+    "brightSky": "BrightSky",
+    "openWeatherMap": "OpenWeatherMap",
+    "meteostat": "Meteostat",
+    "visualCrossing": "VisualCrossing",
+    "comparison": "📊 API Quellen Vergleich",
+    "noData": "Keine Daten verfügbar"
+  },
+  "footer": {
+    "sources": "🌐 Datenquellen",
+    "privacy": "Datenschutz",
+    "terms": "Nutzungsbedingungen",
+    "copyright": "© 2025 Wetter-App"
+  }
+}

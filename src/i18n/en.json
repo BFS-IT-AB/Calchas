@@ -1,0 +1,130 @@
+{
+  "app": {
+    "title": "🌦️ Weather App",
+    "subtitle": "PWA Weather Forecast with Push Notifications"
+  },
+  "weather": {
+    "current": "Current Conditions",
+    "hourly": "Hourly Forecast",
+    "daily": "Daily Forecast",
+    "weekly": "Weekly Forecast",
+    "temperature": "Temperature",
+    "feelsLike": "Feels Like",
+    "humidity": "Humidity",
+    "windSpeed": "Wind Speed",
+    "windGust": "Wind Gust",
+    "pressure": "Pressure",
+    "precipitation": "Precipitation",
+    "cloudCover": "Cloud Cover",
+    "uvIndex": "UV Index",
+    "visibility": "Visibility",
+    "sunrise": "Sunrise",
+    "sunset": "Sunset"
+  },
+  "search": {
+    "placeholder": "Enter location (e.g., Berlin, Munich)...",
+    "search": "🔍 Search",
+    "noResults": "No results found",
+    "enterLocation": "Enter a location to see weather data"
+  },
+  "favorites": {
+    "title": "⭐ Favorites",
+    "add": "Add to Favorites",
+    "remove": "Remove from Favorites",
+    "empty": "No favorites saved",
+    "recent": "Recently Viewed Locations"
+  },
+  "settings": {
+    "title": "⚙️ Settings",
+    "units": "Units",
+    "temperature": "🌡️ Temperature Unit",
+    "windSpeed": "💨 Wind Speed",
+    "tempCelsius": "Celsius (°C)",
+    "tempFahrenheit": "Fahrenheit (°F)",
+    "windKmh": "Kilometers per Hour (km/h)",
+    "windMs": "Meters per Second (m/s)",
+    "windMph": "Miles per Hour (mph)",
+    "cache": "💾 Cache Settings",
+    "cacheEnabled": "Enable Caching",
+    "clearCache": "🧹 Clear Cache",
+    "clearRecent": "🗑️ Clear History",
+    "pushNotifications": "🔔 Push Notifications",
+    "fetchVapid": "Fetch VAPID",
+    "saveVapid": "Save",
+    "subscribe": "Subscribe",
+    "subscribed": "Subscribed",
+    "apiKeys": "🔑 Optional API Keys",
+    "language": "🌐 Language",
+    "apiStatus": "📊 API Status",
+    "darkMode": "🌙 Dark Mode",
+    "about": "ℹ️ About"
+  },
+  "buttons": {
+    "search": "Search",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "delete": "Delete",
+    "ok": "OK",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "errors": {
+    "noConnection": "No internet connection",
+    "apiError": "API Error: {error}",
+    "invalidLocation": "Invalid location",
+    "locationNotFound": "Location not found",
+    "fetchError": "Error fetching data",
+    "cacheError": "Cache error",
+    "pushError": "Push notification error: {error}",
+    "retry": "Retry",
+    "tryAgain": "Please try again later"
+  },
+  "success": {
+    "cacheCleaned": "Cache cleared",
+    "recentCleaned": "History cleared",
+    "favoriteAdded": "{location} added to favorites",
+    "favoriteRemoved": "{location} removed from favorites",
+    "subscribed": "Successfully subscribed to push notifications",
+    "unsubscribed": "Successfully unsubscribed from push notifications"
+  },
+  "time": {
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "yesterday": "Yesterday",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday",
+    "january": "January",
+    "february": "February",
+    "march": "March",
+    "april": "April",
+    "may": "May",
+    "june": "June",
+    "july": "July",
+    "august": "August",
+    "september": "September",
+    "october": "October",
+    "november": "November",
+    "december": "December"
+  },
+  "sources": {
+    "openMeteo": "Open-Meteo",
+    "brightSky": "BrightSky",
+    "openWeatherMap": "OpenWeatherMap",
+    "meteostat": "Meteostat",
+    "visualCrossing": "VisualCrossing",
+    "comparison": "📊 API Sources Comparison",
+    "noData": "No data available"
+  },
+  "footer": {
+    "sources": "🌐 Data Sources",
+    "privacy": "Privacy",
+    "terms": "Terms of Service",
+    "copyright": "© 2025 Weather App"
+  }
+}

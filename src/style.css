@@ -1130,9 +1130,27 @@ body.dark-mode .app-footer {
 }
 
 /* ============================================
-   ACCESSIBILITY
+   ACCESSIBILITY - WCAG 2.1 AA
    ============================================ */
 
+/* Skip Link (for keyboard users) */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--accent);
+  color: white;
+  padding: 8px;
+  text-decoration: none;
+  z-index: 100;
+  border-radius: 0 0 4px 0;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Prefers Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
@@ -1141,6 +1159,7 @@ body.dark-mode .app-footer {
   }
 }
 
+/* Prefers Color Scheme */
 @media (prefers-color-scheme: dark) {
   body {
     background: var(--bg-dark);
@@ -1148,12 +1167,280 @@ body.dark-mode .app-footer {
   }
 }
 
-/* Focus Visible für Keyboard Navigation */
+/* Enhanced Focus Visible for Keyboard Navigation */
 *:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 
-button:focus-visible {
-  outline-offset: -2px;
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Remove default outline and apply consistent style */
+button:focus,
+input:focus,
+select:focus,
+a:focus {
+  outline: none;
+}
+
+/* Contrast improvements for all states */
+button,
+.btn-primary,
+.btn-secondary,
+.btn-icon,
+.btn-small {
+  outline: none;
+}
+
+button:not(:disabled):hover,
+button:not(:disabled):focus-visible {
+  opacity: 1;
+}
+
+button:disabled,
+button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Heading hierarchy - semantic & readable */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+h1 {
+  font-size: 2.5rem;
+  color: var(--text-heading);
+}
+
+h2 {
+  font-size: 2rem;
+  color: var(--text-heading);
+  margin-bottom: var(--spacing-md);
+}
+
+h3 {
+  font-size: 1.5rem;
+  color: var(--text-heading);
+  margin-bottom: var(--spacing-sm);
+}
+
+/* ARIA labels visibility (for screen readers) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Semantic region roles */
+main {
+  min-height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
+}
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+/* Better contrast for disabled states */
+button:disabled,
+input:disabled,
+select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  color: var(--text-muted);
+}
+
+/* Link focus and hover states */
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+a:hover {
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
+a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Form element focus states for better visibility */
+input[type="text"]:focus-visible,
+input[type="email"]:focus-visible,
+input[type="password"]:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 0px;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.1);
+}
+
+/* Alert & Error messages - high contrast */
+.error-alert,
+.alert-error {
+  background-color: #f8d7da;
+  border: 2px solid #721c24;
+  color: #721c24;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+  font-weight: 500;
+}
+
+body.dark-mode .error-alert,
+body.dark-mode .alert-error {
+  background-color: rgba(220, 53, 69, 0.2);
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.alert-success {
+  background-color: #d4edda;
+  border: 2px solid #155724;
+  color: #155724;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+  font-weight: 500;
+}
+
+body.dark-mode .alert-success {
+  background-color: rgba(40, 167, 69, 0.2);
+  border-color: #51cf66;
+  color: #51cf66;
+}
+
+.alert-info {
+  background-color: #d1ecf1;
+  border: 2px solid #0c5460;
+  color: #0c5460;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+  font-weight: 500;
+}
+
+body.dark-mode .alert-info {
+  background-color: rgba(23, 162, 184, 0.2);
+  border-color: #74c0fc;
+  color: #74c0fc;
+}
+
+/* Dropdown/Select menu accessibility */
+select {
+  min-height: 44px; /* Touch-friendly */
+  cursor: pointer;
+  appearance: none;
+  padding-right: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23007BFF' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-color: var(--box-light);
+}
+
+body.dark-mode select {
+  background-color: var(--box-dark);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23f1f2f6' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+}
+
+/* Buttons should be at least 44x44 for touch */
+button,
+.btn-primary,
+.btn-secondary,
+.btn-icon {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Better spacing for interactive elements */
+button + button,
+button + a,
+a + button {
+  margin-left: var(--spacing-sm);
+}
+
+/* High contrast for error/warning text */
+.error-text,
+.warning-text,
+.success-text {
+  font-weight: 600;
+}
+
+.error-text {
+  color: #721c24;
+}
+
+body.dark-mode .error-text {
+  color: #ff6b6b;
+}
+
+.warning-text {
+  color: #856404;
+}
+
+body.dark-mode .warning-text {
+  color: #ffd93d;
+}
+
+.success-text {
+  color: #155724;
+}
+
+body.dark-mode .success-text {
+  color: #51cf66;
+}
+
+/* Increased line-height for readability */
+p, 
+li,
+td,
+label,
+.card-text {
+  line-height: 1.6;
+}
+
+/* Label styling for form inputs */
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-heading);
+  line-height: 1.4;
+}
+
+/* Increase icon button size for accessibility */
+.icon-btn {
+  min-width: 48px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Better contrast for placeholder text */
+::placeholder {
+  color: var(--text-muted);
+  opacity: 0.8;
 }

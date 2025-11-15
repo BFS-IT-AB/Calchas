@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Wetter-App mit Open-Meteo und BrightSky Integration">
+  <meta name="description" content="Wetter-App mit Open-Meteo und BrightSky Integration - PWA mit Push-Benachrichtigungen, Favoriten, Offline-Modus">
   <meta name="theme-color" content="#007BFF">
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>🌦️</text></svg>">
@@ -13,151 +13,268 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Skip Link for Keyboard Users -->
+  <a href="#main-content" class="skip-link">Zum Inhalt springen</a>
+
   <!-- Header -->
-  <header class="app-header">
+  <header class="app-header" role="banner">
     <div class="header-content">
       <h1 class="app-title">🌦️ Wetter App</h1>
-      <div class="header-controls">
-        <button id="modeToggle" class="btn-icon" title="Dark Mode Toggle">🌙</button>
-        <button id="pushToggle" class="btn-icon" title="Push-Benachrichtigungen aktivieren">🔔</button>
-        <button id="settingsBtn" class="btn-icon" title="Einstellungen">⚙️</button>
-      </div>
+      <nav class="header-controls" role="navigation" aria-label="Hauptsteuerelemente">
+        <button 
+          id="modeToggle" 
+          class="btn-icon icon-btn" 
+          aria-label="Dunkelmodus umschalten"
+          aria-pressed="false"
+          title="Dark Mode Toggle"
+        >🌙</button>
+        <button 
+          id="pushToggle" 
+          class="btn-icon icon-btn" 
+          aria-label="Push-Benachrichtigungen aktivieren"
+          aria-pressed="false"
+          title="Push-Benachrichtigungen"
+        >🔔</button>
+        <button 
+          id="settingsBtn" 
+          class="btn-icon icon-btn" 
+          aria-label="Einstellungen öffnen"
+          aria-haspopup="dialog"
+          title="Einstellungen"
+        >⚙️</button>
+      </nav>
     </div>
   </header>
 
   <!-- Main Content -->
-  <main class="app-container">
+  <main class="app-container" id="main-content" role="main">
     <!-- Error Container -->
-    <div id="error-container" class="error-container"></div>
+    <div id="error-container" class="error-container" role="alert" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Search Section -->
-    <section class="search-section">
+    <section class="search-section" aria-label="Ortssuche und Favoriten">
       <div class="search-box">
+        <label for="cityInput" class="sr-only">Ortssuchfeld</label>
         <input 
           id="cityInput" 
           type="text" 
           placeholder="Ort eingeben (z.B. Berlin, München)..."
           class="search-input"
           autocomplete="off"
+          aria-label="Ortssuchfeld - Geben Sie einen Ort ein"
+          aria-describedby="search-help"
         >
-        <button id="searchBtn" class="btn-primary search-btn">🔍 Suchen</button>
+        <button 
+          id="searchBtn" 
+          class="btn-primary search-btn"
+          aria-label="Ortssuche durchführen"
+        >🔍 Suchen</button>
       </div>
+      <p id="search-help" class="sr-only">Geben Sie einen Ortsnamen ein und klicken Sie auf Suchen oder drücken Sie Enter</p>
 
       <!-- Recent Cities -->
-      <div id="recent-cities" class="recent-cities-section"></div>
+      <div id="recent-cities" class="recent-cities-section" role="region" aria-label="Zuletzt angesehene Orte"></div>
 
       <!-- Favorites -->
-      <div class="favorites-section">
-        <h3>⭐ Favoriten</h3>
-        <div id="favorites-list" class="favorites-list"></div>
-      </div>
+      <section class="favorites-section" aria-label="Lieblingsorte">
+        <h2>⭐ Favoriten</h2>
+        <div id="favorites-list" class="favorites-list" role="list" aria-label="Liste der Lieblingsorte"></div>
+      </section>
     </section>
 
     <!-- Current Weather Display -->
-    <section id="current-weather" class="weather-section">
-      <div class="empty-state">
+    <section id="current-weather" class="weather-section" aria-label="Aktuelle Wetterbedingungen" aria-live="polite">
+      <div class="empty-state" role="status" aria-label="Hinweis zum Eingeben eines Ortes">
         <p>🔍 Geben Sie einen Ort ein um Wetterdaten zu sehen</p>
       </div>
     </section>
 
+    <!-- Hourly Forecast Section -->
+    <section id="hourly-section" class="hourly-section" aria-label="Stündliche Vorhersage"></section>
+
     <!-- Forecast Section -->
-    <section id="forecast-container" class="forecast-section"></section>
+    <section id="forecast-container" class="forecast-section" aria-label="Wochenvorhersage"></section>
 
     <!-- API Sources Comparison -->
-    <section id="sources-comparison" class="sources-section">
+    <section id="sources-comparison" class="sources-section" aria-label="Vergleich der Wetterdatenquellen">
       <h2>📊 API Quellen Vergleich</h2>
-      <div class="sources-grid">
-        <div id="source-openmeteo" class="source-card">
+      <div class="sources-grid" role="region">
+        <article id="source-openmeteo" class="source-card" aria-label="Open-Meteo Wetterdaten">
           <h3>🌐 Open-Meteo</h3>
           <div class="source-content"></div>
-        </div>
-        <div id="source-brightsky" class="source-card">
+        </article>
+        <article id="source-brightsky" class="source-card" aria-label="BrightSky Wetterdaten">
           <h3>☁️ BrightSky</h3>
           <div class="source-content"></div>
-        </div>
+        </article>
       </div>
     </section>
 
     <!-- Settings Modal -->
-    <div id="settings-modal" class="modal">
+    <div id="settings-modal" class="modal" role="dialog" aria-labelledby="settings-title" aria-hidden="true">
       <div class="modal-content">
         <div class="modal-header">
-          <h2>⚙️ Einstellungen</h2>
-          <button class="modal-close" data-close="settings-modal">&times;</button>
+          <h2 id="settings-title">⚙️ Einstellungen</h2>
+          <button 
+            class="modal-close" 
+            data-close="settings-modal"
+            aria-label="Einstellungsfenster schließen"
+          >&times;</button>
         </div>
         <div class="modal-body">
           <!-- Units Toggle -->
-          <div class="settings-group">
-            <label class="settings-label">
-              <span>🌡️ Temperatureinheit:</span>
-              <select id="temp-unit-select" class="settings-select">
-                <option value="C">Celsius (°C)</option>
-                <option value="F">Fahrenheit (°F)</option>
-              </select>
-            </label>
-          </div>
+          <fieldset class="settings-group">
+            <legend class="settings-label">🌡️ Temperatureinheit:</legend>
+            <select 
+              id="temp-unit-select" 
+              class="settings-select"
+              aria-label="Wählen Sie die Temperatureinheit aus"
+            >
+              <option value="C">Celsius (°C)</option>
+              <option value="F">Fahrenheit (°F)</option>
+            </select>
+          </fieldset>
 
-          <div class="settings-group">
-            <label class="settings-label">
-              <span>💨 Windgeschwindigkeit:</span>
-              <select id="wind-unit-select" class="settings-select">
-                <option value="km/h">Kilometer pro Stunde (km/h)</option>
-                <option value="m/s">Meter pro Sekunde (m/s)</option>
-              </select>
-            </label>
-          </div>
+          <fieldset class="settings-group">
+            <legend class="settings-label">💨 Windgeschwindigkeit:</legend>
+            <select 
+              id="wind-unit-select" 
+              class="settings-select"
+              aria-label="Wählen Sie die Windgeschwindigkeitseinheit aus"
+            >
+              <option value="km/h">Kilometer pro Stunde (km/h)</option>
+              <option value="m/s">Meter pro Sekunde (m/s)</option>
+              <option value="mph">Meilen pro Stunde (mph)</option>
+            </select>
+          </fieldset>
 
           <!-- Cache Settings -->
-          <div class="settings-group">
-            <label class="settings-label">
-              <input type="checkbox" id="cache-enabled" checked>
+          <fieldset class="settings-group">
+            <legend class="settings-label">💾 Cache-Einstellungen:</legend>
+            <label>
+              <input 
+                type="checkbox" 
+                id="cache-enabled" 
+                checked
+                aria-label="Daten-Caching aktivieren"
+              >
               <span>Caching aktivieren</span>
             </label>
-          </div>
+          </fieldset>
 
           <!-- Cache Management -->
-          <div class="settings-group">
-            <button id="clear-cache-btn" class="btn-secondary">🧹 Cache leeren</button>
-            <button id="clear-recent-btn" class="btn-secondary">🗑️ Verlauf löschen</button>
+          <div class="settings-group" role="group" aria-label="Cache-Verwaltung">
+            <button 
+              id="clear-cache-btn" 
+              class="btn-secondary"
+              aria-label="Gecachte Wetterdaten löschen"
+            >🧹 Cache leeren</button>
+            <button 
+              id="clear-recent-btn" 
+              class="btn-secondary"
+              aria-label="Suchverlauf löschen"
+            >🗑️ Verlauf löschen</button>
           </div>
 
           <!-- VAPID Key for Push (optional) -->
-          <div class="settings-group">
-            <label class="settings-label">
-              <span>🔐 VAPID Public Key (optional):</span>
-              <input id="vapidKeyInput" class="settings-input" placeholder="Base64 URL-safe Public VAPID Key">
-            </label>
+          <fieldset class="settings-group">
+            <legend class="settings-label">🔐 Push-Benachrichtigungen:</legend>
+            <label for="vapidKeyInput" class="sr-only">VAPID Public Key eingeben</label>
+            <input 
+              id="vapidKeyInput" 
+              class="settings-input" 
+              placeholder="Base64 URL-safe Public VAPID Key"
+              aria-label="VAPID Public Key zur Authentifizierung von Push-Benachrichtigungen"
+              aria-describedby="vapid-help"
+            >
+            <p id="vapid-help" class="sr-only">Dies ist ein optionaler Key für Push-Benachrichtigungen. Sie können ihn vom lokalen Push-Server erhalten.</p>
             <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
-              <button id="saveVapidBtn" class="btn-secondary">Speichern</button>
-              <button id="fetchVapidBtn" class="btn-secondary">Fetch VAPID</button>
+              <button 
+                id="saveVapidBtn" 
+                class="btn-secondary"
+                aria-label="VAPID Key speichern"
+              >Speichern</button>
+              <button 
+                id="fetchVapidBtn" 
+                class="btn-secondary"
+                aria-label="VAPID Key vom Server abrufen"
+              >Fetch VAPID</button>
             </div>
-          </div>
+          </fieldset>
+
+          <!-- API Keys Section -->
+          <fieldset class="settings-group">
+            <legend class="settings-label">🔑 Optionale API Keys:</legend>
+            <div id="api-keys-container" role="group" aria-label="Optionale API-Keys für erweiterte Datenquellen">
+              <label for="openweathermap-key">
+                OpenWeatherMap Key:
+                <input 
+                  id="openweathermap-key" 
+                  class="settings-input" 
+                  placeholder="OpenWeatherMap API Key (optional)"
+                  aria-label="OpenWeatherMap API Key"
+                  type="password"
+                >
+              </label>
+              <label for="visualcrossing-key">
+                VisualCrossing Key:
+                <input 
+                  id="visualcrossing-key" 
+                  class="settings-input" 
+                  placeholder="VisualCrossing API Key (optional)"
+                  aria-label="VisualCrossing API Key"
+                  type="password"
+                >
+              </label>
+            </div>
+          </fieldset>
+
+          <!-- Language Selection -->
+          <fieldset class="settings-group">
+            <legend class="settings-label">🌐 Sprache:</legend>
+            <select 
+              id="lang-select" 
+              class="settings-select"
+              aria-label="Wählen Sie die Sprache aus"
+            >
+              <option value="de">Deutsch</option>
+              <option value="en">English</option>
+            </select>
+          </fieldset>
 
           <!-- API Status -->
-          <div class="settings-group">
-            <h3>📊 API Status</h3>
-            <div id="api-status" class="api-status-list"></div>
-          </div>
+          <fieldset class="settings-group">
+            <legend class="settings-label">📊 API Status</legend>
+            <div 
+              id="api-status" 
+              class="api-status-list" 
+              role="region" 
+              aria-label="Status der Wetterdatenquellen"
+              aria-live="polite"
+            ></div>
+          </fieldset>
         </div>
       </div>
     </div>
 
     <!-- Footer -->
-    <footer class="app-footer">
+    <footer class="app-footer" role="contentinfo">
       <p class="footer-text">
         🌐 Datenquellen: 
-        <a href="https://open-meteo.com" target="_blank">Open-Meteo</a> | 
-        <a href="https://brightsky.dev" target="_blank">BrightSky</a> | 
-        <a href="https://nominatim.org" target="_blank">Nominatim</a>
+        <a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer" aria-label="Open-Meteo Website (öffnet in neuem Tab)">Open-Meteo</a> | 
+        <a href="https://brightsky.dev" target="_blank" rel="noopener noreferrer" aria-label="BrightSky Website (öffnet in neuem Tab)">BrightSky</a> | 
+        <a href="https://nominatim.org" target="_blank" rel="noopener noreferrer" aria-label="Nominatim Website (öffnet in neuem Tab)">Nominatim</a>
       </p>
       <p class="footer-text">
-        <small>© 2025 Wetter-App | <a href="#privacy">Datenschutz</a> | <a href="#terms">Nutzungsbedingungen</a></small>
+        <small>© 2025 Wetter-App | <a href="#privacy" aria-label="Datenschutzerklärung">Datenschutz</a> | <a href="#terms" aria-label="Nutzungsbedingungen">Nutzungsbedingungen</a></small>
       </p>
     </footer>
   </main>
 
   <!-- Modal Overlay -->
-  <div id="modal-overlay" class="modal-overlay"></div>
+  <div id="modal-overlay" class="modal-overlay" role="presentation"></div>
+
+  <!-- Service Worker Registration -->
   <script>
     // PWA - Service Worker registrieren
     if ('serviceWorker' in navigator) {
