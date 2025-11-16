@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Wetter-App mit Open-Meteo und BrightSky Integration - PWA mit Push-Benachrichtigungen, Favoriten, Offline-Modus"
+      content="Calchas Wetterplattform mit Open-Meteo und BrightSky Integration - PWA mit Push-Benachrichtigungen, Favoriten, Offline-Modus"
     />
     <meta name="theme-color" content="#007BFF" />
     <link rel="manifest" href="/manifest.json" />
@@ -19,7 +19,7 @@
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%23007BFF' width='180' height='180' rx='40'/><text x='90' y='130' font-size='140' text-anchor='middle'>🌦️</text></svg>"
     />
 
-    <title>🌦️ Wetter App - Aktuelle Wetterdaten</title>
+    <title>🌦️ Calchas - Aktuelle Wetterdaten</title>
 
     <!-- Leaflet CSS for Maps -->
     <link
@@ -51,7 +51,7 @@
     <!-- Header -->
     <header class="app-header" role="banner">
       <div class="header-content">
-        <h1 class="app-title">🌦️ Wetter App</h1>
+        <h1 class="app-title">🌦️ Calchas</h1>
         <nav
           class="header-controls"
           role="navigation"
@@ -271,6 +271,12 @@
             aria-live="polite"
           ></div>
         </div>
+        <div
+          id="map-overlay-legend"
+          class="map-overlay-legend"
+          aria-live="polite"
+          aria-label="Status der Kartenlayer"
+        ></div>
         <div
           id="weather-map"
           style="
@@ -671,7 +677,7 @@
         </p>
         <p class="footer-text">
           <small
-            >© 2025 Wetter-App |
+            >© 2025 Calchas |
             <a href="#privacy" aria-label="Datenschutzerklärung">Datenschutz</a>
             |
             <a href="#terms" aria-label="Nutzungsbedingungen"
@@ -724,6 +730,9 @@
     <script src="api/openweathermap.js"></script>
     <script src="api/visualcrossing.js"></script>
     <script src="api/meteostat.js"></script>
+    <script src="api/bigdatacloud.js"></script>
+    <script src="api/sunriseSunset.js"></script>
+    <script src="api/moonPhase.js"></script>
 
     <!-- Scripts - UI Components -->
     <script src="ui/errorHandler.js"></script>

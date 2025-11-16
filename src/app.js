@@ -11,6 +11,9 @@ class AppState {
     this.weatherData = {
       openMeteo: null,
       brightSky: null,
+      locationDetails: null,
+      sunEvents: null,
+      moonPhase: null,
     };
     this.isDarkMode = this._loadThemePreference();
     this.favorites = this._loadFavorites();
@@ -132,6 +135,24 @@ const API_PROVIDERS = [
     requiresKey: true,
     key: "meteostat",
     note: "Für historische Trenddaten",
+  },
+  {
+    id: "bigdatacloud",
+    name: "BigDataCloud",
+    tag: "Geodaten",
+    note: "Reverse-Geocoding Details",
+  },
+  {
+    id: "sunrisesunset",
+    name: "Sunrise & Sunset",
+    tag: "Astronomie",
+    note: "Dämmerungszeiten",
+  },
+  {
+    id: "moonphase",
+    name: "Moon Phase",
+    tag: "Astronomie",
+    note: "Licht & Phase",
   },
 ];
 
@@ -630,7 +651,13 @@ function syncProviderKeyState(providerId) {
  * Returns an object with formatted arrays ready for the UI (hourly/daily per source).
  */
 function buildRenderData(rawData, units) {
-  const result = { openMeteo: null, brightSky: null };
+  const result = {
+    openMeteo: null,
+    brightSky: null,
+    locationDetails: null,
+    sunEvents: null,
+    moonPhase: null,
+  };
 
   // Helper: compute feels-like temperature (apparent temperature)
   // Uses simple formula combining temperature (°C), relative humidity (%) and wind (m/s)
@@ -1011,6 +1038,10 @@ function buildRenderData(rawData, units) {
       });
       result.brightSky = { hourly: converted };
     }
+
+    result.locationDetails = rawData.locationDetails || null;
+    result.sunEvents = rawData.sunEvents || null;
+    result.moonPhase = rawData.moonPhase || null;
   } catch (e) {
     console.warn("buildRenderData failed", e);
   }
@@ -1146,6 +1177,9 @@ async function fetchWeatherData(lat, lon) {
   // OPTIONALE APIs - Nur wenn API-Keys vorhanden
   let openWeatherMapResult = null;
   let visualCrossingResult = null;
+  let bigDataCloudResult = null;
+  let sunriseSunsetResult = null;
+  let moonPhaseResult = null;
 
   // OpenWeatherMap (optional)
   if (window.apiKeyManager && window.apiKeyManager.hasKey("openweathermap")) {
@@ -1251,6 +1285,127 @@ async function fetchWeatherData(lat, lon) {
     }
   }
 
+  if (typeof bigDataCloudAPI !== "undefined") {
+    try {
+      const key = window.apiKeyManager?.getKey("bigdatacloud") || null;
+      bigDataCloudResult = await bigDataCloudAPI.fetchLocationDetails(
+        lat,
+        lon,
+        key
+      );
+      if (!bigDataCloudResult.error) {
+        sources.push({
+          id: "bigdatacloud",
+          name: "BigDataCloud",
+          success: true,
+          duration: bigDataCloudResult.duration,
+          fromCache: false,
+        });
+      } else {
+        sources.push({
+          id: "bigdatacloud",
+          name: "BigDataCloud",
+          success: false,
+          error: bigDataCloudResult.error,
+        });
+      }
+    } catch (e) {
+      console.warn("BigDataCloud Fehler:", e.message);
+      sources.push({
+        id: "bigdatacloud",
+        name: "BigDataCloud",
+        success: false,
+        error: e.message || "Unbekannter Fehler",
+      });
+    }
+  }
+
+  if (typeof sunriseSunsetAPI !== "undefined") {
+    try {
+      const key = window.apiKeyManager?.getKey("sunrisesunset") || null;
+      sunriseSunsetResult = await sunriseSunsetAPI.fetchSunEvents(
+        lat,
+        lon,
+        key
+      );
+      if (!sunriseSunsetResult.error) {
+        sources.push({
+          id: "sunrisesunset",
+          name: "Sunrise & Sunset",
+          success: true,
+          duration: sunriseSunsetResult.duration,
+          fromCache: false,
+        });
+      } else {
+        sources.push({
+          id: "sunrisesunset",
+          name: "Sunrise & Sunset",
+          success: false,
+          error: sunriseSunsetResult.error,
+        });
+      }
+    } catch (e) {
+      console.warn("SunriseSunset Fehler:", e.message);
+      sources.push({
+        id: "sunrisesunset",
+        name: "Sunrise & Sunset",
+        success: false,
+        error: e.message || "Unbekannter Fehler",
+      });
+    }
+  }
+
+  if (typeof moonPhaseAPI !== "undefined") {
+    try {
+      const key = window.apiKeyManager?.getKey("moonphase") || null;
+      const moonPhaseContext = {
+        city:
+          (bigDataCloudResult && !bigDataCloudResult.error
+            ? bigDataCloudResult.data?.city ||
+              bigDataCloudResult.data?.locality ||
+              bigDataCloudResult.data?.region
+            : null) ||
+          window.appState?.currentCity ||
+          null,
+        locationDetails:
+          bigDataCloudResult && !bigDataCloudResult.error
+            ? bigDataCloudResult.data
+            : null,
+        latitude: lat,
+        longitude: lon,
+      };
+      moonPhaseResult = await moonPhaseAPI.fetchPhase(
+        new Date(),
+        key,
+        moonPhaseContext
+      );
+      if (!moonPhaseResult.error) {
+        sources.push({
+          id: "moonphase",
+          name: "Moon Phase",
+          success: true,
+          duration: moonPhaseResult.duration,
+          fromCache: false,
+        });
+      } else {
+        sources.push({
+          id: "moonphase",
+          name: "Moon Phase",
+          success: false,
+          error: moonPhaseResult.error,
+        });
+      }
+    } catch (e) {
+      console.warn("MoonPhase Fehler:", e.message);
+      sources.push({
+        id: "moonphase",
+        name: "Moon Phase",
+        success: false,
+        error: e.message || "Unbekannter Fehler",
+      });
+    }
+  }
+
   if (sources.length) {
     const statusPayload = sources
       .filter((src) => src.id)
@@ -1304,6 +1459,16 @@ async function fetchWeatherData(lat, lon) {
       visualCrossingResult && !visualCrossingResult.error
         ? visualCrossingResult.data
         : null,
+    locationDetails:
+      bigDataCloudResult && !bigDataCloudResult.error
+        ? bigDataCloudResult.data
+        : null,
+    sunEvents:
+      sunriseSunsetResult && !sunriseSunsetResult.error
+        ? sunriseSunsetResult.data
+        : null,
+    moonPhase:
+      moonPhaseResult && !moonPhaseResult.error ? moonPhaseResult.data : null,
     sources,
   };
 }
@@ -1418,6 +1583,14 @@ async function loadWeather(city) {
     }
     displayWeatherResults(location, weatherData);
 
+    if (window.weatherMap) {
+      const lonValue =
+        location.lon ?? location.lng ?? weatherData?.openMeteo?.longitude;
+      if (typeof location.lat === "number" && typeof lonValue === "number") {
+        window.weatherMap.init(location.lat, lonValue, location.city);
+      }
+    }
+
     // Speichere im Cache
     weatherCache.setGeo(city, {
       city: location.city,
@@ -1458,7 +1631,7 @@ function toggleDarkMode() {
  * Initialisierung
  */
 function initApp() {
-  console.log("🚀 Initialisiere Wetter-App...");
+  console.log("🚀 Initialisiere Calchas...");
 
   // Initialisiere API Key Manager
   window.apiKeyManager = new APIKeyManager();
@@ -1472,7 +1645,7 @@ function initApp() {
       : {};
 
   const bakedInDefaults = {
-    openweathermap: "22889ea71f66faab6196bde649dd04a9",
+    openweathermap: "9f79d40dc85bebc834364783854eefbd",
     visualcrossing: "JVCZ3WAHB5XBT7GXQC7RQBGBE",
     meteostat: "edda72c60bmsh4a38c4687147239p14e8d5jsn6f578346b68a",
   };
@@ -1596,6 +1769,9 @@ function initApp() {
             lon,
             appState.currentCity || "Standort"
           );
+          weatherMap.ensureVisibility();
+        } else if (tabName === "maps") {
+          weatherMap.ensureVisibility();
         } else if (tabName === "alerts" && appState.currentCoordinates) {
           const lon =
             appState.currentCoordinates.lon ?? appState.currentCoordinates.lng;

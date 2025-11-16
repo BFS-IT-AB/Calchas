@@ -2,7 +2,7 @@
 
 ## ✅ Erfolgreich integriert!
 
-Alle 3 API-Keys wurden vollständig in die Wetter-App integriert.
+Alle 3 API-Keys wurden vollständig in Calchas integriert.
 
 ---
 
@@ -10,7 +10,7 @@ Alle 3 API-Keys wurden vollständig in die Wetter-App integriert.
 
 ### 1. **OpenWeatherMap** ✅
 
-- **API-Key:** `22889ea71f66faab6196bde649dd04a9`
+- **API-Key:** `9f79d40dc85bebc834364783854eefbd`
 - **Status:** Automatisch beim ersten Start gespeichert
 - **Features:** Current Weather, Hourly Forecast, Daily Forecast
 - **Integration:** Wird als optionale Zusatzquelle geladen wenn Hauptquellen (Open-Meteo, BrightSky) vorhanden
@@ -86,7 +86,7 @@ class APIKeyManager {
 // In initApp()
 window.apiKeyManager = new APIKeyManager();
 window.apiKeyManager.setDefaults({
-  openweathermap: "22889ea71f66faab6196bde649dd04a9",
+  openweathermap: "9f79d40dc85bebc834364783854eefbd",
   visualcrossing: "JVCZ3WAHB5XBT7GXQC7RQBGBE",
   meteostat: "edda72c60bmsh4a38c4687147239p14e8d5jsn6f578346b68a",
 });

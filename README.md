@@ -1,8 +1,8 @@
-# Wetter-App – PWA Weather Forecast with Push Notifications
+# Calchas – PWA Weather Forecast with Push Notifications
 
-Eine moderne, responsive PWA-Wetter-Anwendung mit Dual-API-Support, Offline-Funktionalität, Push-Benachrichtigungen und erweiterten Features (Favoriten, Einheiten-Umschalter, Wetterkarten, Alerts, historische Daten).
+Calchas ist eine moderne, responsive PWA-Wetterplattform mit Dual-API-Support, Offline-Funktionalität, Push-Benachrichtigungen und erweiterten Features (Favoriten, Einheiten-Umschalter, Wetterkarten, Alerts, historische Daten).
 
-**BFS IT-Projekt | Team: Max, Robin, Samreen, Yannik, Felix**
+**BFS-IT-Projekt | Team: Max, Robin, Samreen, Yannik, Felix**
 
 ## Features
 
@@ -33,7 +33,7 @@ Eine moderne, responsive PWA-Wetter-Anwendung mit Dual-API-Support, Offline-Funk
 ### Installation
 
 ```bash
-cd wetter-app-main
+cd calchas
 npm install
 npx web-push generate-vapid-keys
 ```
@@ -84,11 +84,12 @@ Dann öffne `http://localhost:8000` im Browser.
 
 ### Kostenlos (kein API-Key erforderlich)
 
-| API                 | Zweck                                          | Limit                                        |
-| ------------------- | ---------------------------------------------- | -------------------------------------------- |
-| **Open-Meteo**      | Hauptvorhersagen (aktuell, stündlich, täglich) | Kostenlos, keine Registrierung               |
-| **Nominatim (OSM)** | Ortssuche & Geocoding                          | Kostenlos; bitte Requests throttlen (~1/sec) |
-| **MeteoAlarm/CAP**  | Wetterwarnungen (Regional)                     | Kostenlos, öffentliche Feeds                 |
+| API                     | Zweck                                          | Limit                                        |
+| ----------------------- | ---------------------------------------------- | -------------------------------------------- |
+| **Open-Meteo**          | Hauptvorhersagen (aktuell, stündlich, täglich) | Kostenlos, keine Registrierung               |
+| **Nominatim (OSM)**     | Ortssuche & Geocoding                          | Kostenlos; bitte Requests throttlen (~1/sec) |
+| **MeteoAlarm/CAP**      | Wetterwarnungen (Regional)                     | Kostenlos, öffentliche Feeds                 |
+| **PhaseOfTheMoonToday** | Mondphasen + Moonrise/Moonset-Daten            | Kostenlos (ca. 1.000 Requests/Tag)           |
 
 Dokumentation: https://docs/api-documentation.md
 
@@ -146,7 +147,7 @@ npm run lint         # ESLint Linting
 ## Projektstruktur
 
 ```
-wetter-app-main/
+calchas/
 ├── src/
 │   ├── app.js               # Kernlogik, AppState, Events
 │   ├── features.js          # Karten, Alerts, Historie, Analytics
@@ -297,7 +298,7 @@ cp service-worker.js dist/
 Beispiel Heroku:
 
 ```bash
-heroku create wetter-app
+heroku create calchas
 heroku config:set VAPID_PUBLIC_KEY="..."
 heroku config:set VAPID_PRIVATE_KEY="..."
 git push heroku main
@@ -385,4 +386,4 @@ WCAG 2.1 Level AA Compliance:
 
 ---
 
-**Viel Spaß mit der Wetter-App!** 🌤️
+**Viel Spaß mit Calchas!** 🌤️

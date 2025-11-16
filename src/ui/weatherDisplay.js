@@ -8,6 +8,8 @@ class WeatherDisplayComponent {
     this.timeIntervalId = null;
     this._forecastDetailHandlers = null;
     this._detailEscapeHandler = null;
+    this._forecastCarouselCleanup = null;
+    this._forecastCarouselFrame = null;
   }
   displayCurrent(weatherData, city = "Standort") {
     if (!this.currentContainer) return;
@@ -109,6 +111,11 @@ class WeatherDisplayComponent {
       ];
 
       const sunriseSunset = this._renderSunTrack(daySnapshot?.sun);
+      const astroPanel = this._renderLocationAstro(
+        weatherData.locationDetails,
+        weatherData.sunEvents,
+        weatherData.moonPhase
+      );
       const extremes = daySnapshot
         ? `
           <div class="current-extremes">
@@ -187,6 +194,7 @@ class WeatherDisplayComponent {
             </div>
           </div>
           ${sunriseSunset}
+          ${astroPanel}
           <div class="current-highlights">${highlightsHtml}</div>
           <div class="source-info" id="source-info">Daten werden geladen...</div>
         </div>
@@ -342,21 +350,51 @@ class WeatherDisplayComponent {
   displayForecast(dailyData) {
     if (!this.forecastContainer) return;
 
+    this._teardownForecastCarousel();
+
     try {
+      const buildForecastSection = (cardsMarkup, options = {}) => {
+        const totalRaw =
+          typeof options.total === "number" && options.total > 0
+            ? options.total
+            : 0;
+        const normalizedTotal = Math.max(totalRaw, 1);
+        const controlsDisabled = totalRaw <= 1;
+        const advancedClass = options.advanced ? " advanced" : "";
+        return `
+        <section class="weather-forecast">
+          <div class="forecast-section-header">
+            <h2>📅 7-Tage Vorhersage</h2>
+            <div class="forecast-carousel-controls${
+              controlsDisabled ? '" data-disabled="true"' : '"'
+            }>
+              <button type="button" class="forecast-nav forecast-nav-prev" aria-label="Vorherige Tage" disabled>‹</button>
+              <span class="forecast-carousel-indicator" role="status" aria-live="polite">1 / ${normalizedTotal}</span>
+              <button type="button" class="forecast-nav forecast-nav-next" aria-label="Nächste Tage"${
+                controlsDisabled ? " disabled" : ""
+              }>›</button>
+            </div>
+          </div>
+          <div class="forecast-carousel" role="region" aria-label="7-Tage-Vorhersage-Karussell">
+            <div class="forecast-track forecast-grid${advancedClass}" tabindex="0">
+              ${cardsMarkup}
+            </div>
+          </div>
+        </section>
+      `;
+      };
+
       const insights = window.appState?.renderData?.openMeteo?.dayInsights;
       if (Array.isArray(insights) && insights.length) {
         this._renderDailyInsightsPanel(insights[0]);
         const cards = insights
           .map((day, idx) => this._renderAdvancedForecastCard(day, idx))
           .join("");
-        this.forecastContainer.innerHTML = `
-        <section class="weather-forecast">
-          <h2>📅 7-Tage Vorhersage</h2>
-          <div class="forecast-grid advanced">
-            ${cards}
-          </div>
-        </section>
-      `;
+        this.forecastContainer.innerHTML = buildForecastSection(cards, {
+          total: insights.length,
+          advanced: true,
+        });
+        this._setupForecastCarousel(insights.length);
         this._bindDayDetailHandlers(insights);
         return;
       }
@@ -505,19 +543,120 @@ class WeatherDisplayComponent {
           </section>`
         : "";
 
+      const summaryCards = normalizedDays.map(buildSummaryCard).join("");
       this.forecastContainer.innerHTML = `
-        <section class="weather-forecast">
-          <h2>📅 7-Tage Vorhersage</h2>
-          <div class="forecast-grid">
-            ${normalizedDays.map(buildSummaryCard).join("")}
-          </div>
-        </section>
+        ${buildForecastSection(summaryCards, {
+          total: normalizedDays.length,
+        })}
         ${focusStrip}
       `;
+      this._setupForecastCarousel(normalizedDays.length);
     } catch (error) {
       console.error("Fehler beim Anzeigen der Vorhersage:", error);
       this.forecastContainer.innerHTML =
         "<p>Fehler beim Laden der Vorhersage</p>";
+    }
+  }
+
+  _setupForecastCarousel(totalCards = 0) {
+    if (!this.forecastContainer) return;
+    const track = this.forecastContainer.querySelector(".forecast-track");
+    const prevBtn = this.forecastContainer.querySelector(".forecast-nav-prev");
+    const nextBtn = this.forecastContainer.querySelector(".forecast-nav-next");
+    const indicator = this.forecastContainer.querySelector(
+      ".forecast-carousel-indicator"
+    );
+
+    if (!track || !prevBtn || !nextBtn) {
+      this._forecastCarouselCleanup = null;
+      return;
+    }
+
+    if (totalCards <= 1) {
+      prevBtn.disabled = true;
+      nextBtn.disabled = true;
+      if (indicator) {
+        indicator.textContent = `1 / ${Math.max(totalCards, 1)}`;
+      }
+      this._forecastCarouselCleanup = null;
+      return;
+    }
+
+    const cards = Array.from(track.querySelectorAll(".forecast-card"));
+    if (!cards.length) {
+      prevBtn.disabled = true;
+      nextBtn.disabled = true;
+      this._forecastCarouselCleanup = null;
+      return;
+    }
+
+    const updateIndicator = () => {
+      if (!indicator) return;
+      const viewportCenter = track.scrollLeft + track.clientWidth / 2;
+      let activeIndex = 0;
+      let minDelta = Number.POSITIVE_INFINITY;
+      cards.forEach((card, idx) => {
+        const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+        const delta = Math.abs(cardCenter - viewportCenter);
+        if (delta < minDelta) {
+          minDelta = delta;
+          activeIndex = idx;
+        }
+      });
+      indicator.textContent = `${activeIndex + 1} / ${cards.length}`;
+    };
+
+    const updateNavState = () => {
+      const maxScroll = Math.max(track.scrollWidth - track.clientWidth, 0);
+      const atStart = track.scrollLeft <= 2;
+      const atEnd = track.scrollLeft >= maxScroll - 2;
+      prevBtn.disabled = atStart;
+      nextBtn.disabled = atEnd || maxScroll <= 2;
+    };
+
+    const updateAll = () => {
+      updateNavState();
+      updateIndicator();
+    };
+
+    const scrollByPage = (direction) => {
+      const delta = Math.max(track.clientWidth * 0.9, 200);
+      track.scrollBy({ left: delta * direction, behavior: "smooth" });
+    };
+
+    const onPrev = () => scrollByPage(-1);
+    const onNext = () => scrollByPage(1);
+    const onScroll = () => {
+      if (this._forecastCarouselFrame) {
+        cancelAnimationFrame(this._forecastCarouselFrame);
+      }
+      this._forecastCarouselFrame = window.requestAnimationFrame(updateAll);
+    };
+    const onResize = () => updateAll();
+
+    prevBtn.addEventListener("click", onPrev);
+    nextBtn.addEventListener("click", onNext);
+    track.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
+
+    updateAll();
+
+    this._forecastCarouselCleanup = () => {
+      prevBtn.removeEventListener("click", onPrev);
+      nextBtn.removeEventListener("click", onNext);
+      track.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+      if (this._forecastCarouselFrame) {
+        cancelAnimationFrame(this._forecastCarouselFrame);
+        this._forecastCarouselFrame = null;
+      }
+    };
+  }
+
+  _teardownForecastCarousel() {
+    if (typeof this._forecastCarouselCleanup === "function") {
+      this._forecastCarouselCleanup();
+      this._forecastCarouselCleanup = null;
     }
   }
 
@@ -624,6 +763,164 @@ class WeatherDisplayComponent {
         </div>
         ${daylight ? `<small class="sun-track-label">${daylight}</small>` : ""}
       </div>
+    `;
+  }
+
+  _renderLocationAstro(locationDetails, sunEvents, moonPhase) {
+    const locationBlock = this._buildLocationCard(locationDetails);
+    const timeZone = locationDetails?.timezone || null;
+    const astroBlock = this._buildAstronomyCard(sunEvents, moonPhase, timeZone);
+    if (!locationBlock && !astroBlock) return "";
+    return `
+      <div class="location-astro-panel">
+        ${locationBlock || ""}
+        ${astroBlock || ""}
+      </div>
+    `;
+  }
+
+  _buildLocationCard(details) {
+    if (!details) return "";
+    const cityLabel =
+      details.city || details.locality || "Koordinaten (Lat/Lon)";
+    const regionParts = [details.region, details.country]
+      .filter(Boolean)
+      .map((part) => this._escapeHtml(part));
+    const regionLine = regionParts.join(" · ");
+    const subdivisions = Array.isArray(details.subdivisions)
+      ? details.subdivisions.filter(Boolean).slice(0, 2)
+      : [];
+    const infoItems = [];
+    if (details.timezone) {
+      infoItems.push(`🕓 ${this._escapeHtml(details.timezone)}`);
+    }
+    if (subdivisions.length) {
+      infoItems.push(`🗺️ ${this._escapeHtml(subdivisions.join(" · "))}`);
+    }
+    if (details.plusCode) {
+      infoItems.push(`➕ ${this._escapeHtml(details.plusCode)}`);
+    }
+    if (
+      typeof details.latitude === "number" &&
+      typeof details.longitude === "number"
+    ) {
+      const coords = `${details.latitude.toFixed(
+        2
+      )}°, ${details.longitude.toFixed(2)}°`;
+      infoItems.push(`📌 ${this._escapeHtml(coords)}`);
+    }
+    return `
+      <article class="location-card" aria-label="Standortdetails">
+        <h3>📍 Standort</h3>
+        <strong>${
+          details.countryFlag ? `${details.countryFlag} ` : ""
+        }${this._escapeHtml(cityLabel)}</strong>
+        ${regionLine ? `<p class="location-card-meta">${regionLine}</p>` : ""}
+        ${
+          infoItems.length
+            ? `<ul class="location-card-list">${infoItems
+                .map((entry) => `<li>${entry}</li>`)
+                .join("")}</ul>`
+            : ""
+        }
+      </article>
+    `;
+  }
+
+  _buildAstronomyCard(sunEvents, moonPhase, timeZone) {
+    const rows = [];
+    if (sunEvents) {
+      const daylight = this._formatDurationLabel(sunEvents.dayLengthSeconds);
+      const sunrise =
+        this._formatTimeLabel(sunEvents.sunrise, timeZone) || "--:--";
+      const sunset =
+        this._formatTimeLabel(sunEvents.sunset, timeZone) || "--:--";
+      if (daylight || sunEvents.sunrise || sunEvents.sunset) {
+        rows.push(`
+          <div class="astro-row">
+            <span class="astro-label">🌞 Tageslicht</span>
+            <div class="astro-value">
+              <strong>${daylight || "--"}</strong>
+              <small>${sunrise} · ${sunset}</small>
+            </div>
+          </div>
+        `);
+      }
+      const civilDawn = this._formatTimeLabel(sunEvents.civil?.dawn, timeZone);
+      const civilDusk = this._formatTimeLabel(sunEvents.civil?.dusk, timeZone);
+      if (civilDawn || civilDusk) {
+        rows.push(`
+          <div class="astro-row">
+            <span class="astro-label">🌅 Zivil</span>
+            <div class="astro-value">
+              <small>${civilDawn || "--:--"} · ${civilDusk || "--:--"}</small>
+            </div>
+          </div>
+        `);
+      }
+      const nauticalDawn = this._formatTimeLabel(
+        sunEvents.nautical?.dawn,
+        timeZone
+      );
+      const nauticalDusk = this._formatTimeLabel(
+        sunEvents.nautical?.dusk,
+        timeZone
+      );
+      if (nauticalDawn || nauticalDusk) {
+        rows.push(`
+          <div class="astro-row">
+            <span class="astro-label">🌊 Nautisch</span>
+            <div class="astro-value">
+              <small>${nauticalDawn || "--:--"} · ${
+          nauticalDusk || "--:--"
+        }</small>
+            </div>
+          </div>
+        `);
+      }
+    }
+
+    if (moonPhase) {
+      const illumination = this._formatIllumination(moonPhase.illumination);
+      const moonrise = this._formatTimeLabel(moonPhase.moonrise, timeZone);
+      const moonset = this._formatTimeLabel(moonPhase.moonset, timeZone);
+      const detailParts = [];
+      if (moonPhase.description) {
+        detailParts.push(this._escapeHtml(moonPhase.description));
+      }
+      if (moonPhase.zodiac) {
+        detailParts.push(`🔭 ${this._escapeHtml(moonPhase.zodiac)}`);
+      }
+      rows.push(`
+        <div class="astro-row">
+          <span class="astro-label">🌙 ${this._escapeHtml(
+            moonPhase.phase || "Mondphase"
+          )}</span>
+          <div class="astro-value">
+            <strong>${illumination || "--"}</strong>
+            ${
+              moonrise || moonset
+                ? `<small>${moonrise || "--:--"} · ${
+                    moonset || "--:--"
+                  }</small>`
+                : ""
+            }
+            ${
+              detailParts.length
+                ? `<small>${detailParts.join(" · ")}</small>`
+                : ""
+            }
+          </div>
+        </div>
+      `);
+    }
+
+    if (!rows.length) return "";
+    return `
+      <article class="astro-card" aria-label="Astronomische Daten">
+        <h3>🌌 Astronomie</h3>
+        ${rows.join("")}
+      </article>
     `;
   }
 
@@ -1180,14 +1477,35 @@ class WeatherDisplayComponent {
     return `${value.toFixed(digits)}${suffix}`;
   }
 
-  _formatTimeLabel(iso) {
+  _formatDurationLabel(value) {
+    const seconds =
+      typeof value === "number" ? value : Number.parseFloat(value);
+    if (!Number.isFinite(seconds)) return "";
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
+  }
+
+  _formatIllumination(value) {
+    if (value === null || value === undefined) return "";
+    let percent = Number(value);
+    if (!Number.isFinite(percent)) return "";
+    if (percent <= 1) percent *= 100;
+    return `${Math.round(percent)}%`;
+  }
+
+  _formatTimeLabel(iso, timeZone = null) {
     if (!iso) return "";
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return "";
-    return date.toLocaleTimeString("de-DE", {
+    const options = {
       hour: "2-digit",
       minute: "2-digit",
-    });
+    };
+    if (timeZone) {
+      options.timeZone = timeZone;
+    }
+    return date.toLocaleTimeString("de-DE", options);
   }
 
   /**

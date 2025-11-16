@@ -26,7 +26,7 @@ console.log(window.apiKeyManager.exportKeys());
 
 ```javascript
 {
-  openweathermap: "22889ea71f66faab6196bde649dd04a9",
+  openweathermap: "9f79d40dc85bebc834364783854eefbd",
   visualcrossing: "JVCZ3WAHB5XBT7GXQC7RQBGBE",
   meteostat: "edda72c60bmsh4a38c4687147239p14e8d5jsn6f578346b68a"
 }
@@ -39,7 +39,7 @@ Suche: `Berlin`
 **Console-Output prüfen:**
 
 ```
-🚀 Initialisiere Wetter-App...
+🚀 Initialisiere Calchas...
 ✅ API Keys geladen: {openweathermap: true, visualcrossing: true, meteostat: true}
 🌡️ Lade Wetterdaten für 52.52, 13.405
 ✅ Open-Meteo erfolgreich
@@ -146,7 +146,7 @@ console.log("VisualCrossing:", window.apiKeyManager.hasKey("visualcrossing"));
 ```javascript
 // OpenWeatherMap Test:
 fetch(
-  "https://api.openweathermap.org/data/2.5/onecall?lat=52.52&lon=13.405&appid=22889ea71f66faab6196bde649dd04a9"
+  "https://api.openweathermap.org/data/2.5/onecall?lat=52.52&lon=13.405&appid=9f79d40dc85bebc834364783854eefbd"
 )
   .then((r) => r.json())
   .then((d) => console.log("OWM Test:", d));
@@ -189,7 +189,7 @@ Nach erfolgreichem Test:
 Bei erfolgreicher Integration sollte die Console so aussehen:
 
 ```
-🚀 Initialisiere Wetter-App...
+🚀 Initialisiere Calchas...
 ✅ API Keys geladen: {openweathermap: true, visualcrossing: true, meteostat: true}
 ✅ App initialisiert
 

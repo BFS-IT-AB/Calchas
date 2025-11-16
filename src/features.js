@@ -17,6 +17,8 @@ class WeatherMap {
     this.overlayLookup = new Map();
     this.overlayConfigs = this._buildOverlayConfig();
     this.toolbarConfigs = this._buildToolbarConfig();
+    this.legendOrder = this.overlayConfigs.map((cfg) => cfg.key);
+    this.legendItems = new Map();
     this.statusEl = null;
     this.noticeEl = null;
     this.currentOverlay = null;
@@ -29,6 +31,11 @@ class WeatherMap {
     this.toolbarActiveKey = null;
     this.inspector = null;
     this._toolbarHandler = null;
+    this.resizeObserver = null;
+    this._invalidateHandle = null;
+    this._visibilityRetry = null;
+    this._viewportHandlers = null;
+    this.legendEl = null;
   }
 
   init(lat, lon, city) {
@@ -44,14 +51,19 @@ class WeatherMap {
       return;
     }
 
+    this._observeContainer(container);
+    this._ensureLegendTarget();
+
     if (!this.map) {
       this._createMap(lat, lon);
       this._ensureOverlayStatus();
       this._injectOverlayNotice(container);
+      this._bindViewportListeners();
     }
 
     this._setMarker(lat, lon, city);
     this.map.setView([lat, lon], 10);
+    this.ensureVisibility();
   }
 
   _createMap(lat, lon) {
@@ -72,6 +84,7 @@ class WeatherMap {
     if (this.inspector && typeof this.inspector.bindToMap === "function") {
       this.inspector.bindToMap(this);
     }
+    this.ensureVisibility();
   }
 
   _setMarker(lat, lon, city) {
@@ -229,35 +242,52 @@ class WeatherMap {
     const overlays = {};
     const locked = [];
     let pendingRainViewer = false;
+    const hasKeyManager = typeof window !== "undefined" && window.apiKeyManager;
+    const owmKey =
+      hasKeyManager && window.apiKeyManager.hasKey("openweathermap")
+        ? window.apiKeyManager.getKey("openweathermap")
+        : null;
 
     this.overlayLookup.clear();
     this.overlayLayerByKey.clear();
+    this.legendItems.clear();
 
     this.overlayConfigs.forEach((config) => {
       let url = config.url;
+      let state = "available";
+      let detail = config.provider || "";
+      let shouldSkipLayer = false;
 
       if (config.key === "radar") {
         if (this.rainViewerTileUrl) {
           url = this.rainViewerTileUrl;
         } else {
           pendingRainViewer = true;
-          return;
+          state = "loading";
+          detail = "Radar wird geladen";
+          shouldSkipLayer = true;
         }
       }
 
       if (config.requiresKey) {
-        const key =
-          window.apiKeyManager && window.apiKeyManager.hasKey("openweathermap")
-            ? window.apiKeyManager.getKey("openweathermap")
-            : null;
-        if (!key) {
+        if (!owmKey) {
           locked.push(config.label);
-          return;
+          state = "locked";
+          detail = "API-Key erforderlich";
+          shouldSkipLayer = true;
+        } else {
+          url = (config.template || "").replace("{API_KEY}", owmKey);
         }
-        url = config.template.replace("{API_KEY}", key);
       }
 
-      if (!url) {
+      if (!url && !shouldSkipLayer) {
+        state = "error";
+        detail = "Overlay nicht verfügbar";
+        shouldSkipLayer = true;
+      }
+
+      if (shouldSkipLayer) {
+        this._updateLegendEntry(config, state, detail);
         return;
       }
 
@@ -272,6 +302,7 @@ class WeatherMap {
       overlays[config.label] = layer;
       this.overlayLookup.set(layer, config);
       this.overlayLayerByKey.set(config.key, layer);
+      this._updateLegendEntry(config, "available", config.provider || "");
     });
 
     if (this.layerControl) {
@@ -324,15 +355,28 @@ class WeatherMap {
       this._ensureRainViewerTiles().then((success) => {
         if (success) {
           this.refreshOverlays();
-        } else if (this.noticeEl) {
+        } else {
           const suffix = locked.length
             ? " · OWM-Overlays benötigen einen API-Key."
             : "";
-          this.noticeEl.textContent =
-            "RainViewer Radar derzeit nicht erreichbar" + suffix;
+          const message = "RainViewer Radar derzeit nicht erreichbar" + suffix;
+          if (this.noticeEl) {
+            this.noticeEl.textContent = message;
+          }
+          const radarConfig = this.overlayConfigs.find(
+            (entry) => entry.key === "radar"
+          );
+          if (radarConfig) {
+            this._updateLegendEntry(radarConfig, "error", message);
+            this._renderOverlayLegend();
+            this._syncToolbarAvailability();
+          }
         }
       });
     }
+
+    this._renderOverlayLegend();
+    this._syncToolbarAvailability();
   }
 
   bindToolbar(toolbarSelector) {
@@ -359,10 +403,12 @@ class WeatherMap {
     this._toolbarHandler = (event) => {
       const btn = event.target.closest(".map-layer-btn");
       if (!btn) return;
+      if (btn.disabled || btn.classList.contains("is-disabled")) return;
       const key = btn.dataset.layer;
       this._handleToolbarSelection(key);
     };
     this.toolbarEl.addEventListener("click", this._toolbarHandler);
+    this._syncToolbarAvailability();
   }
 
   attachInspector(inspector) {
@@ -512,6 +558,7 @@ class WeatherMap {
       this._highlightToolbarSelectionByOverlay(config.key);
     }
     this._updateOverlayStatus();
+    this._renderOverlayLegend();
   }
 
   _handleOverlayRemove(layer) {
@@ -522,6 +569,7 @@ class WeatherMap {
       this._highlightToolbarSelection(null);
     }
     this._updateOverlayStatus();
+    this._renderOverlayLegend();
   }
 
   _ensureOverlayStatus() {
@@ -542,6 +590,85 @@ class WeatherMap {
     notice.className = "map-overlay-notice";
     container.appendChild(notice);
     this.noticeEl = notice;
+  }
+
+  _ensureLegendTarget() {
+    if (this.legendEl) return;
+    this.legendEl = document.getElementById("map-overlay-legend");
+  }
+
+  _updateLegendEntry(config, state, detail) {
+    if (!config?.key) return;
+    this.legendItems.set(config.key, {
+      key: config.key,
+      label: config.label,
+      provider: config.provider,
+      state: state || "available",
+      detail: detail || config.provider || "",
+    });
+  }
+
+  _renderOverlayLegend() {
+    if (!this.legendEl) return;
+    const chunks = [];
+    this.legendOrder.forEach((key) => {
+      const info = this.legendItems.get(key);
+      if (!info) return;
+      const isActive = this.currentOverlay?.key === key;
+      const badgeState = isActive ? "active" : info.state || "available";
+      const detailText = info.detail || info.provider || "";
+      const badgeLabel = {
+        active: "Aktiv",
+        available: "Bereit",
+        loading: "Lädt",
+        locked: "Gesperrt",
+        error: "Fehler",
+      }[badgeState];
+
+      chunks.push(`
+        <div class="map-overlay-legend-item" data-layer="${key}">
+          <div>
+            <strong>${info.label}</strong>
+            ${detailText ? `<small>${detailText}</small>` : ""}
+          </div>
+          <span class="map-overlay-badge" data-state="${badgeState}">
+            ${badgeLabel || "Status"}
+          </span>
+        </div>
+      `);
+    });
+
+    if (!chunks.length) {
+      this.legendEl.innerHTML =
+        '<div class="map-overlay-legend-item"><strong>Keine Overlays geladen</strong></div>';
+    } else {
+      this.legendEl.innerHTML = chunks.join("\n");
+    }
+  }
+
+  _syncToolbarAvailability() {
+    if (!this.toolbarEl) return;
+    const overlayStates = new Map();
+    this.legendItems.forEach((info, key) => overlayStates.set(key, info.state));
+
+    this.toolbarConfigs.forEach((config) => {
+      const btn = this.toolbarEl.querySelector(
+        `.map-layer-btn[data-layer="${config.key}"]`
+      );
+      if (!btn) return;
+      if (!config.overlayKey) {
+        btn.disabled = false;
+        btn.classList.remove("is-disabled");
+        return;
+      }
+      const state = overlayStates.get(config.overlayKey) || "available";
+      const blocked = ["locked", "loading", "error"].includes(state);
+      btn.disabled = blocked;
+      btn.classList.toggle("is-disabled", blocked);
+      if (blocked && this.toolbarActiveKey === config.key) {
+        this._highlightToolbarSelection(null);
+      }
+    });
   }
 
   _updateOverlayStatus() {
@@ -574,9 +701,9 @@ class WeatherMap {
   }
 
   _handleTileError(config) {
-    if (!this.noticeEl) return;
+    let message = "";
     if (config.requiresKey) {
-      this.noticeEl.textContent =
+      message =
         "OpenWeatherMap Overlays konnten nicht geladen werden – bitte API-Key pruefen.";
       if (window.updateApiStatusEntry) {
         window.updateApiStatusEntry("openweathermap", {
@@ -586,8 +713,127 @@ class WeatherMap {
         });
       }
     } else {
-      this.noticeEl.textContent = `${config.label} ist aktuell nicht verfuegbar.`;
+      message = `${config.label} ist aktuell nicht verfuegbar.`;
     }
+    if (this.noticeEl) {
+      this.noticeEl.textContent = message;
+    }
+    this._updateLegendEntry(config, "error", message);
+    this._renderOverlayLegend();
+    this._syncToolbarAvailability();
+  }
+
+  destroy() {
+    if (this.layerControl) {
+      this.layerControl.remove();
+      this.layerControl = null;
+    }
+
+    if (this.map) {
+      this.map.off();
+      this.map.remove();
+      this.map = null;
+    }
+
+    this.marker = null;
+    this.overlayLookup.clear();
+    this.overlayLayerByKey.clear();
+    this.currentOverlay = null;
+
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
+
+    this._unbindViewportListeners();
+
+    if (this._visibilityRetry) {
+      clearTimeout(this._visibilityRetry);
+      this._visibilityRetry = null;
+    }
+
+    if (this._invalidateHandle) {
+      const caf =
+        (typeof window !== "undefined" && window.cancelAnimationFrame) ||
+        clearTimeout;
+      caf(this._invalidateHandle);
+      this._invalidateHandle = null;
+    }
+  }
+
+  _observeContainer(container) {
+    if (!container || typeof ResizeObserver === "undefined") return;
+    if (this.resizeObserver) return;
+    this.resizeObserver = new ResizeObserver(() => this.ensureVisibility());
+    this.resizeObserver.observe(container);
+  }
+
+  _bindViewportListeners() {
+    if (typeof window === "undefined" || this._viewportHandlers) return;
+    const resizeHandler = () => this.ensureVisibility();
+    const orientationHandler = () => this.ensureVisibility();
+    const visibilityHandler = () => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        this.ensureVisibility();
+      }
+    };
+
+    window.addEventListener("resize", resizeHandler);
+    window.addEventListener("orientationchange", orientationHandler);
+    document.addEventListener("visibilitychange", visibilityHandler);
+
+    this._viewportHandlers = {
+      resizeHandler,
+      orientationHandler,
+      visibilityHandler,
+    };
+  }
+
+  _unbindViewportListeners() {
+    if (!this._viewportHandlers || typeof window === "undefined") return;
+    const { resizeHandler, orientationHandler, visibilityHandler } =
+      this._viewportHandlers;
+    window.removeEventListener("resize", resizeHandler);
+    window.removeEventListener("orientationchange", orientationHandler);
+    document.removeEventListener("visibilitychange", visibilityHandler);
+    this._viewportHandlers = null;
+  }
+
+  ensureVisibility() {
+    if (!this.map) return;
+    const container = document.getElementById(this.containerId);
+    if (!container) return;
+
+    if (this._visibilityRetry) {
+      clearTimeout(this._visibilityRetry);
+      this._visibilityRetry = null;
+    }
+
+    const rect = container.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      this._visibilityRetry = setTimeout(() => this.ensureVisibility(), 140);
+      return;
+    }
+
+    const raf =
+      (typeof window !== "undefined" && window.requestAnimationFrame) ||
+      ((cb) => setTimeout(cb, 16));
+    const caf =
+      (typeof window !== "undefined" && window.cancelAnimationFrame) ||
+      clearTimeout;
+
+    if (this._invalidateHandle) {
+      caf(this._invalidateHandle);
+      this._invalidateHandle = null;
+    }
+
+    this._invalidateHandle = raf(() => {
+      try {
+        this.map.invalidateSize();
+      } finally {
+        this._invalidateHandle = null;
+      }
+    });
   }
 }
 

@@ -1,7 +1,7 @@
 {
-  "name": "Wetter-App - Aktuelle Wetterdaten",
-  "short_name": "Wetter",
-  "description": "Wetter-App mit Open-Meteo und BrightSky Integration für aktuelle Wetterdaten und Vorhersagen",
+  "name": "Calchas - Aktuelle Wetterdaten",
+  "short_name": "Calchas",
+  "description": "Calchas mit Open-Meteo und BrightSky Integration für aktuelle Wetterdaten und Vorhersagen",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -47,7 +47,7 @@
     {
       "name": "Nach Wetter suchen",
       "short_name": "Suchen",
-      "description": "Öffne die Wetter-App zum Suchen",
+      "description": "Öffne Calchas zum Suchen",
       "url": "/?shortcut=search",
       "icons": [
         {

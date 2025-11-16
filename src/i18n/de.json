@@ -1,7 +1,7 @@
 {
   "app": {
-    "title": "🌦️ Wetter App",
-    "subtitle": "PWA Wettervorhersage mit Push-Benachrichtigungen"
+    "title": "🌦️ Calchas",
+    "subtitle": "Intelligente Wetter-PWA mit Push-Benachrichtigungen"
   },
   "weather": {
     "current": "Aktuelle Bedingungen",
@@ -125,6 +125,6 @@
     "sources": "🌐 Datenquellen",
     "privacy": "Datenschutz",
     "terms": "Nutzungsbedingungen",
-    "copyright": "© 2025 Wetter-App"
+    "copyright": "© 2025 Calchas"
   }
 }

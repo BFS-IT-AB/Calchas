@@ -2,7 +2,7 @@
 
 Stand: 15.11.2025
 
-Diese Bedingungen regeln die Nutzung der Wetter-App (Projektarbeit BFS IT).
+Diese Bedingungen regeln die Nutzung von Calchas (Projektarbeit BFS IT).
 
 ## 1. Zweck
 

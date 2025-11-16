@@ -180,7 +180,7 @@
 
 **Lösungen:**
 
-- `src/app.js`: Hinterlegt den von euch bereitgestellten Key (`22889ea71f66faab6196bde649dd04a9`) als Default, lässt aber weiterhin Runtime-Overrides zu.
+- `src/app.js`: Hinterlegt den von euch bereitgestellten Key (`9f79d40dc85bebc834364783854eefbd`) als Default, lässt aber weiterhin Runtime-Overrides zu.
 - `src/features.js`: Map-Overlays werden automatisch aktiviert (RainViewer zuerst) und melden Tile-Fehler sofort im UI + API-Status, damit ungültige Keys sichtbar werden.
 - `README.md`: Dokumentiert, dass ein gültiger Key eingebettet ist und wie er überschrieben werden kann.
 
@@ -199,6 +199,21 @@
 - `src/app.js`: Favoritenanzeige zeigt jetzt "Hinzugefügt"-Zeitstempel, gruppierte Aktionen und hält den ⭐-Button per `syncFavoriteToggleState` immer in sync.
 
 **Resultat:** Vorhersagen sind kompakt, aber vollständig; Favoriten reagieren konsistent auf Drag&Drop, Hinzufügen oder Entfernen.
+
+---
+
+### 13. **MoonPhase Provider gewechselt** ✅
+
+**Problem:** Die alte Farmsense-Moonphase-API war unzuverlässig und lieferte häufig 500er oder leere Antworten, sodass die Astronomie-Karten ohne Daten blieben.
+
+**Lösungen:**
+
+- `src/utils/constants.js`: Neues Basis-Endpoint `https://api.phaseofthemoontoday.com/v1` inkl. großzügigerem Timeout hinterlegt.
+- `src/api/moonPhase.js`: Client komplett neu geschrieben – sluggt die aktuelle Stadt, fragt zunächst den Location-Endpoint an und fällt bei Bedarf auf `/date/{YYYY-MM-DD}` bzw. `/current` zurück. Die Normalisierung extrahiert Phase, Emoji, Illuminationsgrad sowie Moonrise/Moonset aus den neuen Feldnamen.
+- `src/app.js`: Übermittelt aktuelle Koordinaten + BigDataCloud-Ortsdetails an den Client, damit lokale Mondauf/-untergangszeiten korrekt gezogen werden.
+- `README.md`: PhaseOfTheMoonToday im Abschnitt "Kostenlose APIs" dokumentiert.
+
+**Resultat:** Die Astronomie-Karten bekommen wieder zuverlässige Mondphasen inkl. Moonrise/Moonset, ganz ohne zusätzliche Keys.
 
 ---
 

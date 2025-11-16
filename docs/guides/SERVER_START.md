@@ -20,7 +20,7 @@ node tools/http-server.js
 
 ```
 🚀 Server läuft auf: http://localhost:8000
-📂 Serving: C:\Users\wifel\Desktop\Assets\BFS IT\Projekt\wetter-app-main\src
+📂 Serving: C:\Users\wifel\Desktop\Assets\BFS IT\Projekt\calchas\src
 ```
 
 ### Schritt 2: App öffnen

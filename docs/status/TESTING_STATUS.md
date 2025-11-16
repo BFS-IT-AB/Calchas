@@ -293,7 +293,7 @@ node tools/push-server.js
 
 ## ✨ FAZIT
 
-**Die Wetter-App ist jetzt VOLLSTÄNDIG PRODUCTION-READY!**
+**Calchas ist jetzt VOLLSTÄNDIG PRODUCTION-READY!**
 
 Alle kritischen Issues wurden behoben, alle Features implementiert, alle Tests bestanden. Die App läuft stabil auf dem lokalen HTTP-Server und ist bereit für Deployment oder weitere Entwicklung.
 

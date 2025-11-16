@@ -1,4 +1,4 @@
-# Wetter-App Implementation Summary
+# Calchas Implementation Summary
 
 ## ✅ COMPLETED TASKS
 
@@ -295,7 +295,7 @@ Ready for:
 
 ## PROJECT COMPLETION SUMMARY
 
-**Wetter-App is now 100% feature-complete and production-ready.**
+**Calchas is now 100% feature-complete and production-ready.**
 
 ### What You Get
 
@@ -313,7 +313,7 @@ Ready for:
 ### File Structure Summary
 
 ```
-wetter-app-main/
+calchas/
 ├── src/
 │   ├── app.js                 # Main app logic (989 lines)
 │   ├── index.html             # Semantic PWA template

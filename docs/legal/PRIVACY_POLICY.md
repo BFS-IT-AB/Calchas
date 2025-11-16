@@ -2,7 +2,7 @@
 
 Stand: 15.11.2025
 
-Diese Wetter-App ist ein reines Lern- und Demonstrationsprojekt. Es werden nur die Daten verarbeitet, die für die angefragten Funktionen unbedingt notwendig sind.
+Calchas ist ein reines Lern- und Demonstrationsprojekt. Es werden nur die Daten verarbeitet, die für die angefragten Funktionen unbedingt notwendig sind.
 
 ## 1. Verantwortlich
 

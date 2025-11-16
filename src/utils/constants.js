@@ -50,6 +50,42 @@ const API_ENDPOINTS = {
       format: "json",
     },
   },
+
+  BIGDATACLOUD: {
+    BASE: "https://api.bigdatacloud.net/data/reverse-geocode-client",
+    TIMEOUT: 4500,
+  },
+
+  SUNRISE_SUNSET: {
+    BASE: "https://api.sunrise-sunset.org/json",
+    TIMEOUT: 4500,
+  },
+
+  MOONPHASE: {
+    BASE: "https://api.phaseofthemoontoday.com/v1",
+    TIMEOUT: 6000,
+  },
+
+  CURRENT_UV: {
+    BASE: "https://api.openuv.io/api/v1/uv",
+    TIMEOUT: 5000,
+  },
+
+  AIR_QUALITY: {
+    BASE: "https://api.waqi.info/feed",
+    TIMEOUT: 5000,
+  },
+
+  VISUALIZATION: {
+    BASE: "https://api.weatherbit.io/v2.0/current",
+    TIMEOUT: 5000,
+  },
+
+  MAPTILER_WEATHER: {
+    BASE: "https://api.maptiler.com/weather/forecast",
+    TILE_BASE: "https://api.maptiler.com/weather",
+    TIMEOUT: 5000,
+  },
 };
 
 // ============================================

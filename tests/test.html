@@ -1,24 +1,32 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="de">
-<head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width,initial-scale=1">
-	<title>Wetter-App Tests</title>
-	<style>body{font-family:system-ui,Segoe UI,Arial;margin:16px}h1{font-size:18px}</style>
-</head>
-<body>
-	<h1>Wetter-App - Selbsttests</h1>
-	<div id="results"></div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Calchas Tests</title>
+    <style>
+      body {
+        font-family: system-ui, Segoe UI, Arial;
+        margin: 16px;
+      }
+      h1 {
+        font-size: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Calchas - Selbsttests</h1>
+    <div id="results"></div>
 
-	<!-- Load app scripts that tests depend on -->
-	<script src="../src/utils/constants.js"></script>
-	<script src="../src/utils/validation.js"></script>
-	<script src="../src/utils/cache.js"></script>
-	<script src="../src/api/weather.js"></script>
-	<script src="../src/api/brightsky.js"></script>
+    <!-- Load app scripts that tests depend on -->
+    <script src="../src/utils/constants.js"></script>
+    <script src="../src/utils/validation.js"></script>
+    <script src="../src/utils/cache.js"></script>
+    <script src="../src/api/weather.js"></script>
+    <script src="../src/api/brightsky.js"></script>
 
-	<!-- Load test scripts -->
-	<script src="validation.test.js"></script>
-	<script src="api.test.js"></script>
-</body>
+    <!-- Load test scripts -->
+    <script src="validation.test.js"></script>
+    <script src="api.test.js"></script>
+  </body>
 </html>

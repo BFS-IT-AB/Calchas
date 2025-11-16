@@ -1,7 +1,7 @@
-# Anforderungs-Validierung - Wetter-App
+# Anforderungs-Validierung - Calchas
 
-**Validierungsdatum:** 15. November 2025  
-**App-Version:** 0.2.0  
+**Validierungsdatum:** 15. November 2025
+**App-Version:** 0.2.0
 **Status:** ✅ Alle Anforderungen erfüllt
 
 ---
@@ -469,7 +469,7 @@ GESAMT:                        100% ✅ (26/26)
 
 ## 🏆 **ERGEBNIS: ALLE ANFORDERUNGEN ERFÜLLT**
 
-Die Wetter-App **erfüllt und übertrifft** alle funktionalen, technischen und optionalen Anforderungen:
+Calchas **erfüllt und übertrifft** alle funktionalen, technischen und optionalen Anforderungen:
 
 ### Was übertroffen wurde:
 
@@ -493,7 +493,7 @@ Die Wetter-App **erfüllt und übertrifft** alle funktionalen, technischen und o
 ## ✅ **SIGN-OFF**
 
 ```
-Projekt: Wetter-App
+Projekt: Calchas
 Validiert: 15. November 2025
 Status: ✅ PRODUCTION READY
 
@@ -507,6 +507,6 @@ Ready for Deployment: ✅ JA
 
 ---
 
-**Die Wetter-App ist vollständig implementiert, getestet, dokumentiert und erfüllt 100% aller Anforderungen.**
+**Calchas ist vollständig implementiert, getestet, dokumentiert und erfüllt 100% aller Anforderungen.**
 
 🎉 **Projekt erfolgreich abgeschlossen!** 🎉
