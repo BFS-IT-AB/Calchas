@@ -1625,7 +1625,12 @@ function initApp() {
       ? window.__APP_DEFAULT_API_KEYS
       : {};
 
-  const bakedInDefaults = {};
+  const bakedInDefaults = {
+    // Vom Nutzer bereitgestellte Default-Keys, damit optionale APIs sofort laufen
+    openweathermap: "9f79d40dc85bebc834364783854eefbd",
+    visualcrossing: "JVCZ3WAHB5XBT7GXQC7RQBGBE",
+    meteostat: "edda72c60bmsh4a38c4687147239p14e8d5jsn6f578346b68a",
+  };
 
   window.apiKeyManager.setDefaults({
     ...bakedInDefaults,

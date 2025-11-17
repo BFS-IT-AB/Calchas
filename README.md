@@ -101,7 +101,7 @@ Dokumentation: https://docs/api-documentation.md
 | **Meteostat**      | Historische Stationsdaten             | https://meteostat.net/                     | ✓                |
 | **VisualCrossing** | Historische & Alternative Vorhersagen | https://www.visualcrossing.com/weather-api | ✓ (Trial)        |
 
-> ℹ️ Ab sofort werden **keine Demo-Keys mehr mitgeliefert**. Hinterlege deinen persönlichen Key direkt im Einstellungsdialog oder injiziere ihn zur Laufzeit über `window.__APP_DEFAULT_API_KEYS` (siehe unten). Bereits gespeicherte Keys in localStorage haben weiterhin Vorrang.
+> ℹ️ Die BFS-IT Demo-Builds enthalten wieder eingebackene Default-Keys für **OpenWeatherMap**, **VisualCrossing** und **Meteostat** (siehe `src/app.js` → `bakedInDefaults`). Sie dienen ausschließlich Testzwecken und werden beim ersten Start automatisch gespeichert, sofern der Nutzer noch keine eigenen Keys hat. Für Produktivbetrieb solltest du die Werte im Code ersetzen oder eigene Keys via Runtime-Injektion setzen.
 
 #### Keys Konfigurieren
 
@@ -117,7 +117,7 @@ Dokumentation: https://docs/api-documentation.md
    - **Einstellungen** → **API-Keys**
    - Keys eingeben (werden – falls möglich – lokal gespeichert; andernfalls für die aktuelle Session gehalten)
 
-> ℹ️ **OpenWeatherMap liefert keinen Demo-Key mehr mit**. Trage deinen persönlichen Key im Einstellungsdialog ein, damit optionale Vorhersagen und Karten-Overlays funktionieren.
+> ℹ️ In produktiven Deployments liefert **OpenWeatherMap** (genau wie VisualCrossing & Meteostat) nach wie vor **keine** Demo-Keys mit. Verwende dort deine eigenen Schlüssel über den Einstellungsdialog oder `window.__APP_DEFAULT_API_KEYS`, falls du die in `src/app.js` hinterlegten BFS-Demo-Keys nicht nutzen möchtest.
 
 ##### (Optional) Default-Keys per Runtime bereitstellen
 

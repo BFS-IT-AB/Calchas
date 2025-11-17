@@ -10,22 +10,22 @@ Alle 3 API-Keys wurden vollständig in Calchas integriert.
 
 ### 1. **OpenWeatherMap** ✅
 
-- **API-Key:** Individuell (kein Demo-Key mehr enthalten)
-- **Status:** Bitte im Einstellungsdialog speichern oder via `window.__APP_DEFAULT_API_KEYS` injizieren
+- **API-Key:** BFS-Demo-Key ab Werk hinterlegt (`src/app.js` → `bakedInDefaults`), für Produktion bitte ersetzen
+- **Status:** Wird beim ersten App-Start automatisch gespeichert, kann jederzeit über den Einstellungsdialog oder `window.__APP_DEFAULT_API_KEYS` überschrieben werden
 - **Features:** Current Weather, Hourly Forecast, Daily Forecast
 - **Integration:** Wird als optionale Zusatzquelle geladen wenn Hauptquellen (Open-Meteo, BrightSky) vorhanden
 
 ### 2. **VisualCrossing** ✅
 
-- **API-Key:** Individuell (kein Demo-Key mehr enthalten)
-- **Status:** Bitte im Einstellungsdialog speichern oder via Runtime-Defaults injizieren
+- **API-Key:** BFS-Demo-Key vorbefüllt; ausschließlich für lokale Tests gedacht
+- **Status:** Lädt automatisch, solange kein eigener Key gespeichert wurde; kann per Settings/Runtime ersetzt werden
 - **Features:** Current Weather, Historical Data, Forecast
 - **Integration:** Wird als optionale Zusatzquelle geladen
 
 ### 3. **Meteostat** ✅
 
-- **API-Key (RapidAPI):** Individuell (kein Demo-Key mehr enthalten)
-- **Status:** Bitte im Einstellungsdialog speichern oder via Runtime-Defaults injizieren
+- **API-Key (RapidAPI):** BFS-Demo-Key auf RapidAPI-Basis integriert
+- **Status:** Wird wie oben beschrieben automatisch gesetzt, sollte für produktive Deployments durch einen eigenen RapidAPI-Key ersetzt werden
 - **Features:** Historical Weather Data
 - **Integration:** Verfügbar für historische Abfragen
 

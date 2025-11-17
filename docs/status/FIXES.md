@@ -180,12 +180,12 @@
 
 **Lösungen:**
 
-- `src/app.js`: Entfernt harte Demo-Keys und akzeptiert stattdessen nur noch Runtime- oder Benutzer-Keys, wodurch deaktivierte Accounts keine Fehlversuche mehr erzeugen.
+- `src/app.js`: `bakedInDefaults` liefert wieder gültige BFS-Demo-Keys, die bei der ersten Initialisierung gespeichert werden und trotzdem jederzeit per Runtime/Settings überschrieben werden können.
 - `src/utils/apiKeyManager.js`: Entfernt bekannte, abgelaufene Demo-Keys automatisch aus localStorage und hält neue Keys selbst dann bereit, wenn localStorage blockiert ist.
 - `src/features.js`: Map-Overlays werden automatisch aktiviert (RainViewer zuerst) und melden Tile-Fehler sofort im UI + API-Status, damit ungültige Keys sichtbar werden.
-- `README.md`: Dokumentiert, wie eigene Keys hinterlegt oder via `window.__APP_DEFAULT_API_KEYS` injiziert werden können.
+- `README.md` & `docs/api/API_INTEGRATION.md`: Dokumentieren klar, dass Demo-Keys nur für BFS-Tests gedacht sind und wie eigene Keys injiziert werden.
 
-**Resultat:** Regenradar lädt sofort, OWM-Layer erscheinen reproduzierbar und invalid Keys werden klar gekennzeichnet.
+**Resultat:** Regenradar lädt sofort, OWM-Layer erscheinen reproduzierbar und invalid Keys werden klar gekennzeichnet, während Produktiv-Deployments weiterhin eigene Schlüssel setzen können.
 
 ---
 
