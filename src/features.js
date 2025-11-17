@@ -85,6 +85,7 @@ class WeatherMap {
     this._visibilityRetry = null;
     this._viewportHandlers = null;
     this.legendEl = null;
+    this.layerContextEl = null;
   }
 
   init(lat, lon, city) {
@@ -217,6 +218,9 @@ class WeatherMap {
         label: "Temperatur-Layer",
         shortLabel: "Temp",
         icon: "🌡️",
+        provider: "OpenWeatherMap",
+        description:
+          "Visualisiert aktuelle Temperaturfelder als farbige Heatmap.",
         overlayKey: "owm-temp",
         inspectorMode: "temperature",
       },
@@ -225,6 +229,9 @@ class WeatherMap {
         label: "Radar + Regen",
         shortLabel: "Radar",
         icon: "🌧️",
+        provider: "RainViewer",
+        description:
+          "Animiertes Radar mit vergangenem und prognostiziertem Niederschlag.",
         overlayKey: "radar",
         inspectorMode: "precipitation",
       },
@@ -233,6 +240,8 @@ class WeatherMap {
         label: "Niederschlag",
         shortLabel: "Regen",
         icon: "💧",
+        provider: "OpenWeatherMap",
+        description: "Farbige Darstellung für Regen- und Schneeintensität.",
         overlayKey: "owm-precip",
         inspectorMode: "precipitation",
       },
@@ -241,6 +250,8 @@ class WeatherMap {
         label: "Wind",
         shortLabel: "Wind",
         icon: "🌬️",
+        provider: "OpenWeatherMap",
+        description: "Windrichtungen und -geschwindigkeiten als Strömung.",
         overlayKey: "owm-wind",
         inspectorMode: "wind",
       },
@@ -249,6 +260,8 @@ class WeatherMap {
         label: "Wolken",
         shortLabel: "Wolken",
         icon: "☁️",
+        provider: "OpenWeatherMap",
+        description: "Bewölkungsdichte und Struktur aus Satellitendaten.",
         overlayKey: "owm-clouds",
         inspectorMode: "clouds",
       },
@@ -257,6 +270,8 @@ class WeatherMap {
         label: "Druck",
         shortLabel: "Druck",
         icon: "🧭",
+        provider: "OpenWeatherMap",
+        description: "Luftdruck-Isobaren zur Einordnung der Großwetterlage.",
         overlayKey: "owm-pressure",
       },
       {
@@ -264,6 +279,8 @@ class WeatherMap {
         label: "Winter",
         shortLabel: "Winter",
         icon: "❄️",
+        provider: "OpenWeatherMap",
+        description: "Schnee- und Eis-Layer für Winterbedingungen.",
         overlayKey: "owm-snow",
         inspectorMode: "winter",
       },
@@ -272,6 +289,9 @@ class WeatherMap {
         label: "Luftfeuchte",
         shortLabel: "Feuchte",
         icon: "💦",
+        provider: "Calchas Inspector",
+        description:
+          "Inspector zeigt relative Luftfeuchte für den fokussierten Ort.",
         inspectorMode: "humidity",
       },
       {
@@ -279,6 +299,9 @@ class WeatherMap {
         label: "Sichtweite",
         shortLabel: "Sicht",
         icon: "🛰️",
+        provider: "Calchas Inspector",
+        description:
+          "Berechnet Sichtweite & Einschränkungen für den ausgewählten Punkt.",
         inspectorMode: "visibility",
       },
       {
@@ -286,6 +309,8 @@ class WeatherMap {
         label: "Taupunkt",
         shortLabel: "Tau",
         icon: "🧊",
+        provider: "Calchas Inspector",
+        description: "Zeigt Taupunkt & Feuchtegefühl innerhalb des Inspectors.",
         inspectorMode: "dewpoint",
       },
       {
@@ -293,6 +318,9 @@ class WeatherMap {
         label: "Luftqualität",
         shortLabel: "Air",
         icon: "🫧",
+        provider: "Calchas Inspector",
+        description:
+          "Inspector blendet lokale Luftqualitäts-Indizes (AQI) ein.",
         inspectorMode: "air-quality",
       },
     ];
@@ -462,12 +490,15 @@ class WeatherMap {
       this.toolbarEl.removeEventListener("click", this._toolbarHandler);
     }
     this.toolbarEl = target;
+    this.layerContextEl = document.getElementById("map-layer-context");
     this.toolbarEl.innerHTML = this.toolbarConfigs
       .map(
         (config) => `
           <button type="button" class="map-layer-btn" data-layer="${
             config.key
-          }" title="${config.label}" aria-label="${config.label}">
+          }" title="${config.label}" aria-label="${
+          config.label
+        }" aria-pressed="false">
             <span class="map-layer-btn-icon">${config.icon || "•"}</span>
             <span class="map-layer-btn-label">${
               config.shortLabel || config.label
@@ -485,6 +516,7 @@ class WeatherMap {
     };
     this.toolbarEl.addEventListener("click", this._toolbarHandler);
     this._syncToolbarAvailability();
+    this._updateLayerContext(this.toolbarActiveKey);
   }
 
   attachInspector(inspector) {
@@ -535,8 +567,83 @@ class WeatherMap {
     if (!this.toolbarEl) return;
     this.toolbarActiveKey = key;
     this.toolbarEl.querySelectorAll(".map-layer-btn").forEach((btn) => {
-      btn.classList.toggle("is-active", btn.dataset.layer === key);
+      const isActive = Boolean(key) && btn.dataset.layer === key;
+      btn.classList.toggle("is-active", isActive);
+      btn.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
+    this._updateLayerContext(key);
+  }
+
+  _updateLayerContext(key) {
+    if (!this.layerContextEl) return;
+
+    if (!key) {
+      this.layerContextEl.innerHTML = `
+        <div class="map-layer-context-body">
+          <div>
+            <p class="map-layer-context-eyebrow">Layer auswählen</p>
+            <strong>Keine Ebene aktiv</strong>
+            <p>Wähle oben eine Kartenebene, um Datenquelle und Anzeigeoptionen zu sehen.</p>
+          </div>
+          <div class="map-layer-context-meta">
+            <span class="map-layer-context-badge" data-state="available">Bereit</span>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    const config = this.toolbarConfigs.find((entry) => entry.key === key);
+    if (!config) {
+      this._updateLayerContext(null);
+      return;
+    }
+
+    const overlayKey = config.overlayKey || null;
+    const overlayConfig = overlayKey
+      ? this.overlayConfigs.find((entry) => entry.key === overlayKey)
+      : null;
+    const legendInfo = overlayKey ? this.legendItems.get(overlayKey) : null;
+    const provider =
+      config.provider ||
+      overlayConfig?.provider ||
+      legendInfo?.provider ||
+      (overlayKey ? "OpenWeatherMap" : "Calchas Inspector");
+    const state = legendInfo?.state || (overlayKey ? "available" : "inspector");
+    const badgeState =
+      this.currentOverlay?.key === overlayKey ? "active" : state;
+    const statusLabelMap = {
+      active: "Aktiv auf Karte",
+      available: "Bereit",
+      loading: "Lädt",
+      locked: "API-Key nötig",
+      error: "Fehler",
+      inspector: "Inspector",
+    };
+    const description =
+      config.description ||
+      overlayConfig?.description ||
+      (overlayKey
+        ? "Overlay steht bereit."
+        : "Inspector blendet Details in der rechten Spalte ein.");
+    const detailText =
+      legendInfo?.detail || (overlayKey ? "" : "Inspector aktiv");
+
+    this.layerContextEl.innerHTML = `
+      <div class="map-layer-context-body">
+        <div>
+          <p class="map-layer-context-eyebrow">${provider}</p>
+          <strong>${config.label}</strong>
+          <p>${description}</p>
+        </div>
+        <div class="map-layer-context-meta">
+          <span class="map-layer-context-badge" data-state="${badgeState}">
+            ${statusLabelMap[badgeState] || "Bereit"}
+          </span>
+          ${detailText ? `<small>${detailText}</small>` : ""}
+        </div>
+      </div>
+    `;
   }
 
   _highlightToolbarSelectionByOverlay(overlayKey) {
@@ -1055,6 +1162,8 @@ class WeatherMap {
     } else {
       this.legendEl.innerHTML = chunks.join("\n");
     }
+
+    this._updateLayerContext(this.toolbarActiveKey);
   }
 
   _syncToolbarAvailability() {
@@ -1080,6 +1189,8 @@ class WeatherMap {
         this._highlightToolbarSelection(null);
       }
     });
+
+    this._updateLayerContext(this.toolbarActiveKey);
   }
 
   _updateOverlayStatus() {
@@ -1093,6 +1204,8 @@ class WeatherMap {
       this.statusEl.textContent = "Karte: Standard (OSM)";
       this.statusEl.classList.add("pill-neutral");
     }
+
+    this._updateLayerContext(this.toolbarActiveKey);
   }
 
   _activateDefaultOverlay(overlays) {
