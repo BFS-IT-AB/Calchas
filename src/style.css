@@ -1021,6 +1021,9 @@ body.dark-mode .forecast-carousel-indicator {
   gap: var(--spacing-lg);
   overflow-x: auto;
   scroll-snap-type: x proximity;
+  scroll-padding-left: var(--spacing-lg);
+  padding-left: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
   padding-bottom: var(--spacing-sm);
   scrollbar-width: thin;
   scroll-behavior: smooth;
@@ -1051,20 +1054,20 @@ body.dark-mode .forecast-track::-webkit-scrollbar-thumb {
 }
 
 .forecast-track .forecast-card {
-  flex: 0 0 80vw;
+  flex: 0 0 calc(100% / 3 - var(--spacing-lg) * 2 / 3);
   scroll-snap-align: start;
-  min-width: 220px;
+  min-width: 200px;
 }
 
 @media (min-width: 600px) {
   .forecast-track .forecast-card {
-    flex: 0 0 280px;
+    flex: 0 0 calc(100% / 3 - var(--spacing-lg) * 2 / 3);
   }
 }
 
 @media (min-width: 1024px) {
   .forecast-track .forecast-card {
-    flex: 0 0 320px;
+    flex: 0 0 calc(100% / 3 - var(--spacing-lg) * 2 / 3);
   }
 }
 

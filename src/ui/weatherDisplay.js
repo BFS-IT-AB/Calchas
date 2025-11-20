@@ -603,7 +603,8 @@ class WeatherDisplayComponent {
           activeIndex = idx;
         }
       });
-      indicator.textContent = `${activeIndex + 1} / ${cards.length}`;
+      // Zählung um 1 erhöht (2/7 wird zu 3/7, etc.)
+      indicator.textContent = `${activeIndex + 2} / ${cards.length}`;
     };
 
     const updateNavState = () => {
@@ -620,8 +621,46 @@ class WeatherDisplayComponent {
     };
 
     const scrollByPage = (direction) => {
-      const delta = Math.max(track.clientWidth * 0.9, 200);
-      track.scrollBy({ left: delta * direction, behavior: "smooth" });
+      if (!cards.length) return;
+      
+      // Finde die aktuell angezeigte Karte (die in der Mitte ist)
+      const viewportCenter = track.scrollLeft + track.clientWidth / 2;
+      let currentIndex = 0;
+      let minDelta = Number.POSITIVE_INFINITY;
+      
+      cards.forEach((card, idx) => {
+        const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+        const delta = Math.abs(cardCenter - viewportCenter);
+        if (delta < minDelta) {
+          minDelta = delta;
+          currentIndex = idx;
+        }
+      });
+      
+      // Berechne nächste Karte basierend auf Richtung
+      const nextIndex = currentIndex + direction;
+      
+      if (nextIndex >= 0 && nextIndex < cards.length) {
+        const nextCard = cards[nextIndex];
+        const cardStart = nextCard.offsetLeft;
+        const cardWidth = nextCard.offsetWidth;
+        const cardEnd = cardStart + cardWidth;
+        const viewportWidth = track.clientWidth;
+        const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
+        const gapSize = 24; // var(--spacing-lg) in pixels
+        
+        // Für die letzte Karte: Stelle sicher, dass sie vollständig mit Padding sichtbar ist
+        if (nextIndex === cards.length - 1) {
+          // Scrolle so, dass die letzte Karte mit etwas Padding von links sichtbar ist
+          const targetScroll = Math.max(0, cardEnd - viewportWidth + gapSize);
+          track.scrollLeft = Math.min(targetScroll, maxScroll);
+        } else {
+          // Für andere Karten: Zentriere sie
+          const cardCenter = cardStart + cardWidth / 2;
+          const targetScroll = Math.max(0, cardCenter - viewportWidth / 2);
+          track.scrollLeft = targetScroll;
+        }
+      }
     };
 
     const onPrev = () => scrollByPage(-1);
@@ -640,6 +679,21 @@ class WeatherDisplayComponent {
     window.addEventListener("resize", onResize);
 
     updateAll();
+
+    // Initiales Scrollen auf die erste Karte
+    setTimeout(() => {
+      if (cards.length > 0) {
+        const firstCard = cards[0];
+        // Berechne die exakte Position für die erste Karte
+        const cardStart = firstCard.offsetLeft;
+        const cardWidth = firstCard.offsetWidth;
+        const cardCenter = cardStart + cardWidth / 2;
+        const viewportWidth = track.clientWidth;
+        const targetScroll = Math.max(0, cardCenter - viewportWidth / 2);
+        track.scrollLeft = targetScroll;
+        setTimeout(() => updateAll(), 10);
+      }
+    }, 0);
 
     this._forecastCarouselCleanup = () => {
       prevBtn.removeEventListener("click", onPrev);
