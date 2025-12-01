@@ -217,6 +217,19 @@
 
 ---
 
+### 14. **Hero-Layout & RainViewer Tiles** ✅
+
+**Problem:** Das neue Android-Style-Hero aus `index.html` nutzte IDs wie `#current-hero`, `#overview-panels` und `#insights-grid`, während `src/ui/weatherDisplay.js` noch die alten Container adressierte. Parallel generierte `WeatherMap._buildRainViewerTileUrl` immer das Standard-Radar-Suffix (`0/0_0`), wodurch Infrarot-Frames im UI falsch eingefärbt wurden und `tests/rainviewer.test.js` scheiterten.
+
+**Lösung:**
+
+- Hero-Renderer (`weatherDisplay.js`) erzeugt Now/Overview/Insights-Blöcke 1:1 mit den neuen DOM-IDs, synced Tooltips/Icons über `_renderIcon` und hält Chips/Sunrise-Bar innerhalb derselben Grid-Struktur.
+- RainViewer-Tilebuilder (`features.js`) entscheidet jetzt anhand von `frame.type` über Tile-Größe und Parameter (`0/0_0` vs. `1/1_1`), sodass Radar und Infrarot sofort mit dem richtigen Palette-Set geladen werden.
+
+**Resultat:** Hero-, Overview- und Insight-Panels werden exakt in die reorganisierten Layout-Slots gerendert, und RainViewer-Frames bestehen sowohl UI-Checks als auch die Jest-Suite.
+
+---
+
 ## 📂 Geänderte/Erstellte Dateien
 
 ### Neu erstellt:

@@ -1332,12 +1332,13 @@ class WeatherMap {
   _buildRainViewerTileUrl(frame) {
     if (!frame?.path) return null;
     const host = this.rainViewerHost || "https://tilecache.rainviewer.com";
+    const tileSize = frame.type === "infrared" ? "256" : "512";
+    const renderParams = frame.type === "infrared" ? "0/0_0" : "2/1_1";
     if (frame.path.startsWith("http")) {
       if (frame.path.includes("{z}")) {
         return frame.path;
       }
-      const suffix = frame.type === "infrared" ? "256" : "512";
-      return `${frame.path}/${suffix}/{z}/{x}/{y}/2/1_1.png`;
+      return `${frame.path}/${tileSize}/{z}/{x}/{y}/${renderParams}.png`;
     }
     const normalized = frame.path.startsWith("/")
       ? frame.path
@@ -1346,8 +1347,7 @@ class WeatherMap {
     if (base.includes("{z}")) {
       return base;
     }
-    const tileSize = frame.type === "infrared" ? "256" : "512";
-    return `${base}/${tileSize}/{z}/{x}/{y}/2/1_1.png`;
+    return `${base}/${tileSize}/{z}/{x}/{y}/${renderParams}.png`;
   }
 
   _formatRadarFrameLabel(frame) {
@@ -3017,8 +3017,9 @@ if (typeof module !== "undefined" && module.exports) {
     Analytics,
   };
 }
-document.addEventListener('selectstart', function(e) {
-    if (e.target.closest('.weather-box')) { // Prüft, ob das ausgewählte Element innerhalb deines Kastens liegt
-        e.preventDefault();
-    }
+document.addEventListener("selectstart", function (e) {
+  if (e.target.closest(".weather-box")) {
+    // Prüft, ob das ausgewählte Element innerhalb deines Kastens liegt
+    e.preventDefault();
+  }
 });

@@ -4,6 +4,12 @@ class WeatherDisplayComponent {
   constructor(currentContainerId, forecastContainerId) {
     this.currentContainer = document.getElementById(currentContainerId);
     this.forecastContainer = document.getElementById(forecastContainerId);
+    try {
+      this._iconMapper =
+        window?.weatherIconMapper || window?.iconMapper || window?.IconMapper;
+    } catch (e) {
+      this._iconMapper = null;
+    }
     this.currentData = null;
     this.timeIntervalId = null;
     this._forecastDetailHandlers = null;
@@ -11,6 +17,7 @@ class WeatherDisplayComponent {
     this._forecastCarouselCleanup = null;
     this._forecastCarouselFrame = null;
   }
+
   displayCurrent(weatherData, city = "Standort") {
     if (!this.currentContainer) return;
 
@@ -68,14 +75,15 @@ class WeatherDisplayComponent {
       const windDirection =
         windCardinal ||
         (typeof currentHour.windDirection === "number"
-          ? `${Math.round(currentHour.windDirection)} deg`
+          ? `${Math.round(currentHour.windDirection)}°`
           : null);
+      const airQuality = weatherData.airQuality;
 
       const highlightMetrics = [
         {
           label: "Taupunkt",
           value: this._formatTempValue(dewPoint),
-          hint: "Ø Tagesmittel",
+          hint: "Tagesmittel",
         },
         {
           label: "Luftfeuchte",
@@ -116,24 +124,49 @@ class WeatherDisplayComponent {
         weatherData.sunEvents,
         weatherData.moonPhase
       );
-      const extremes = daySnapshot
-        ? `
-          <div class="current-extremes">
-            <div><span>Max</span><strong>${this._formatTempValue(
-              daySnapshot.summary?.tempMax
-            )}</strong></div>
-            <div><span>Min</span><strong>${this._formatTempValue(
-              daySnapshot.summary?.tempMin
-            )}</strong></div>
-          </div>
-        `
+
+      const heroBadges = [];
+      if (typeof daySnapshot?.summary?.tempMax === "number") {
+        heroBadges.push(
+          `⬆️ Max ${this._formatTempValue(daySnapshot.summary.tempMax)}`
+        );
+      }
+      if (typeof daySnapshot?.summary?.tempMin === "number") {
+        heroBadges.push(
+          `⬇️ Min ${this._formatTempValue(daySnapshot.summary.tempMin)}`
+        );
+      }
+      if (typeof precipitationProb === "number" && precipitationProb > 0) {
+        heroBadges.push(`☔ ${Math.round(precipitationProb)}% Regenchance`);
+      }
+      if (humidity && typeof humidity === "number") {
+        heroBadges.push(`💧 ${Math.round(humidity)}% rel. Feuchte`);
+      }
+      if (airQuality?.european?.value) {
+        heroBadges.push(
+          `🫧 AQI ${Math.round(airQuality.european.value)} · ${
+            airQuality.european.label || ""
+          }`
+        );
+      } else if (airQuality?.us?.value) {
+        heroBadges.push(
+          `🫧 AQI ${Math.round(airQuality.us.value)} · ${
+            airQuality.us.label || ""
+          }`
+        );
+      }
+
+      const heroBadgesHtml = heroBadges.length
+        ? `<div class="hero-badges">${heroBadges
+            .map((badge) => `<span class="tonal-pill">${badge}</span>`)
+            .join("")}</div>`
         : "";
 
-      const highlightsHtml = highlightMetrics
+      const statsHtml = highlightMetrics
         .map(
           (metric) => `
-            <article class="current-highlight">
-              <span class="label">${metric.label}</span>
+            <article class="stat-pill">
+              <span>${metric.label}</span>
               <strong>${metric.value || "--"}</strong>
               <small>${metric.hint || ""}</small>
             </article>
@@ -141,73 +174,109 @@ class WeatherDisplayComponent {
         )
         .join("");
 
-      const html = `
-        <div class="weather-current advanced">
-          <div class="location-header">
-            <h2 class="location-name">📍 ${this._escapeHtml(city)}</h2>
-            <div class="location-controls">
+      const heroIcon = this._renderIcon(currentHour, {
+        className: "current-icon",
+        fallbackEmoji: currentHour.emoji,
+        fallbackLabel: description,
+      });
+
+      const precipitationLabel =
+        typeof precipitationSum === "number"
+          ? `${precipitationSum.toFixed(1)} mm`
+          : this._formatMetricValue(currentHour.precipitation, " mm", 1);
+
+      const heroHtml = `
+        <div class="hero-top">
+          <div class="hero-copy">
+            <p class="eyebrow">Jetzt in</p>
+            <div class="location-header">
+              <h2 class="location-name">${this._escapeHtml(city)}</h2>
               <button id="favoriteToggle" class="btn-icon favorite-toggle" data-city="${this._escapeHtml(
                 city
-              )}" aria-label="Favorit hinzufügen">☆</button>
-              <span class="location-time" id="current-time"></span>
+              )}" aria-label="Favorit setzen">☆</button>
             </div>
-          </div>
-          <div class="current-main">
-            <div class="temperature-section">
-              <span class="current-emoji" id="current-emoji">${
-                currentHour.emoji || "❓"
-              }</span>
-              <span class="current-temp" id="current-temp">${this._formatTempValue(
-                currentHour.temperature
-              )}</span>
-              <span class="current-description" id="current-desc">${this._escapeHtml(
-                description
-              )}</span>
-              <small class="current-feels" id="feels-like">Gefühlt ${
+            <p class="hero-temperature" id="current-temp">${this._formatTempValue(
+              currentHour.temperature
+            )}</p>
+            <div class="hero-meta">
+              <span id="current-desc">${this._escapeHtml(description)}</span>
+              <small id="feels-like">Gefühlt ${
                 typeof feelsLike === "number"
                   ? this._formatTempValue(feelsLike)
                   : "--"
               }</small>
-              ${extremes}
-            </div>
-            <div class="weather-details">
-              <div class="detail-item">
-                <span class="detail-label">💨 Wind</span>
-                <span class="detail-value" id="wind-speed">${this._formatWindValue(
-                  currentHour.windSpeed
-                )}${windDirection ? ` · ${windDirection}` : ""}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">💧 Luftfeuchtigkeit</span>
-                <span class="detail-value" id="humidity">${this._formatPercentValue(
-                  humidity
-                )}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">☔ Regen</span>
-                <span class="detail-value">${
-                  typeof precipitationSum === "number"
-                   ? `${precipitationSum.toFixed(1)} mm`
-                   : this._formatMetricValue(currentHour.precipitation, " mm", 1)
-                }</span>
-              </div>
+              <small id="current-time"></small>
             </div>
           </div>
-          ${sunriseSunset}
-          ${astroPanel}
-          <div class="current-highlights">${highlightsHtml}</div>
-          <div class="source-info" id="source-info">Daten werden geladen...</div>
+          <div class="hero-visual">
+            <div class="hero-icon" id="current-emoji">${heroIcon}</div>
+          </div>
         </div>
+        ${heroBadgesHtml}
+        <div class="weather-details hero-details">
+          <div class="detail-item">
+            <span class="detail-label">💨 Wind</span>
+            <span class="detail-value" id="wind-speed">${this._formatWindValue(
+              currentHour.windSpeed
+            )}${windDirection ? ` · ${windDirection}` : ""}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">💧 Luftfeuchte</span>
+            <span class="detail-value" id="humidity">${this._formatPercentValue(
+              humidity
+            )}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">☔ Regen</span>
+            <span class="detail-value">${precipitationLabel}</span>
+          </div>
+        </div>
+        <div class="hero-stats">${statsHtml}</div>
+        ${sunriseSunset || ""}
+        ${astroPanel || ""}
+        <div class="source-info" id="source-info">Daten werden geladen...</div>
       `;
 
-      this.currentContainer.innerHTML = html;
+      this.currentContainer.innerHTML = heroHtml;
       this.currentData = weatherData;
-      if (daySnapshot) {
-        this._renderDailyInsightsPanel(daySnapshot);
-      } else if (!Array.isArray(open.dayInsights) || !open.dayInsights.length) {
-        this._renderDailyInsightsPanel(null);
+
+      try {
+        this._renderDailyOverviewPanel(daySnapshot, currentHour, airQuality);
+      } catch (panelError) {
+        console.warn(
+          "Tagesübersicht konnte nicht gerendert werden",
+          panelError
+        );
+      }
+
+      try {
+        this._renderClimatePanels(currentHour, daySnapshot, airQuality);
+      } catch (climateError) {
+        console.warn(
+          "Klima-Panels konnten nicht gerendert werden",
+          climateError
+        );
+      }
+
+      try {
+        if (daySnapshot) {
+          this._renderDailyInsightsPanel(daySnapshot);
+        } else if (
+          !Array.isArray(open.dayInsights) ||
+          !open.dayInsights.length
+        ) {
+          this._renderDailyInsightsPanel(null);
+        }
+      } catch (insightError) {
+        console.warn(
+          "Daily Insights Panel konnte nicht gerendert werden",
+          insightError
+        );
       }
       this._updateCurrentTime();
+      if (typeof window !== "undefined" && window.updateTopbarStatus) {
+        window.updateTopbarStatus(city);
+      }
 
       if (this.timeIntervalId) {
         clearInterval(this.timeIntervalId);
@@ -226,6 +295,242 @@ class WeatherDisplayComponent {
       this.currentContainer.innerHTML =
         "<p>Fehler beim Laden der Wetterdaten</p>";
     }
+  }
+
+  _renderIcon(entry, options = {}) {
+    const fallbackEmoji =
+      options.fallbackEmoji || entry?.emoji || options.fallbackLabel || "❓";
+    const descriptor = this._resolveIconDescriptor(entry, options);
+    const classes = ["wx-icon"];
+    if (options.className) {
+      classes.push(options.className);
+    }
+
+    if (!descriptor) {
+      return `
+        <span class="${classes.join(
+          " "
+        )}" role="img" aria-label="${this._escapeHtml(
+        options.fallbackLabel || "Wetter Symbol"
+      )}">
+          ${this._escapeHtml(fallbackEmoji)}
+        </span>
+      `;
+    }
+
+    const ariaLabel =
+      descriptor.label || options.fallbackLabel || "Wetter Icon";
+    const theme =
+      (options.forceTheme ||
+        document.documentElement?.dataset?.theme ||
+        "light") === "dark"
+        ? "dark"
+        : "light";
+
+    if (descriptor.lottie) {
+      return `
+        <span class="${classes.join(
+          " "
+        )}" role="img" aria-label="${this._escapeHtml(ariaLabel)}">
+          <lottie-player
+            src="${descriptor.lottie[theme] || descriptor.lottie.light}"
+            background="transparent"
+            speed="1"
+            loop
+            autoplay
+          ></lottie-player>
+        </span>
+      `;
+    }
+
+    if (descriptor.img) {
+      return `
+        <img
+          src="${descriptor.img[theme] || descriptor.img.light}"
+          class="${classes.join(" ")}"
+          alt="${this._escapeHtml(ariaLabel)}"
+          loading="lazy"
+        />
+      `;
+    }
+
+    return `
+      <span class="${classes.join(
+        " "
+      )}" role="img" aria-label="${this._escapeHtml(ariaLabel)}">
+        ${this._escapeHtml(fallbackEmoji)}
+      </span>
+    `;
+  }
+
+  _resolveIconDescriptor(entry, options = {}) {
+    try {
+      const explicitDescriptor =
+        options.iconDescriptor || entry?.iconDescriptor;
+      if (
+        explicitDescriptor &&
+        (explicitDescriptor.lottie || explicitDescriptor.img)
+      ) {
+        return explicitDescriptor;
+      }
+
+      const mapper =
+        this._iconMapper ||
+        window?.weatherIconMapper ||
+        window?.iconMapper ||
+        window?.IconMapper ||
+        null;
+
+      const directPath = this._extractIconPath(entry, options);
+      if (directPath) {
+        return this._buildStaticIconDescriptor(directPath, options);
+      }
+
+      if (!mapper) return null;
+
+      const isDay = this._resolveDayFlag(entry, options);
+      const weatherCode = this._resolveWeatherCode(entry);
+      let resolved = null;
+
+      if (
+        typeof weatherCode === "number" &&
+        typeof mapper.resolveIconByCode === "function"
+      ) {
+        resolved = mapper.resolveIconByCode(weatherCode, isDay);
+      }
+
+      if (!resolved && typeof mapper.resolveIconByKeyword === "function") {
+        const keyword = this._resolveIconKeyword(entry, options);
+        resolved = mapper.resolveIconByKeyword(keyword, isDay);
+      }
+
+      if (resolved && (resolved.path || resolved.img)) {
+        if (resolved.img) {
+          return resolved;
+        }
+        const label = resolved.alt || resolved.label || options.fallbackLabel;
+        return this._buildStaticIconDescriptor(resolved.path, {
+          ...options,
+          fallbackLabel: label,
+        });
+      }
+
+      return null;
+    } catch (err) {
+      console.warn("Icon Descriptor konnte nicht bestimmt werden", err);
+      return null;
+    }
+  }
+
+  _extractIconPath(entry, options = {}) {
+    const direct = options.iconPath || entry?.iconPath;
+    if (typeof direct === "string" && direct.trim()) {
+      return direct.trim();
+    }
+    if (typeof entry?.icon === "string" && entry.icon.includes("/")) {
+      return entry.icon;
+    }
+    if (typeof entry?.iconUrl === "string") {
+      return entry.iconUrl;
+    }
+    return null;
+  }
+
+  _buildStaticIconDescriptor(path, options = {}) {
+    if (!path) return null;
+    const label = options.fallbackLabel || options.fallbackEmoji || "Wetter";
+    const normalized = path.trim();
+    const darkVariant = normalized.includes("/light/")
+      ? normalized.replace("/light/", "/dark/")
+      : normalized;
+    return {
+      label,
+      img: {
+        light: normalized,
+        dark: darkVariant,
+      },
+    };
+  }
+
+  _resolveDayFlag(entry, options = {}) {
+    const candidates = [
+      options.isDay,
+      entry?.isDay,
+      entry?.is_day,
+      entry?.isday,
+      entry?.is_night !== undefined ? (entry.is_night ? 0 : 1) : undefined,
+    ];
+    for (const value of candidates) {
+      if (typeof value === "number" && !Number.isNaN(value)) {
+        return value;
+      }
+      if (typeof value === "boolean") {
+        return value ? 1 : 0;
+      }
+    }
+
+    const timeInput = entry?.time || entry?.date || entry?.timestamp;
+    if (timeInput) {
+      const parsed = new Date(timeInput);
+      if (!Number.isNaN(parsed.getTime())) {
+        const hour = parsed.getHours();
+        return hour >= 6 && hour <= 20 ? 1 : 0;
+      }
+    }
+
+    return undefined;
+  }
+
+  _resolveWeatherCode(entry) {
+    const keys = [
+      "weatherCode",
+      "weather_code",
+      "weathercode",
+      "code",
+      "iconCode",
+      "icon_id",
+      "iconId",
+      "symbol",
+    ];
+    for (const key of keys) {
+      const value = entry?.[key];
+      if (typeof value === "number" && Number.isFinite(value)) {
+        return value;
+      }
+      if (typeof value === "string" && value.trim()) {
+        const numeric = Number(value);
+        if (Number.isFinite(numeric)) {
+          return numeric;
+        }
+      }
+      if (value && typeof value === "object") {
+        const nested = value.code ?? value.id;
+        if (typeof nested === "number" && Number.isFinite(nested)) {
+          return nested;
+        }
+        if (typeof nested === "string" && nested.trim()) {
+          const numeric = Number(nested);
+          if (Number.isFinite(numeric)) {
+            return numeric;
+          }
+        }
+      }
+    }
+    return undefined;
+  }
+
+  _resolveIconKeyword(entry, options = {}) {
+    const keywordSources = [
+      entry?.icon,
+      entry?.condition,
+      entry?.description,
+      entry?.summary?.condition,
+      options.fallbackLabel,
+    ];
+    const found = keywordSources.find(
+      (value) => typeof value === "string" && value.trim().length
+    );
+    return found ? found.trim() : "";
   }
 
   /**
@@ -314,7 +619,11 @@ class WeatherDisplayComponent {
                 return `
                 <div class="hourly-item" data-hour="${idx}">
                   <div class="hour-time">${hourStr}:00</div>
-                  <div class="hour-emoji">${hour.emoji || "❓"}</div>
+                  <div class="hour-emoji">${this._renderIcon(hour, {
+                    className: "hour-icon",
+                    fallbackEmoji: hour.emoji,
+                    fallbackLabel: hour.description,
+                  })}</div>
                   <div class="hour-temp">${tempDisplay}</div>
                   ${windDisplay}
                 </div>
@@ -478,7 +787,11 @@ class WeatherDisplayComponent {
                         : "--";
                     return `<div class="forecast-detail-cell">
                         <strong>${hour}:00</strong>
-                        <span>${h.emoji || "❓"}</span>
+                        <span>${this._renderIcon(h, {
+                          className: "forecast-icon-xs",
+                          fallbackEmoji: h.emoji,
+                          fallbackLabel: h.description,
+                        })}</span>
                         <span>${temp}</span>
                       </div>`;
                   })
@@ -496,9 +809,17 @@ class WeatherDisplayComponent {
                   representativeHour?.description || "Tagestrend"
                 }</small>
               </div>
-              <div class="forecast-emoji">${
-                representativeHour?.emoji || dayObj.emoji || "❓"
-              }</div>
+              <div class="forecast-emoji">${this._renderIcon(
+                representativeHour || dayObj,
+                {
+                  className: "forecast-icon",
+                  fallbackEmoji:
+                    representativeHour?.emoji || dayObj.emoji || "❓",
+                  fallbackLabel:
+                    representativeHour?.description ||
+                    dayObj?.summary?.condition,
+                }
+              )}</div>
             </header>
             <div class="forecast-temps">
               <div class="forecast-max">${formatTempDay(max)}</div>
@@ -533,7 +854,11 @@ class WeatherDisplayComponent {
                       : "";
                   return `<div class="forecast-focus-item">
                       <span class="hour">${hour}:00</span>
-                      <span class="emoji">${h.emoji || "❓"}</span>
+                      <span class="emoji">${this._renderIcon(h, {
+                        className: "forecast-icon-sm",
+                        fallbackEmoji: h.emoji,
+                        fallbackLabel: h.description,
+                      })}</span>
                       <span class="temp">${temp}</span>
                       ${wind}
                     </div>`;
@@ -743,7 +1068,11 @@ class WeatherDisplayComponent {
             <p class="forecast-date">${day?.label || ""}</p>
             <small class="forecast-meta">${condition}</small>
           </div>
-          <div class="forecast-emoji">${day?.emoji || "❓"}</div>
+          <div class="forecast-emoji">${this._renderIcon(day, {
+            className: "forecast-icon",
+            fallbackEmoji: day?.emoji,
+            fallbackLabel: condition,
+          })}</div>
         </header>
         <div class="forecast-temps advanced">
           <div><span class="label">Max</span><span class="value">${tempHigh}</span></div>
@@ -1021,9 +1350,14 @@ class WeatherDisplayComponent {
             : "–";
         const classes = ["inline-hour-cell"];
         if (slot?.isDay === 0) classes.push("is-night");
+        const icon = this._renderIcon(slot, {
+          className: "inline-hour-icon",
+          fallbackEmoji: slot?.emoji,
+          fallbackLabel: slot?.description,
+        });
         return `<span class="${classes.join(
           " "
-        )}"><strong>${hourLabel}</strong>${temp}</span>`;
+        )}"><strong>${hourLabel}</strong>${icon}<span>${temp}</span></span>`;
       })
       .join("");
     return `<div class="inline-hour-grid">${cells}</div>`;
@@ -1098,11 +1432,16 @@ class WeatherDisplayComponent {
         if (typeof slot.precipitation === "number" && slot.precipitation > 0) {
           classes.push("has-rain");
         }
-        const emoji = slot.emoji || "·";
+        const iconMarkup = this._renderIcon(slot, {
+          className: "matrix-icon",
+          fallbackEmoji: slot.emoji || "·",
+          fallbackLabel: slot.description,
+          isDay: typeof slot.isDay === "number" ? slot.isDay : undefined,
+        });
         return `<span class="${classes.join(" ")}" title="${day?.label || ""} ${
           slot.hour
         }:00 · ${temp}">
-            <span class="matrix-emoji">${emoji}</span>
+            <span class="matrix-emoji">${iconMarkup}</span>
             <span class="matrix-temp">${temp}</span>
             ${prob}
           </span>`;
@@ -1115,6 +1454,229 @@ class WeatherDisplayComponent {
         <div class="matrix-hour-cells">${cells}</div>
       </div>
     `;
+  }
+
+  _renderDailyOverviewPanel(day, currentHour, airQuality) {
+    const container = document.getElementById("daily-overview");
+    if (!container) return;
+    if (!day || !currentHour) {
+      container.innerHTML = `
+        <div class="overview-shell">
+          <div class="overview-header">
+            <h2>🧠 Tagesübersicht (AI)</h2>
+            <span>Individuelle Stichpunkte nach Ortssuche</span>
+          </div>
+          <ul class="overview-list"><li>Suche einen Ort, um automatische Highlights zu erhalten.</li></ul>
+        </div>`;
+      return;
+    }
+    const bullets = this._buildDailyOverviewBullets(
+      day,
+      currentHour,
+      airQuality
+    );
+    container.innerHTML = `
+      <div class="overview-shell">
+        <div class="overview-header">
+          <h2>🧠 Tagesübersicht</h2>
+          <span>${day.summary?.condition || ""}</span>
+        </div>
+        <ul class="overview-list">
+          ${bullets.map((entry) => `<li>${entry}</li>`).join("")}
+        </ul>
+      </div>
+    `;
+  }
+
+  _buildDailyOverviewBullets(day, currentHour, airQuality) {
+    const bullets = [];
+    const humidity = Math.round(
+      day.summary?.humidityAvg ?? currentHour?.humidity ?? 0
+    );
+    const dewPoint =
+      typeof day.summary?.dewPointAvg === "number"
+        ? day.summary.dewPointAvg
+        : currentHour?.dewPoint;
+    if (humidity > 0) {
+      const dewText =
+        typeof dewPoint === "number"
+          ? ` mit Taupunkt bei ${this._formatTempValue(dewPoint)}`
+          : "";
+      bullets.push(`${humidity}% Luftfeuchtigkeit${dewText}.`);
+    }
+    if (
+      typeof day.summary?.tempMin === "number" &&
+      typeof day.summary?.tempMax === "number"
+    ) {
+      bullets.push(
+        `Erwarte einen Temperaturbereich von ${this._formatTempValue(
+          day.summary.tempMin
+        )} bis ${this._formatTempValue(day.summary.tempMax)}.`
+      );
+    }
+    const precipSum = day.summary?.precipitationSum;
+    const precipProb = Array.isArray(day.precipitationTimeline)
+      ? day.precipitationTimeline.reduce((acc, slot) => {
+          if (typeof slot?.probability !== "number") return acc;
+          return Math.max(acc, slot.probability);
+        }, 0)
+      : null;
+    if (typeof precipSum === "number") {
+      const probText =
+        typeof precipProb === "number" && precipProb > 0
+          ? ` · ${Math.round(precipProb)}% Wahrscheinlichkeit`
+          : "";
+      bullets.push(
+        `${precipSum.toFixed(1)} mm Niederschlag im Tagesverlauf${probText}.`
+      );
+    }
+    const daylightMinutes = day.sun?.daylightMinutes;
+    if (typeof daylightMinutes === "number" && daylightMinutes > 0) {
+      const hours = Math.floor(daylightMinutes / 60);
+      const minutes = daylightMinutes % 60;
+      bullets.push(
+        `Tageslänge: ${hours} Std ${minutes.toString().padStart(2, "0")} Min.`
+      );
+    }
+    const airQualityLabel = this._resolveAirQualityLabel(airQuality);
+    if (airQualityLabel) {
+      bullets.push(airQualityLabel);
+    }
+    if (!bullets.length) {
+      bullets.push("Aktuelle Bedingungen stabil – keine Auffälligkeiten.");
+    }
+    return bullets.slice(0, 4);
+  }
+
+  _resolveAirQualityLabel(airQuality) {
+    if (!airQuality) return null;
+    if (airQuality.european?.value !== null && airQuality.european?.label) {
+      return `Luftqualität: ${airQuality.european.label} (EU AQI ${Math.round(
+        airQuality.european.value
+      )}).`;
+    }
+    if (airQuality.us?.value !== null && airQuality.us?.label) {
+      const map = {
+        Good: "Gut",
+        Moderate: "Mäßig",
+        USG: "Sensitiv kritisch",
+        Unhealthy: "Ungesund",
+        "Very Unhealthy": "Sehr ungesund",
+        Hazardous: "Gefährlich",
+      };
+      const translated = map[airQuality.us.label] || airQuality.us.label;
+      return `US AQI ${Math.round(airQuality.us.value)} · ${translated}.`;
+    }
+    return null;
+  }
+
+  _renderClimatePanels(currentHour, day, airQuality) {
+    const container = document.getElementById("climate-panels");
+    if (!container) return;
+    if (!currentHour) {
+      container.innerHTML =
+        '<div class="insights-empty"><p>🌐 Detailkarten folgen nach einer Ortssuche.</p></div>';
+      return;
+    }
+    const sunLabel =
+      day && day.sun
+        ? `${this._formatTimeLabel(day.sun.sunrise) || "--"} · ${
+            this._formatTimeLabel(day.sun.sunset) || "--"
+          }`
+        : "--";
+    const daylightMinutes = day?.sun?.daylightMinutes;
+    const daylightText =
+      typeof daylightMinutes === "number"
+        ? `${Math.floor(daylightMinutes / 60)}h ${(daylightMinutes % 60)
+            .toString()
+            .padStart(2, "0")}`
+        : "";
+    const cards = [
+      {
+        title: "Luftfeuchtigkeit",
+        value: this._formatPercentValue(currentHour.humidity),
+        detail:
+          typeof day?.summary?.dewPointAvg === "number"
+            ? `Taupunkt ${this._formatTempValue(day.summary.dewPointAvg)}`
+            : "",
+        accent: "plum",
+        icon: "💧",
+      },
+      {
+        title: "Sonnenlauf",
+        value: sunLabel,
+        detail: daylightText ? `Tageslicht ${daylightText}` : "",
+        accent: "ocean",
+        icon: "🌞",
+      },
+      {
+        title: "Wind",
+        value: this._formatWindValue(currentHour.windSpeed),
+        detail:
+          day?.summary?.wind?.cardinal ||
+          (typeof currentHour.windDirection === "number"
+            ? `${Math.round(currentHour.windDirection)}°`
+            : ""),
+        accent: "ocean",
+        icon: "🌀",
+      },
+      {
+        title: "Luftdruck",
+        value: this._formatMetricValue(currentHour.pressure, " hPa", 0),
+        detail: "Meeresspiegel",
+        accent: "slate",
+        icon: "🧭",
+      },
+      {
+        title: "UV-Index",
+        value:
+          typeof day?.summary?.uvIndexMax === "number"
+            ? day.summary.uvIndexMax.toFixed(1)
+            : typeof currentHour.uvIndex === "number"
+            ? currentHour.uvIndex.toFixed(1)
+            : "--",
+        detail: "Peak heute",
+        accent: "amber",
+        icon: "☀️",
+      },
+      {
+        title: "Luftqualität",
+        value:
+          airQuality?.european?.value !== null &&
+          airQuality?.european?.value !== undefined
+            ? airQuality.european.value.toFixed(0)
+            : airQuality?.us?.value !== null &&
+              airQuality?.us?.value !== undefined
+            ? airQuality.us.value.toFixed(0)
+            : "--",
+        detail:
+          airQuality?.european?.label || airQuality?.us?.label || "Keine Daten",
+        accent: "plum",
+        icon: "🌫️",
+      },
+    ];
+
+    container.innerHTML = `
+      <div class="climate-grid">
+        ${cards
+          .map(
+            (card) => `
+            <article class="climate-card" data-accent="${card.accent || ""}">
+              <span class="climate-icon">${card.icon || ""}</span>
+              <strong>${card.value || "--"}</strong>
+              <small>${card.title}</small>
+              ${card.detail ? `<small>${card.detail}</small>` : ""}
+            </article>`
+          )
+          .join("")}
+      </div>
+    `;
+  }
+
+  _formatDistanceValue(value, unitLabel = " km") {
+    if (typeof value !== "number" || Number.isNaN(value)) return "--";
+    const normalized = value >= 10 ? value.toFixed(0) : value.toFixed(1);
+    return `${normalized}${unitLabel}`;
   }
 
   _renderDailyInsightsPanel(day) {
@@ -1636,6 +2198,13 @@ class WeatherDisplayComponent {
           humidity = d.relativeHumidity || d.humidity || null;
           emoji = d.emoji || "";
         }
+        const iconSource =
+          Array.isArray(d.hourly) && d.hourly.length ? d.hourly[0] : d;
+        const icon = this._renderIcon(iconSource, {
+          className: "source-icon",
+          fallbackEmoji: emoji,
+          fallbackLabel: sourceName,
+        });
         const srcMeta = sources.find((s) =>
           s.name.toLowerCase().includes(sourceName.toLowerCase())
         );
@@ -1646,7 +2215,7 @@ class WeatherDisplayComponent {
           : "unbekannt";
         const duration =
           srcMeta && srcMeta.duration ? `${srcMeta.duration}ms` : "";
-        return { temp, wind, humidity, emoji, status, duration };
+        return { temp, wind, humidity, emoji, icon, status, duration };
       };
 
       const o = extract(openData, "Open-Meteo");
@@ -1655,7 +2224,7 @@ class WeatherDisplayComponent {
       if (openEl) {
         openEl.innerHTML = `
           <div class="source-compare">
-            <div><strong>Aktuell:</strong> ${o.emoji || ""} ${fmt(
+            <div><strong>Aktuell:</strong> ${o.icon || o.emoji || ""} ${fmt(
           o.temp,
           unitTemp === "F" ? "°F" : "°C"
         )}</div>
@@ -1674,7 +2243,7 @@ class WeatherDisplayComponent {
       if (brightEl) {
         brightEl.innerHTML = `
           <div class="source-compare">
-            <div><strong>Aktuell:</strong> ${b.emoji || ""} ${fmt(
+            <div><strong>Aktuell:</strong> ${b.icon || b.emoji || ""} ${fmt(
           b.temp,
           unitTemp === "F" ? "°F" : "°C"
         )}</div>

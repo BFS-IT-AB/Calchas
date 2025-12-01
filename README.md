@@ -8,12 +8,12 @@ Calchas ist eine moderne, responsive PWA-Wetterplattform mit Dual-API-Support, O
 
 - **🌍 Ortssuche**: Per Nominatim Geocoding (OpenStreetMap)
 - **📡 Dual-API-System**: Open-Meteo (Hauptquelle) + BrightSky (Fallback) mit automatischer Retry-Logik
-- **📊 Detaillierte Vorhersagen**: Neues Hero-Dashboard mit Sonnenpfad, High/Low-Chips, Taupunkt-, Feuchte-, Wind-, Regen-, UV- und Druckkarten plus 24h-Stundenmatrix direkt im Tagespanel
+- **📊 Detaillierte Vorhersagen**: Neues Android-inspiriertes Hero-Dashboard (Now → Overview → Insights) mit Sonnenpfad, High/Low-Chips, Taupunkt-, Feuchte-, Wind-, Regen-, UV- und Druckkarten plus 24h-Stundenmatrix direkt im Tagespanel; DOM-IDs wie `#current-hero`, `#overview-panels` und `#insights-grid` sind 1:1 auf das refaktorierte `weatherDisplay.js` gemappt.
 - **🔄 Offline-First PWA**: Service Worker, App-Shell-Caching, Offline-Modus
 - **🔔 Push-Benachrichtigungen**: Lokaler VAPID-basierter Push-Server inkl. Dashboard
 - **⭐ Favoriten**: Speichern, Reorder, Undo-Funktion
 - **🌡️ Einheiten-Toggle**: Temperatur (°C/°F) und Wind (m/s, km/h, mph) instant auf alle Komponenten angewendet
-- **🗺️ Wetterkarten** (optional): Leaflet + OpenStreetMap mit Toolbar, RainViewer-Radar, allen OWM-Overlays und Hover-basiertem MapDataInspector (Temperatur, Niederschlag, AQI u.v.m.)
+- **🗺️ Wetterkarten** (optional): Leaflet + OpenStreetMap mit Toolbar, RainViewer-Radar (palette-aware Tile-Builder für klassische vs. Infrarot-Frames), allen OWM-Overlays und Hover-basiertem MapDataInspector (Temperatur, Niederschlag, AQI u.v.m.)
 - **🚨 Wetterwarnungen**: Integration von MeteoAlarm/CAP-Feeds (kostenlos, kein Key)
 - **📈 Historische Daten**: 30-Tage-Chart, Monatsvergleich (letzte 4 Monate) und 12-Monats-Trend mit Sparkline & Regenaggregaten (Open-Meteo Archiv)
 - **📅 Prognose-Center**: 7-Tage-Kacheln mit einklappbaren Stunden-Details plus "Heute"-Timeline
