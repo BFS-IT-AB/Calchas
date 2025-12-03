@@ -504,10 +504,9 @@ function renderDemoExperience(reason = "") {
     }
 
     weatherDisplay.displayCurrent(demoData, DEMO_CITY_FALLBACK);
-    weatherDisplay.displayHourly(
-      demoData.openMeteo.hourly.slice(0, 24),
-      "Demo"
-    );
+    resetHourlySection();
+    const demoHourly = buildHourlyDisplayPayload(demoData, 24);
+    weatherDisplay.displayHourly(demoHourly.hours, demoHourly.label || "Demo");
     weatherDisplay.displayForecast(demoData.openMeteo.daily);
     try {
       weatherDisplay.showSourcesComparison(
@@ -1573,6 +1572,155 @@ function buildRenderData(rawData, units) {
   return result;
 }
 
+function normalizeHourlyKey(time) {
+  if (!time) return null;
+  const date = new Date(time);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setMinutes(0, 0, 0);
+  return date.toISOString();
+}
+
+function averageNumericField(entries, key) {
+  const values = entries
+    .map((entry) =>
+      typeof entry?.[key] === "number" && Number.isFinite(entry[key])
+        ? entry[key]
+        : null
+    )
+    .filter((value) => value !== null);
+  if (!values.length) return null;
+  const total = values.reduce((sum, value) => sum + value, 0);
+  return total / values.length;
+}
+
+function averageDirectionalField(entries, key) {
+  const values = entries
+    .map((entry) =>
+      typeof entry?.[key] === "number" && Number.isFinite(entry[key])
+        ? entry[key]
+        : null
+    )
+    .filter((value) => value !== null);
+  if (!values.length) return null;
+  const vector = values.reduce(
+    (acc, deg) => {
+      const rad = (deg * Math.PI) / 180;
+      acc.x += Math.cos(rad);
+      acc.y += Math.sin(rad);
+      return acc;
+    },
+    { x: 0, y: 0 }
+  );
+  const angle = Math.atan2(vector.y, vector.x);
+  return ((angle * 180) / Math.PI + 360) % 360;
+}
+
+function aggregateHourlyEntries(entries, fallbackTime) {
+  if (!Array.isArray(entries) || !entries.length) return null;
+  const aggregated = {
+    time: entries.find((entry) => entry?.time)?.time || fallbackTime,
+  };
+  const numericKeys = [
+    "temperature",
+    "feelsLike",
+    "windSpeed",
+    "humidity",
+    "precipitation",
+    "precipitationProbability",
+    "dewPoint",
+    "pressure",
+    "uvIndex",
+    "uvIndexClearSky",
+  ];
+  numericKeys.forEach((key) => {
+    aggregated[key] = averageNumericField(entries, key);
+  });
+  aggregated.windDirection = averageDirectionalField(entries, "windDirection");
+  aggregated.emoji =
+    entries.find((entry) => typeof entry?.emoji === "string")?.emoji || "❓";
+  aggregated.description =
+    entries.find((entry) => typeof entry?.description === "string")
+      ?.description ||
+    entries.find((entry) => typeof entry?.condition === "string")?.condition ||
+    "";
+  aggregated.isDay =
+    entries.find((entry) => entry?.isDay !== undefined)?.isDay ?? null;
+  aggregated.weatherCode = entries.find(
+    (entry) =>
+      typeof entry?.weatherCode === "number" &&
+      Number.isFinite(entry.weatherCode)
+  )?.weatherCode;
+  return aggregated;
+}
+
+function mergeHourlySamples(openHourly, brightHourly, limit = 24) {
+  const buckets = new Map();
+  const ingest = (entry, priority = 0) => {
+    if (!entry) return;
+    const key = normalizeHourlyKey(entry.time);
+    if (!key) return;
+    const bucket = buckets.get(key) || {
+      time: entry.time,
+      entries: [],
+      priority,
+    };
+    if (priority < bucket.priority) {
+      bucket.time = entry.time;
+      bucket.priority = priority;
+    }
+    bucket.entries.push(entry);
+    buckets.set(key, bucket);
+  };
+
+  openHourly.forEach((entry) => ingest(entry, 0));
+  brightHourly.forEach((entry) => ingest(entry, 1));
+
+  return Array.from(buckets.values())
+    .sort((a, b) => {
+      const aTime = new Date(a.time).getTime();
+      const bTime = new Date(b.time).getTime();
+      return aTime - bTime;
+    })
+    .slice(0, limit)
+    .map((bucket) => aggregateHourlyEntries(bucket.entries, bucket.time))
+    .filter(Boolean);
+}
+
+function buildHourlyDisplayPayload(renderData, limit = 24) {
+  if (!renderData) {
+    return { hours: [], label: "" };
+  }
+  const openHourly = Array.isArray(renderData?.openMeteo?.hourly)
+    ? renderData.openMeteo.hourly
+    : [];
+  const brightHourly = Array.isArray(renderData?.brightSky?.hourly)
+    ? renderData.brightSky.hourly
+    : [];
+  if (!openHourly.length && !brightHourly.length) {
+    return { hours: [], label: "" };
+  }
+  if (!openHourly.length || !brightHourly.length) {
+    const useOpen = openHourly.length > 0;
+    return {
+      hours: (useOpen ? openHourly : brightHourly).slice(0, limit),
+      label: useOpen ? "Open-Meteo" : "BrightSky",
+    };
+  }
+  return {
+    hours: mergeHourlySamples(openHourly, brightHourly, limit),
+    label: "Open-Meteo × BrightSky",
+  };
+}
+
+function resetHourlySection() {
+  const target = document.getElementById("hourly-section");
+  if (!target) return;
+  target.innerHTML = "";
+  if (target.dataset) {
+    delete target.dataset.hourlyInitialized;
+  }
+}
+
 /**
  * Rerender UI from appState.renderData
  */
@@ -1586,21 +1734,15 @@ function renderFromRenderData() {
       updateTopbarStatus(city);
     }
 
-    // hourly and forecast for OpenMeteo
-    if (appState.renderData.openMeteo) {
-      weatherDisplay.displayHourly(
-        appState.renderData.openMeteo.hourly.slice(0, 24),
-        "Open-Meteo"
-      );
-      weatherDisplay.displayForecast(appState.renderData.openMeteo.daily);
-    }
+    const hourlyPayload = buildHourlyDisplayPayload(appState.renderData, 24);
+    resetHourlySection();
+    weatherDisplay.displayHourly(
+      hourlyPayload.hours,
+      hourlyPayload.label || "Stundenvorhersage"
+    );
 
-    // brightSky hourly (if present)
-    if (appState.renderData.brightSky) {
-      weatherDisplay.displayHourly(
-        appState.renderData.brightSky.hourly,
-        "BrightSky"
-      );
+    if (appState.renderData.openMeteo) {
+      weatherDisplay.displayForecast(appState.renderData.openMeteo.daily);
     }
   } catch (e) {
     console.warn("renderFromRenderData failed", e);
@@ -1674,18 +1816,14 @@ function tryRestoreLastSnapshot() {
     }
 
     weatherDisplay.displayCurrent(snapshot.renderData, snapshot.city || "");
+    const restoredHourly = buildHourlyDisplayPayload(snapshot.renderData, 24);
+    resetHourlySection();
+    weatherDisplay.displayHourly(
+      restoredHourly.hours,
+      restoredHourly.label || "Stundenvorhersage"
+    );
     if (snapshot.renderData.openMeteo) {
-      weatherDisplay.displayHourly(
-        snapshot.renderData.openMeteo.hourly.slice(0, 24),
-        "Open-Meteo"
-      );
       weatherDisplay.displayForecast(snapshot.renderData.openMeteo.daily || []);
-    }
-    if (snapshot.renderData.brightSky?.hourly?.length) {
-      weatherDisplay.displayHourly(
-        snapshot.renderData.brightSky.hourly,
-        "BrightSky"
-      );
     }
 
     try {
@@ -2187,34 +2325,45 @@ function displayWeatherResults(location, weatherData) {
     // ignore
   }
 
-  // Zeige Open-Meteo Daten
-  if (openMeteo) {
-    // Prefer renderData (converted & feels-like included) if available
-    const rd = appState?.renderData?.openMeteo?.hourly;
-    const hourlyData =
-      rd && rd.length
-        ? rd.slice(0, 24)
-        : openMeteoAPI.formatHourlyData(openMeteo, 24);
-    weatherDisplay.displayHourly(hourlyData, "Open-Meteo");
-
-    // Zeige aktuellen Wert (uses converted renderData when present)
-    if (hourlyData.length > 0) {
-      weatherDisplay.updateCurrentValues({
-        temp: hourlyData[0].temperature,
-        windSpeed: hourlyData[0].windSpeed,
-        humidity: hourlyData[0].humidity,
-        feelsLike: hourlyData[0].feelsLike ?? hourlyData[0].feels_like,
-        emoji: hourlyData[0].emoji,
-        description: hourlyData[0].description || "",
-      });
+  let hourlyPayload = buildHourlyDisplayPayload(appState?.renderData, 24);
+  if (!hourlyPayload.hours.length) {
+    let fallbackHours = [];
+    let fallbackLabel = "";
+    if (openMeteo) {
+      fallbackHours = openMeteoAPI.formatHourlyData(openMeteo, 24);
+      fallbackLabel = "Open-Meteo";
+    } else if (brightSky) {
+      fallbackHours = brightSkyAPI.formatWeatherData(brightSky, 24);
+      fallbackLabel = "BrightSky";
     }
+    hourlyPayload = { hours: fallbackHours, label: fallbackLabel };
+  }
 
-    // Zeige 5-Tage Vorhersage
+  resetHourlySection();
+  weatherDisplay.displayHourly(
+    hourlyPayload.hours,
+    hourlyPayload.label || "Stundenvorhersage"
+  );
+
+  if (hourlyPayload.hours.length > 0) {
+    const firstHour = hourlyPayload.hours[0];
+    weatherDisplay.updateCurrentValues({
+      temp: firstHour.temperature,
+      windSpeed: firstHour.windSpeed,
+      humidity: firstHour.humidity,
+      feelsLike: firstHour.feelsLike ?? firstHour.feels_like,
+      emoji: firstHour.emoji,
+      description: firstHour.description || "",
+    });
+  }
+
+  if (appState?.renderData?.openMeteo?.daily?.length) {
+    weatherDisplay.displayForecast(appState.renderData.openMeteo.daily);
+  } else if (openMeteo) {
     const dailyData = openMeteoAPI.formatDailyData(openMeteo, 7);
     weatherDisplay.displayForecast(dailyData);
   }
 
-  // Zeige BrightSky Daten als Alternative
   if (brightSky) {
     const formattedData = brightSkyAPI.formatWeatherData(brightSky, 24);
     console.log("BrightSky Daten verfügbar:", formattedData.length);
