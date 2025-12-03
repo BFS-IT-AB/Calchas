@@ -1,12 +1,23 @@
 (function (global) {
   let currentView = "home";
+  let globalListenerBound = false;
 
   function setActive(viewId) {
+    if (!viewId) return;
     currentView = viewId;
-    const buttons = document.querySelectorAll("[data-nav-target]");
-    buttons.forEach((btn) => {
+
+    const navButtons = document.querySelectorAll(
+      "#bottom-nav [data-nav-target]"
+    );
+    navButtons.forEach((btn) => {
       const target = btn.getAttribute("data-nav-target");
-      btn.classList.toggle("bottom-nav__button--active", target === viewId);
+      const isActive = target === viewId;
+      btn.classList.toggle("bottom-nav__button--active", isActive);
+      if (isActive) {
+        btn.setAttribute("aria-pressed", "true");
+      } else {
+        btn.setAttribute("aria-pressed", "false");
+      }
     });
 
     const sections = document.querySelectorAll("[data-view]");
@@ -21,19 +32,33 @@
     }
   }
 
+  function handleDocumentNavClick(event) {
+    const target = event.target.closest("[data-nav-target]");
+    if (!target) return;
+    const viewId = target.getAttribute("data-nav-target");
+    if (!viewId) return;
+    setActive(viewId);
+  }
+
   function initBottomNav() {
     const container = document.getElementById("bottom-nav");
-    if (!container) return;
+    if (container && !container.dataset.navInitialized) {
+      container.addEventListener("click", (event) => {
+        const target = event.target.closest("[data-nav-target]");
+        if (!target) return;
+        const viewId = target.getAttribute("data-nav-target");
+        if (!viewId) return;
+        event.preventDefault();
+        setActive(viewId);
+      });
+      container.dataset.navInitialized = "true";
+    }
 
-    container.addEventListener("click", (event) => {
-      const target = event.target.closest("[data-nav-target]");
-      if (!target) return;
-      const viewId = target.getAttribute("data-nav-target");
-      if (!viewId) return;
-      setActive(viewId);
-    });
+    if (!globalListenerBound) {
+      document.addEventListener("click", handleDocumentNavClick);
+      globalListenerBound = true;
+    }
 
-    // initial
     setActive(currentView);
   }
 

@@ -36,6 +36,13 @@
   function setFrames(timestamps) {
     frames = timestamps || [];
     currentIndex = 0;
+    const slider = document.getElementById("map-timeline-slider");
+    if (slider) {
+      const maxIndex = Math.max(frames.length - 1, 0);
+      slider.max = String(maxIndex);
+      slider.value = "0";
+      slider.disabled = maxIndex === 0;
+    }
     updateTimeline();
   }
 
@@ -55,6 +62,15 @@
     playing = false;
     if (intervalId) clearInterval(intervalId);
     intervalId = null;
+  }
+
+  function seek(index) {
+    if (!frames.length) return;
+    const numericIndex = Number(index);
+    if (Number.isNaN(numericIndex)) return;
+    const clamped = Math.min(Math.max(numericIndex, 0), frames.length - 1);
+    currentIndex = clamped;
+    updateTimeline();
   }
 
   function updateTimeline() {
@@ -104,5 +120,6 @@
     step,
     play,
     pause,
+    seek,
   };
 })(window);

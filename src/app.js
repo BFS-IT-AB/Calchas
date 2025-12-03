@@ -570,6 +570,7 @@ async function initAppShell(appState) {
     const playBtn = document.getElementById("map-timeline-play");
     const prevBtn = document.getElementById("map-timeline-prev");
     const nextBtn = document.getElementById("map-timeline-next");
+    const slider = document.getElementById("map-timeline-slider");
 
     if (playBtn && window.RadarController) {
       let isPlaying = false;
@@ -590,6 +591,11 @@ async function initAppShell(appState) {
     }
     if (nextBtn && window.RadarController) {
       nextBtn.addEventListener("click", () => window.RadarController.step(1));
+    }
+    if (slider && window.RadarController) {
+      slider.addEventListener("input", (event) => {
+        window.RadarController.seek(event.target.value);
+      });
     }
   } catch (e) {
     console.warn("Radar / Karten-Initialisierung fehlgeschlagen", e);
@@ -2839,7 +2845,7 @@ async function loadWeather(city, options = {}) {
 
     if (!silent) {
       weatherDisplay.showLoading();
-      searchComponent.setLoading(true);
+      setSearchComponentsLoadingState(true);
       errorHandler.clearAll();
     }
 
@@ -3005,7 +3011,7 @@ async function loadWeather(city, options = {}) {
     }
   } finally {
     if (!silent) {
-      searchComponent.setLoading(false);
+      setSearchComponentsLoadingState(false);
     }
   }
 }
@@ -3306,7 +3312,7 @@ function initApp() {
     "current-weather",
     "forecast-container"
   );
-  window.searchComponent = searchComponent;
+  registerSearchComponentInstance(searchComponent, { primary: true });
   window.weatherDisplay = weatherDisplay;
   if (window.__deferredDemoRender) {
     try {
@@ -3650,18 +3656,11 @@ function initApp() {
   const clearRecentBtn = document.getElementById("clear-recent-btn");
   if (clearRecentBtn) {
     clearRecentBtn.addEventListener("click", () => {
-      if (
-        window.searchComponent &&
-        typeof window.searchComponent.clearRecent === "function"
-      ) {
-        const hadEntries = window.searchComponent.clearRecent();
-        if (hadEntries) {
-          showSuccess("Suchverlauf geleert.");
-        } else {
-          showInfo("Kein Suchverlauf vorhanden.");
-        }
+      const hadEntries = clearAllSearchComponentRecents();
+      if (hadEntries) {
+        showSuccess("Suchverlauf geleert.");
       } else {
-        showWarning("Suchverlauf konnte nicht geleert werden.");
+        showInfo("Kein Suchverlauf vorhanden.");
       }
     });
   }
@@ -3829,6 +3828,81 @@ let mapInspector;
 let weatherAlerts;
 let historicalChart;
 let analyticsDashboard;
+
+const searchComponentRegistry = [];
+
+function getRegisteredSearchComponents() {
+  if (typeof window !== "undefined") {
+    if (Array.isArray(window.searchComponents)) {
+      window.searchComponents.forEach((component) => {
+        if (component && !searchComponentRegistry.includes(component)) {
+          searchComponentRegistry.push(component);
+        }
+      });
+    } else if (window.searchComponent) {
+      if (!searchComponentRegistry.includes(window.searchComponent)) {
+        searchComponentRegistry.push(window.searchComponent);
+      }
+    }
+  } else if (searchComponent) {
+    if (!searchComponentRegistry.includes(searchComponent)) {
+      searchComponentRegistry.push(searchComponent);
+    }
+  }
+  return searchComponentRegistry;
+}
+
+function registerSearchComponentInstance(instance, options = {}) {
+  if (!instance) return null;
+  if (!searchComponentRegistry.includes(instance)) {
+    searchComponentRegistry.push(instance);
+  }
+  if (typeof window !== "undefined") {
+    window.searchComponents = searchComponentRegistry;
+    if (!window.searchComponent || options?.primary) {
+      window.searchComponent = instance;
+    }
+  }
+  if ((!searchComponent || options?.primary) && typeof instance === "object") {
+    searchComponent = instance;
+  }
+  return instance;
+}
+
+function setSearchComponentsLoadingState(isLoading) {
+  getRegisteredSearchComponents().forEach((component) => {
+    if (component && typeof component.setLoading === "function") {
+      try {
+        component.setLoading(isLoading);
+      } catch (err) {
+        console.warn(
+          "SearchInput Loading-State konnte nicht gesetzt werden",
+          err
+        );
+      }
+    }
+  });
+}
+
+function clearAllSearchComponentRecents() {
+  let hadEntries = false;
+  getRegisteredSearchComponents().forEach((component) => {
+    if (component && typeof component.clearRecent === "function") {
+      try {
+        hadEntries = component.clearRecent() || hadEntries;
+      } catch (err) {
+        console.warn("Suchverlauf konnte nicht geleert werden", err);
+      }
+    }
+  });
+  return hadEntries;
+}
+
+if (typeof window !== "undefined") {
+  window.clearSearchHistory = clearAllSearchComponentRecents;
+  window.registerSearchComponentInstance = registerSearchComponentInstance;
+  window.setSearchComponentsLoadingState = setSearchComponentsLoadingState;
+}
 
 // Starte App wenn DOM bereit
 if (document.readyState === "loading") {

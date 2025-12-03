@@ -139,11 +139,16 @@ class SearchInputComponent {
         .slice(0, 7);
 
       // Wenn keine Ergebnisse und Query Diakritika enthält, nochmal mit bereinigter Query versuchen
-      if ((formatted.length === 0 || formatted.every(f => !f.name)) && this._stripDiacritics(query).toLowerCase() !== query.toLowerCase()) {
+      if (
+        (formatted.length === 0 || formatted.every((f) => !f.name)) &&
+        this._stripDiacritics(query).toLowerCase() !== query.toLowerCase()
+      ) {
         try {
           const stripped = this._stripDiacritics(query);
           const resp2 = await fetch(
-            `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(stripped)}&language=de&count=7&format=json`,
+            `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
+              stripped
+            )}&language=de&count=7&format=json`,
             { signal: AbortSignal.timeout(5000) }
           );
           if (resp2.ok) {
@@ -225,7 +230,10 @@ class SearchInputComponent {
     }
 
     const normOrig = normOrigChars.join("").toLowerCase();
-    const normQuery = (query || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const normQuery = (query || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
 
     const idx = normOrig.indexOf(normQuery);
     if (idx === -1) return orig; // keine Übereinstimmung
@@ -276,7 +284,9 @@ class SearchInputComponent {
     dropdown.innerHTML = suggestions
       .map(
         (s, idx) => `
-      <div class="autocomplete-item" data-idx="${idx}" data-city="${s.displayName}">
+      <div class="autocomplete-item" data-idx="${idx}" data-city="${
+          s.displayName
+        }">
         <div class="autocomplete-main">
           <strong>${this._highlightMatch(s.name, query)}</strong>
           <span class="autocomplete-secondary">${s.displayName.replace(
@@ -360,7 +370,10 @@ class SearchInputComponent {
 
       case "ArrowUp":
         e.preventDefault();
-        this.selectedSuggestionIdx = Math.max(this.selectedSuggestionIdx - 1, -1);
+        this.selectedSuggestionIdx = Math.max(
+          this.selectedSuggestionIdx - 1,
+          -1
+        );
         if (this.selectedSuggestionIdx === -1) {
           items.forEach((item) => item.classList.remove("selected"));
         } else {
@@ -446,7 +459,7 @@ class SearchInputComponent {
     this.recentList.innerHTML = `
       <div class="recent-header">
         <span>🕐 Zuletzt gesucht</span>
-        <button class="btn-small" onclick="window.searchComponent.clearRecent()">✕ Löschen</button>
+        <button class="btn-small js-clear-recents" type="button">✕ Löschen</button>
       </div>
       <div class="recent-items">
         ${this.recentCities
@@ -480,6 +493,19 @@ class SearchInputComponent {
         this._removeFromRecentCities(parseInt(btn.dataset.idx));
       });
     });
+
+    const inlineClearBtn = this.recentList.querySelector(".js-clear-recents");
+    if (inlineClearBtn) {
+      inlineClearBtn.addEventListener("click", () => {
+        const clearHelper =
+          (typeof window !== "undefined" && window.clearSearchHistory) || null;
+        if (typeof clearHelper === "function") {
+          clearHelper();
+        } else {
+          this.clearRecent();
+        }
+      });
+    }
   }
 
   /**
