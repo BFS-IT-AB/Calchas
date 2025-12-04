@@ -113,6 +113,7 @@ class OpenMeteoAPI {
     const temps = data.hourly.temperature_2m.slice(0, hours);
     const codes = data.hourly.weathercode?.slice(0, hours) || [];
     const windspeed = data.hourly.windspeed_10m?.slice(0, hours) || [];
+    const windgusts = data.hourly.windgusts_10m?.slice(0, hours) || [];
     const humidity = data.hourly.relativehumidity_2m?.slice(0, hours) || [];
     const windDir = data.hourly.winddirection_10m?.slice(0, hours) || [];
     const dewpoint = data.hourly.dewpoint_2m?.slice(0, hours) || [];
@@ -123,24 +124,34 @@ class OpenMeteoAPI {
     const uvIndex = data.hourly.uv_index?.slice(0, hours) || [];
     const uvClear = data.hourly.uv_index_clear_sky?.slice(0, hours) || [];
     const pressure = data.hourly.pressure_msl?.slice(0, hours) || [];
+    const surfacePressure = data.hourly.surface_pressure?.slice(0, hours) || [];
+    const cloudCover = data.hourly.cloudcover?.slice(0, hours) || [];
+    const visibility = data.hourly.visibility?.slice(0, hours) || [];
     const isDay = data.hourly.is_day?.slice(0, hours) || [];
 
     return times.map((time, i) => ({
       time,
       temperature: temps[i],
       weatherCode: codes[i],
+      weathercode: codes[i],
       windSpeed: windspeed[i],
+      windGust: windgusts[i],
       humidity: humidity[i],
       windDirection: windDir[i],
       dewPoint: dewpoint[i],
       apparentTemperature: apparent[i],
+      feelsLike: apparent[i],
       precipitation: precipitation[i],
       precipitationProbability: precipitationProb[i],
       uvIndex: uvIndex[i],
       uvIndexClearSky: uvClear[i],
       pressure: pressure[i],
+      surfacePressure: surfacePressure[i],
+      cloudCover: cloudCover[i],
+      visibility: visibility[i] ? visibility[i] / 1000 : null, // Von Meter zu KM
       isDay: isDay[i],
       emoji: this._getWeatherEmoji(codes[i]),
+      iconHtml: this._getWeatherEmoji(codes[i]),
     }));
   }
 
@@ -164,12 +175,17 @@ class OpenMeteoAPI {
     const precipitationSum = data.daily.precipitation_sum?.slice(0, days) || [];
     const precipitationHours =
       data.daily.precipitation_hours?.slice(0, days) || [];
+    const precipProbMax =
+      data.daily.precipitation_probability_max?.slice(0, days) || [];
+    const windSpeedMax = data.daily.windspeed_10m_max?.slice(0, days) || [];
 
     return dates.map((date, i) => ({
       date,
       weatherCode: codes[i],
       tempMax: tempMax[i],
       tempMin: tempMin[i],
+      temperatureMax: tempMax[i],
+      temperatureMin: tempMin[i],
       sunrise: sunrise[i],
       sunset: sunset[i],
       sunriseTs: sunrise[i] ? new Date(sunrise[i]).getTime() : null,
@@ -178,7 +194,11 @@ class OpenMeteoAPI {
       uvIndexClearSkyMax: uvClearMax[i],
       precipitationSum: precipitationSum[i],
       precipitationHours: precipitationHours[i],
+      precipProbMax: precipProbMax[i] || 0,
+      precipitationProbabilityMax: precipProbMax[i] || 0,
+      windSpeedMax: windSpeedMax[i],
       emoji: this._getWeatherEmoji(codes[i]),
+      iconHtml: this._getWeatherEmoji(codes[i]),
     }));
   }
 

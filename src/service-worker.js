@@ -1,7 +1,7 @@
 // Service Worker für Calchas
 // Ermöglicht Offline-Funktionalität, Caching und Push-Notifications
 
-const CACHE_NAME = "calchas-v3"; // Version erhöht für Navigation-Überarbeitung
+const CACHE_NAME = "calchas-v7"; // Version erhöht für kleinere Cards
 const urlsToCache = [
   "/",
   "/index.html",
@@ -16,6 +16,10 @@ const urlsToCache = [
   "/src/ui/errorHandler.js",
   "/src/ui/searchInput.js",
   "/src/ui/weatherDisplay.js",
+  "/src/ui/home/WeatherHero.js",
+  "/src/ui/home/HomeCards.js",
+  "/src/ui/home/WeatherCards.js",
+  "/src/ui/home/FrogHeroPlayer.js",
   "/src/ui/health/HealthSafetyView.js",
   "/src/ui/history/HistoryViewBrowser.js",
   "/src/ui/settings/SettingsHome.js",
@@ -69,14 +73,21 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
-  // Ignoriere API-Requests (werden separat behandelt)
-  if (
-    request.url.includes("api.open-meteo.com") ||
-    request.url.includes("api.brightsky.dev") ||
-    request.url.includes("nominatim.openstreetmap.org") ||
-    request.url.includes("geocoding-api.open-meteo.com")
-  ) {
-    return;
+  // Ignoriere externe API-Requests komplett (keine Caching-Versuche)
+  const externalAPIs = [
+    "api.open-meteo.com",
+    "api.brightsky.dev",
+    "nominatim.openstreetmap.org",
+    "geocoding-api.open-meteo.com",
+    "api.phaseofthemoontoday.com",
+    "localhost:3030",
+    "api.openweathermap.org",
+    "api.waqi.info",
+    "rainviewer.com",
+  ];
+
+  if (externalAPIs.some((api) => request.url.includes(api))) {
+    return; // Lass den Browser das normal handhaben
   }
 
   // Network First Strategy für App

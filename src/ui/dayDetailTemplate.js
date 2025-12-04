@@ -63,11 +63,32 @@
     if (!subset.length) {
       return '<p class="detail-error">Keine Stundenwerte verfügbar.</p>';
     }
+    // Debug: Log first slot to see if precipitationProbability exists
+    console.log(
+      "[DayDetail] First hourly slot keys:",
+      Object.keys(subset[0] || {})
+    );
+    console.log(
+      "[DayDetail] precipitationProbability:",
+      subset[0]?.precipitationProbability
+    );
+    console.log("[DayDetail] precipProb:", subset[0]?.precipProb);
     return `
       <div class="hour-chip-row">
         ${subset
           .map((slot) => {
             const hourLabel = formatHour(slot);
+            // Prüfe alle möglichen Feldnamen für Regenwahrscheinlichkeit
+            let precipProb = null;
+            if (typeof slot.precipitationProbability === "number") {
+              precipProb = slot.precipitationProbability;
+            } else if (typeof slot.precipProb === "number") {
+              precipProb = slot.precipProb;
+            } else if (typeof slot.precipitation_probability === "number") {
+              precipProb = slot.precipitation_probability;
+            }
+            // Zeige immer an wenn ein gültiger Wert (auch 0) vorhanden ist
+            const showPrecip = precipProb !== null;
             return `
               <article class="hour-chip">
                 <strong>${hourLabel}</strong>
@@ -78,6 +99,13 @@
                     : slot.temp,
                   units
                 )}</span>
+                ${
+                  showPrecip
+                    ? `<span class="hour-chip__precip">💧${Math.round(
+                        precipProb
+                      )}%</span>`
+                    : ""
+                }
               </article>
             `;
           })

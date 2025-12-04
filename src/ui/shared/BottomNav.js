@@ -26,6 +26,17 @@
       section.hidden = id !== viewId;
     });
 
+    // Hide/show app-bar based on view
+    const appBar = document.getElementById("app-bar");
+    if (appBar) {
+      // Hide app-bar on settings, show on other views
+      if (viewId === "settings") {
+        appBar.style.display = "none";
+      } else {
+        appBar.style.display = "";
+      }
+    }
+
     const scrollContainer = document.querySelector(".app-main-views");
     if (scrollContainer && typeof scrollContainer.scrollTo === "function") {
       scrollContainer.scrollTo({ top: 0, behavior: "smooth" });

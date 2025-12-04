@@ -209,7 +209,7 @@ const API_PROVIDERS = [
   },
 ];
 
-const DEMO_CITY_FALLBACK = "Berlin (Demo)";
+const DEMO_CITY_FALLBACK = "Aschaffenburg";
 
 let activeSettingsSubview = null;
 
@@ -613,16 +613,11 @@ async function initAppShell(appState) {
   }
 
   // History View - Browser-kompatible Version
-  console.log("[App] History View check:", !!window.HistoryView);
   if (window.HistoryView) {
     try {
-      const historyContainer = document.getElementById("history-container");
-      console.log("[App] History container found:", !!historyContainer);
-
       const historyView = new window.HistoryView({
         containerId: "history-container",
       });
-
       let historyData = [];
 
       // Try to load history data if service is available
@@ -653,18 +648,11 @@ async function initAppShell(appState) {
         }
       }
 
-      console.log(
-        "[App] Rendering history with data length:",
-        historyData.length
-      );
       await historyView.render(historyData);
       window.HISTORY_VIEW = historyView;
-      console.log("[App] History View initialized successfully");
     } catch (e) {
       console.warn("History View konnte nicht initialisiert werden", e);
     }
-  } else {
-    console.warn("[App] window.HistoryView is not defined!");
   }
 
   // Detail-Sheets initialisieren, wenn vorhanden
@@ -701,23 +689,33 @@ async function initAppShell(appState) {
   if (appState && appState.renderData && window.WeatherHero) {
     try {
       const units = appState.units || { temperature: "C", wind: "km/h" };
+      const locationDetails = appState.renderData?.locationDetails || {};
+      const sunEvents = appState.renderData?.sunEvents || {};
+      const daily = appState.renderData?.openMeteo?.daily || [];
       const homeState = {
         current:
           appState.renderData?.currentSnapshot ||
           appState.renderData?.current ||
           {},
-        daily: appState.renderData?.openMeteo?.daily || [],
+        daily: daily,
         hourly:
           appState.renderData?.hourly ||
           buildHourlyDisplayPayload(appState.renderData, 24).hours ||
           [],
-        location: appState.location || {},
+        location: appState.location || {
+          name: locationDetails.city || "Aschaffenburg",
+          cityName: locationDetails.city || "Aschaffenburg",
+          country: locationDetails.country || "Deutschland",
+        },
+        locationDetails: locationDetails,
+        sunEvents: sunEvents,
         temperatureUnit: units.temperature || "C",
         windUnit: units.wind || "km/h",
         locale: appState.locale || "de-DE",
         lastUpdated: Date.now(),
         aqi: appState.renderData?.aqi || appState.aqi || {},
         pollen: appState.renderData?.pollen || {},
+        moonPhase: appState.renderData?.moonPhase || {},
       };
 
       const healthState =
@@ -806,169 +804,169 @@ async function initAppShell(appState) {
 
 function buildDemoRenderData() {
   const now = new Date();
-  const baseUtc = Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate(),
-    now.getUTCHours(),
-    0,
-    0,
-    0
-  );
+  const currentHour = now.getHours();
 
-  const hourly = Array.from({ length: 24 }, (_, idx) => {
-    const slot = new Date(baseUtc + idx * 60 * 60 * 1000);
-    const sine = Math.sin((idx / 24) * Math.PI * 2);
-    const cosine = Math.cos((idx / 24) * Math.PI * 2);
-    const temp = 19 + sine * 5;
-    const humidity = Math.max(40, Math.min(85, 60 - sine * 12));
-    const wind = 3 + Math.max(0, cosine) * 2.5;
-    const isSunny = temp >= 21;
-    const mostlyCloudy = temp < 17;
-    const description = isSunny
-      ? "Viel Sonne"
-      : mostlyCloudy
-      ? "Dichte Wolken"
-      : "Wolkig";
-    const emoji = isSunny ? "☀️" : mostlyCloudy ? "☁️" : "🌤️";
+  // Realistische Winter-Demo-Daten (Dezember)
+  const baseTemp = 3; // Aktuelle Temperatur wie im Screenshot
+
+  const hourly = Array.from({ length: 48 }, (_, idx) => {
+    const slot = new Date(now.getTime() + idx * 60 * 60 * 1000);
+    const hour = slot.getHours();
+
+    // Tagesgang: kälter nachts, wärmer mittags
+    const tempVariation = Math.sin(((hour - 6) / 24) * Math.PI * 2) * 3;
+    const temp = baseTemp + tempVariation - (idx > 24 ? 1 : 0);
+    const humidity = 80 + Math.sin((hour / 12) * Math.PI) * 10;
+    const wind = 5 + Math.random() * 5;
+    const isDay = hour >= 8 && hour <= 16;
+    const weatherCode = 3; // Bedeckt wie im Screenshot
 
     return {
       time: slot.toISOString(),
+      timeLabel: slot.toLocaleTimeString("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
       temperature: Number(temp.toFixed(1)),
       windSpeed: Number(wind.toFixed(1)),
+      windDirection: 180 + Math.random() * 90,
+      windGust: Number((wind * 1.5).toFixed(1)),
       humidity: Math.round(humidity),
-      feelsLike: Number((temp - 0.3).toFixed(1)),
-      emoji,
-      description,
-      precipitationProbability: idx % 6 === 0 ? 35 : 10,
-      precipitation: idx % 6 === 0 ? 0.3 : 0,
-      pressure: 1013,
-      uvIndex: Math.max(0, 6 - Math.abs(12 - idx) * 0.45),
-      isDay: idx >= 6 && idx <= 20 ? 1 : 0,
-      weathercode: isSunny ? 1 : mostlyCloudy ? 3 : 2,
+      feelsLike: Number((temp - 3).toFixed(1)),
+      apparentTemperature: Number((temp - 3).toFixed(1)),
+      precipitationProbability: idx % 8 === 0 ? 15 : 5,
+      precipProb: idx % 8 === 0 ? 15 : 5,
+      precipitation: 0,
+      pressure: 1015,
+      surfacePressure: 1015,
+      uvIndex: isDay ? 1 : 0,
+      visibility: 40,
+      cloudCover: 100,
+      dewPoint: temp - 4,
+      isDay: isDay ? 1 : 0,
+      weatherCode: weatherCode,
+      weathercode: weatherCode,
+      iconHtml: "☁️",
+      description: "Bedeckt",
     };
   });
 
-  const temps = hourly.map((h) => h.temperature);
-  const summary = {
-    condition: "Freundlich mit lockerer Bewölkung",
-    tempMax: Math.max(...temps),
-    tempMin: Math.min(...temps),
-    dewPointAvg: 11.5,
-    humidityAvg: 58,
-    precipitationSum: Number(
-      hourly.reduce((sum, h) => sum + (h.precipitation || 0), 0).toFixed(1)
-    ),
-    wind: {
-      cardinal: "SO",
-      avgSpeed: 4.2,
-      directionDeg: 135,
-    },
-    uvIndexMax: 5.2,
-  };
-
+  // Sunrise/Sunset für Winter
   const sunrise = new Date(now);
-  sunrise.setHours(6, 5, 0, 0);
+  sunrise.setHours(8, 1, 0, 0);
   const sunset = new Date(now);
-  sunset.setHours(20, 45, 0, 0);
+  sunset.setHours(16, 24, 0, 0);
 
-  const dayInsights = [
-    {
-      date: now.toISOString(),
-      summary,
-      precipitationTimeline: hourly.slice(0, 12).map((slot) => ({
-        time: slot.time,
-        probability: slot.precipitationProbability,
-        amount: slot.precipitation,
-      })),
-      sun: {
-        sunrise: sunrise.toISOString(),
-        sunset: sunset.toISOString(),
-        daylightMinutes: 14 * 60 + 40,
-        sunrisePercent: 10,
-        sunsetPercent: 90,
-      },
-      hourGrid: hourly.slice(0, 12),
-    },
+  // Moonrise/Moonset
+  const moonrise = new Date(now);
+  moonrise.setHours(2, 46, 0, 0);
+  const moonset = new Date(now);
+  moonset.setHours(6, 11, 0, 0);
+
+  // 7-Tage Vorhersage wie im Screenshot (heute + 6 Tage)
+  const dailyData = [
+    { offset: 0, max: 4, min: 1, precip: 3, code: 3, icon: "☁️" }, // Heute
+    { offset: 1, max: 5, min: 0, precip: 3, code: 45, icon: "🌫️" },
+    { offset: 2, max: 9, min: 1, precip: 84, code: 61, icon: "🌧️" },
+    { offset: 3, max: 6, min: 2, precip: 20, code: 3, icon: "☁️" },
+    { offset: 4, max: 5, min: 1, precip: 10, code: 2, icon: "⛅" },
+    { offset: 5, max: 7, min: 0, precip: 5, code: 3, icon: "☁️" },
+    { offset: 6, max: 4, min: -1, precip: 15, code: 71, icon: "🌨️" },
   ];
 
-  const byDay = Array.from({ length: 7 }, (_, idx) => {
-    const dayDate = new Date(now.getTime() + idx * 24 * 60 * 60 * 1000);
-    const offset = idx - 2;
-    const hours = hourly.map((h) => ({
-      ...h,
-      time: new Date(
-        new Date(h.time).getTime() + idx * 24 * 60 * 60 * 1000
-      ).toISOString(),
-    }));
-    const icon = idx % 3 === 0 ? "🌧️" : idx % 2 === 0 ? "🌤️" : "⛅";
-    const condition =
-      idx % 3 === 0
-        ? "Schauer möglich"
-        : idx % 2 === 0
-        ? "Sonne und Wolken"
-        : "Wechselhaft";
+  const byDay = dailyData.map((day, idx) => {
+    const dayDate = new Date(now.getTime() + day.offset * 24 * 60 * 60 * 1000);
+    const daySunrise = new Date(dayDate);
+    daySunrise.setHours(8, 1, 0, 0);
+    const daySunset = new Date(dayDate);
+    daySunset.setHours(16, 24, 0, 0);
+
     return {
       date: dayDate.toISOString(),
-      hours,
-      tempMax: Number((summary.tempMax + offset * 0.6).toFixed(1)),
-      tempMin: Number((summary.tempMin + offset * 0.4).toFixed(1)),
-      emoji: icon,
-      summary: { condition },
+      tempMax: day.max,
+      tempMin: day.min,
+      temperatureMax: day.max,
+      temperatureMin: day.min,
+      precipProbMax: day.precip,
+      precipitationProbabilityMax: day.precip,
+      precipitationSum: day.precip > 50 ? 5.2 : 0,
+      weatherCode: day.code,
+      iconHtml: day.icon,
+      sunrise: daySunrise.toISOString(),
+      sunset: daySunset.toISOString(),
+      moonrise: moonrise.toISOString(),
+      moonset: moonset.toISOString(),
+      moonPhase: 0.25,
+      uvIndexMax: 1,
+      windSpeedMax: 15,
+      description:
+        day.code === 3 ? "Bedeckt" : day.code === 61 ? "Regen" : "Wechselhaft",
     };
   });
+
+  // Aktuelles Wetter
+  const currentSnapshot = {
+    temperature: baseTemp,
+    apparentTemperature: 0,
+    feelsLike: 0,
+    humidity: 86,
+    windSpeed: 8,
+    windDirection: 225,
+    windGust: 12,
+    weatherCode: 3,
+    code: 3,
+    description: "Bedeckt",
+    summary: "Bedeckt",
+    isDay: currentHour >= 8 && currentHour <= 16,
+    precipProb: 5,
+    uvIndex: 1,
+    pressure: 1015,
+    surfacePressure: 1015,
+    visibility: 40,
+    cloudCover: 100,
+    dewPoint: 4,
+    time: now.toISOString(),
+  };
 
   return {
     openMeteo: {
       hourly,
-      daily: byDay.map((d) => ({
-        date: d.date,
-        tempMax: d.tempMax,
-        tempMin: d.tempMin,
-        summary: d.summary,
-        emoji: d.emoji,
-      })),
-      dayInsights,
-      byDay,
+      daily: byDay,
     },
+    hourly,
+    currentSnapshot,
+    current: currentSnapshot,
     brightSky: null,
     locationDetails: {
-      city: "Berlin",
+      city: "Aschaffenburg",
       country: "Deutschland",
       countryFlag: "🇩🇪",
-      region: "Berlin",
+      region: "Bayern",
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      latitude: 52.52,
-      longitude: 13.405,
+      latitude: 49.97,
+      longitude: 9.15,
     },
     sunEvents: {
       sunrise: sunrise.toISOString(),
       sunset: sunset.toISOString(),
-      dayLengthSeconds: (14 * 60 + 40) * 60,
-      civil: {
-        dawn: sunrise.toISOString(),
-        dusk: sunset.toISOString(),
-      },
+      dayLengthSeconds: 8 * 3600 + 22 * 60,
     },
     moonPhase: {
-      phaseName: "Zunehmender Mond",
-      illumination: 0.62,
-      emoji: "🌔",
-      nextFullMoon: null,
+      phaseName: "Erstes Viertel",
+      illumination: 0.25,
+      emoji: "🌓",
     },
-    airQuality: {
-      european: { value: 32, label: "Gut" },
+    aqi: {
+      europeanAqi: 29,
+      usAqi: 35,
+      label: "OK",
     },
-    sources: [
-      {
-        id: "demo",
-        name: "Demo Dataset",
-        success: true,
-        fromCache: true,
-        duration: 0,
-        note: "Offline-Demo",
-      },
-    ],
+    pollen: {
+      trees: 1,
+      grass: 1,
+      weeds: 1,
+    },
+    sources: [{ id: "demo", name: "Demo", success: true }],
   };
 }
 
@@ -991,18 +989,102 @@ function renderDemoExperience(reason = "") {
 
     appState.renderData = demoData;
     appState.weatherData = demoData;
-    appState.currentCity = DEMO_CITY_FALLBACK;
+    appState.currentCity = demoData.locationDetails?.city || DEMO_CITY_FALLBACK;
 
     document.body?.classList?.add("demo-mode");
     if (document.body?.dataset) {
       document.body.dataset.appMode = "demo";
     }
 
-    weatherDisplay.displayCurrent(demoData, DEMO_CITY_FALLBACK);
+    // Altes Display für Kompatibilität
+    weatherDisplay.displayCurrent(demoData, appState.currentCity);
     resetHourlySection();
     const demoHourly = buildHourlyDisplayPayload(demoData, 24);
     weatherDisplay.displayHourly(demoHourly.hours, demoHourly.label || "Demo");
     weatherDisplay.displayForecast(demoData.openMeteo.daily);
+
+    // NEUES Home UI Rendering
+    const locationDetails = demoData.locationDetails || {};
+    const sunEvents = demoData.sunEvents || {};
+    const homeState = {
+      current: demoData.currentSnapshot || demoData.current || {},
+      daily: demoData.openMeteo?.daily || [],
+      hourly: demoData.hourly || [],
+      location: {
+        name: locationDetails.city || appState.currentCity,
+        cityName: locationDetails.city || appState.currentCity,
+        country: locationDetails.country || "Deutschland",
+      },
+      locationDetails: locationDetails,
+      sunEvents: sunEvents,
+      temperatureUnit: appState.units?.temperature || "C",
+      windUnit: appState.units?.wind || "km/h",
+      locale: appState.locale || "de-DE",
+      lastUpdated: Date.now(),
+      aqi: demoData.aqi || {},
+      pollen: demoData.pollen || {},
+      moonPhase: demoData.moonPhase || {},
+    };
+
+    const healthState =
+      typeof window.healthSafetyEngine === "function"
+        ? window.healthSafetyEngine(homeState)
+        : {};
+
+    // Render Hero Section
+    if (window.WeatherHero && window.WeatherHero.renderWeatherHero) {
+      window.WeatherHero.renderWeatherHero(homeState, {
+        iconForCode: (code, isDay) => {
+          try {
+            if (window.weatherIconMapper?.toHtml)
+              return window.weatherIconMapper.toHtml(code, isDay);
+            if (window.iconMapper?.toHtml)
+              return window.iconMapper.toHtml(code, isDay);
+          } catch (e) {}
+          return "";
+        },
+        formatUpdatedAt: (ts) => {
+          if (!ts) return "";
+          try {
+            return new Date(ts).toLocaleTimeString(homeState.locale, {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+          } catch {
+            return "";
+          }
+        },
+      });
+    }
+
+    // Render Home Cards (Insights, Hourly, Daily)
+    if (window.HomeCards && window.HomeCards.renderHomeCards) {
+      window.HomeCards.renderHomeCards(homeState, healthState);
+    }
+
+    // Render Weather Cards Grid (Visual Metric Cards)
+    if (window.WeatherCards && window.WeatherCards.renderWeatherCards) {
+      window.WeatherCards.renderWeatherCards(homeState);
+    }
+
+    // Render Health & Safety View
+    if (window.HealthSafetyView && window.HealthSafetyView.render) {
+      try {
+        window.HealthSafetyView.render(homeState, healthState);
+      } catch (e) {
+        console.warn("HealthSafetyView Rendering fehlgeschlagen", e);
+      }
+    }
+
+    // Render Froggy Hero Background
+    if (window.FrogHeroPlayer && window.FrogHeroPlayer.renderFrogHero) {
+      try {
+        window.FrogHeroPlayer.renderFrogHero(homeState);
+      } catch (e) {
+        console.warn("FrogHeroPlayer Rendering fehlgeschlagen", e);
+      }
+    }
+
     try {
       weatherDisplay.showSourcesComparison(
         demoData.openMeteo,
@@ -1013,12 +1095,12 @@ function renderDemoExperience(reason = "") {
       console.warn("Demo-Quellenvergleich fehlgeschlagen", e);
     }
 
-    updateTopbarStatus(DEMO_CITY_FALLBACK);
+    updateTopbarStatus(appState.currentCity);
     syncExtendedPanels(
       demoData.locationDetails || {
-        city: DEMO_CITY_FALLBACK,
-        latitude: 52.52,
-        longitude: 13.405,
+        city: appState.currentCity,
+        latitude: 49.97,
+        longitude: 9.15,
       }
     );
 
@@ -1031,6 +1113,7 @@ function renderDemoExperience(reason = "") {
       delete window.__deferredDemoRender;
     }
 
+    console.log("[Demo] UI gerendert mit Demo-Daten:", homeState);
     return true;
   } catch (e) {
     console.warn("Demo-Daten konnten nicht gerendert werden", e);
@@ -1773,12 +1856,16 @@ function buildRenderData(rawData, units) {
 
     return Array.from({ length: 24 }, (_, hour) => {
       const slot = hourLookup.get(hour);
+      const precipProb = toNumber(
+        slot?.precipitationProbability ?? slot?.precipProb
+      );
       return {
         hour,
         temperature: toNumber(slot?.temperature),
         emoji: slot?.emoji || "",
         precipitation: toNumber(slot?.precipitation),
-        precipitationProbability: toNumber(slot?.precipitationProbability),
+        precipitationProbability: precipProb,
+        precipProb: precipProb,
         uvIndex: toNumber(slot?.uvIndex),
         uvIndexClearSky: toNumber(slot?.uvIndexClearSky),
         windSpeed: toNumber(slot?.windSpeed),
@@ -1979,9 +2066,15 @@ function buildRenderData(rawData, units) {
             : units.temperature === "F"
             ? (min * 9) / 5 + 32
             : min;
-        return Object.assign({}, d, { tempMax: tMax, tempMin: tMin });
+        return Object.assign({}, d, {
+          tempMax: tMax,
+          tempMin: tMin,
+          temperatureMax: tMax,
+          temperatureMin: tMin,
+          precipProbMax: d.precipitationProbabilityMax || d.precipProbMax || 0,
+          iconHtml: d.emoji || "☁️",
+        });
       });
-
       result.openMeteo = { hourly: convertedHourly, daily: convertedDaily };
       // Group hourly into days for 7-day view (first 3 days will include per-hour slices)
       function groupHourlyByDay(hourlyArray, maxDays = 7) {
@@ -2061,6 +2154,45 @@ function buildRenderData(rawData, units) {
     result.sunEvents = rawData.sunEvents || null;
     result.moonPhase = rawData.moonPhase || null;
     result.airQuality = normalizeAirQuality(rawData.airQuality);
+    result.aqi = rawData.airQuality
+      ? {
+          europeanAqi: result.airQuality?.european?.value,
+          usAqi: result.airQuality?.us?.value,
+          label:
+            result.airQuality?.european?.label || result.airQuality?.us?.label,
+        }
+      : null;
+    result.pollen = rawData.pollen || null;
+    result.hourly = result.openMeteo?.hourly || [];
+
+    // Erstelle currentSnapshot aus der ersten Stunde
+    if (result.openMeteo?.hourly?.length) {
+      const h = result.openMeteo.hourly[0];
+      const d = result.openMeteo?.daily?.[0] || {};
+      result.currentSnapshot = {
+        temperature: h.temperature,
+        apparentTemperature: h.feelsLike,
+        feelsLike: h.feelsLike,
+        humidity: h.humidity,
+        windSpeed: h.windSpeed,
+        windDirection: h.windDirection,
+        windGust: h.windGust,
+        weatherCode: h.weathercode || h.weatherCode,
+        code: h.weathercode || h.weatherCode,
+        description: h.description || h.summary,
+        summary: h.summary || h.description,
+        isDay: h.isDay === 1 || h.isDay === true,
+        precipProb: h.precipitationProbability,
+        uvIndex: h.uvIndex,
+        pressure: h.pressure || h.surfacePressure,
+        surfacePressure: h.surfacePressure,
+        visibility: h.visibility,
+        cloudCover: h.cloudCover,
+        dewPoint: h.dewPoint,
+        time: h.time,
+      };
+      result.current = result.currentSnapshot;
+    }
   } catch (e) {
     console.warn("buildRenderData failed", e);
   }
@@ -2926,26 +3058,45 @@ async function loadWeather(city, options = {}) {
     // Neues Home-Layout (Hero + Karten) befüllen
     try {
       const units = appState.units || { temperature: "C", wind: "km/h" };
+      const locationDetails =
+        appState.renderData?.locationDetails ||
+        weatherData?.locationDetails ||
+        {};
+      const sunEvents =
+        appState.renderData?.sunEvents || weatherData?.sunEvents || {};
+      const daily = appState.renderData?.openMeteo?.daily || [];
+      const hourlyData =
+        appState.renderData?.openMeteo?.hourly ||
+        appState.renderData?.hourly ||
+        buildHourlyDisplayPayload(appState.renderData, 24).hours ||
+        [];
       const homeState = {
         current:
           appState.renderData?.currentSnapshot ||
           appState.renderData?.current ||
           {},
-        daily: appState.renderData?.openMeteo?.daily || [],
-        hourly:
-          appState.renderData?.hourly ||
-          buildHourlyDisplayPayload(appState.renderData, 24).hours ||
-          [],
+        daily: daily,
+        hourly: hourlyData.map((h) => ({
+          ...h,
+          precipProb: h.precipitationProbability ?? h.precipProb ?? null,
+        })),
         location: {
           name: location.city,
-          country: weatherData?.locationDetails?.countryCode,
+          cityName: location.city,
+          country:
+            locationDetails.country ||
+            weatherData?.locationDetails?.countryCode ||
+            "Deutschland",
         },
+        locationDetails: locationDetails,
+        sunEvents: sunEvents,
         temperatureUnit: units.temperature || "C",
         windUnit: units.wind || "km/h",
         locale: appState.locale || "de-DE",
         lastUpdated: Date.now(),
         aqi: appState.renderData?.aqi || appState.aqi || {},
         pollen: appState.renderData?.pollen || {},
+        moonPhase: appState.renderData?.moonPhase || {},
       };
 
       const healthState =
@@ -2989,6 +3140,15 @@ async function loadWeather(city, options = {}) {
       // Render Weather Cards Grid (Visual Cards)
       if (window.WeatherCards && window.WeatherCards.renderWeatherCards) {
         window.WeatherCards.renderWeatherCards(homeState);
+      }
+
+      // Render Froggy Hero Background
+      if (window.FrogHeroPlayer && window.FrogHeroPlayer.renderFrogHero) {
+        try {
+          window.FrogHeroPlayer.renderFrogHero(homeState.current);
+        } catch (e) {
+          console.warn("FrogHeroPlayer Rendering fehlgeschlagen", e);
+        }
       }
     } catch (e) {
       console.warn("Neues Home-Layout Rendering fehlgeschlagen", e);
@@ -3115,16 +3275,21 @@ async function loadWeatherByCoords(lat, lon, cityName, options = {}) {
     // Home-Layout rendern
     try {
       const units = appState.units || { temperature: "C", wind: "km/h" };
+      const hourlyData2 =
+        appState.renderData?.openMeteo?.hourly ||
+        appState.renderData?.hourly ||
+        buildHourlyDisplayPayload(appState.renderData, 24).hours ||
+        [];
       const homeState = {
         current:
           appState.renderData?.currentSnapshot ||
           appState.renderData?.current ||
           {},
         daily: appState.renderData?.openMeteo?.daily || [],
-        hourly:
-          appState.renderData?.hourly ||
-          buildHourlyDisplayPayload(appState.renderData, 24).hours ||
-          [],
+        hourly: hourlyData2.map((h) => ({
+          ...h,
+          precipProb: h.precipitationProbability ?? h.precipProb ?? null,
+        })),
         location: {
           name: location.city,
           country: weatherData?.locationDetails?.countryCode,

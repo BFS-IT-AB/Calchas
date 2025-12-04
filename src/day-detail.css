@@ -222,6 +222,16 @@
   font-size: 1.6rem;
 }
 
+.hour-chip__precip {
+  display: block;
+  font-size: 0.75rem;
+  color: #6dd5ed;
+  font-weight: 500;
+  margin-top: 0.25rem;
+  width: auto !important;
+  height: auto !important;
+}
+
 .detail-metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

@@ -529,6 +529,9 @@
                 Themen, Animationen und App-Layout.
               </p>
             </div>
+            <button class="bottom-sheet__close" type="button" data-close-sheet aria-label="Schließen">
+              <span class="material-symbols-outlined">close</span>
+            </button>
           </header>
           <div class="bottom-sheet__body" id="settings-theme-body"></div>
         </section>
@@ -546,6 +549,9 @@
                 Heimatort und Favoriten verwalten.
               </p>
             </div>
+            <button class="bottom-sheet__close" type="button" data-close-sheet aria-label="Schließen">
+              <span class="material-symbols-outlined">close</span>
+            </button>
           </header>
           <div class="bottom-sheet__body" id="settings-home-body"></div>
         </section>
@@ -563,6 +569,9 @@
                 Wie deine Daten gespeichert werden und welche Dienste genutzt werden.
               </p>
             </div>
+            <button class="bottom-sheet__close" type="button" data-close-sheet aria-label="Schließen">
+              <span class="material-symbols-outlined">close</span>
+            </button>
           </header>
           <div class="bottom-sheet__body" id="settings-privacy-body"></div>
         </section>
@@ -580,6 +589,9 @@
                 Temperatur, Wind, Druck und mehr.
               </p>
             </div>
+            <button class="bottom-sheet__close" type="button" data-close-sheet aria-label="Schließen">
+              <span class="material-symbols-outlined">close</span>
+            </button>
           </header>
           <div class="bottom-sheet__body" id="settings-units-body"></div>
         </section>
@@ -597,6 +609,9 @@
                 App-Sprache und Datumsformate.
               </p>
             </div>
+            <button class="bottom-sheet__close" type="button" data-close-sheet aria-label="Schließen">
+              <span class="material-symbols-outlined">close</span>
+            </button>
           </header>
           <div class="bottom-sheet__body" id="settings-language-body"></div>
         </section>
@@ -614,6 +629,9 @@
                 Version, Lizenzen und Datenschutzhinweise.
               </p>
             </div>
+            <button class="bottom-sheet__close" type="button" data-close-sheet aria-label="Schließen">
+              <span class="material-symbols-outlined">close</span>
+            </button>
           </header>
           <div class="bottom-sheet__body" id="settings-about-body"></div>
         </section>
@@ -1817,10 +1835,12 @@
         navigator.serviceWorker
           .register("service-worker.js")
           .then((reg) => {
-            console.log(" Service Worker registriert:", reg);
+            console.log("✅ Service Worker registriert:", reg);
+            // Force update check
+            reg.update();
           })
           .catch((err) => {
-            console.warn(" Service Worker Registrierung fehlgeschlagen:", err);
+            console.warn("⚠️ Service Worker Registrierung fehlgeschlagen:", err);
           });
       }
     </script>

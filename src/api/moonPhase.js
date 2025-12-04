@@ -3,62 +3,25 @@ class MoonPhaseAPI {
     this.baseUrl = (API_ENDPOINTS?.MOONPHASE?.BASE || "").replace(/\/$/, "");
     this.timeout = API_ENDPOINTS?.MOONPHASE?.TIMEOUT || 5000;
     this.name = "PhaseOfTheMoonToday";
-    this.isAvailable = !!this.baseUrl;
+    // API ist offline/existiert nicht mehr - nutze immer lokale Berechnung
+    this.isAvailable = false;
   }
 
   async fetchPhase(date = new Date(), apiKey = null, context = {}) {
     const start = Date.now();
-    const requestContext = this._normalizeContext(date, context);
 
-    // Wenn keine API-URL konfiguriert ist, direkt lokale Berechnung verwenden
-    if (!this.isAvailable) {
-      const fallback = this._computeLocalPhase(date, context);
+    // Direkt lokale Berechnung verwenden (API ist nicht mehr verfügbar)
+    const localData = this._computeLocalPhase(date, context);
+    if (localData) {
       return {
-        data: fallback,
+        data: localData,
         duration: Date.now() - start,
         source: "moonphase-local",
-        statusMessage: "Lokal berechnet (API nicht konfiguriert)",
+        statusMessage: "Lokal berechnet",
+        state: "online",
       };
     }
 
-    const queue = this._buildRequestQueue(requestContext);
-    let lastError = null;
-
-    for (const request of queue) {
-      try {
-        const response = await safeApiFetch(
-          request.url,
-          this._buildRequestInit(apiKey),
-          this.timeout
-        );
-        const payload = await response.json();
-        const normalized = this._normalize(payload, request.tag);
-        if (!normalized) {
-          throw new Error("PhaseOfTheMoonToday lieferte keine Daten");
-        }
-        return {
-          data: normalized,
-          duration: Date.now() - start,
-          source: "moonphase",
-        };
-      } catch (error) {
-        lastError = error;
-      }
-    }
-
-    // API nicht erreichbar - verwende lokale Berechnung
-    console.info(
-      "MoonPhaseToday API: Server nicht erreichbar - verwende lokale Berechnung"
-    );
-    const fallback = this._computeLocalPhase(date, context);
-    if (fallback) {
-      return {
-        data: fallback,
-        duration: Date.now() - start,
-        source: "moonphase-local",
-        statusMessage: "Lokal berechnet (API offline)",
-      };
-    }
     return {
       error: "Mondphase konnte nicht berechnet werden",
       source: "moonphase",

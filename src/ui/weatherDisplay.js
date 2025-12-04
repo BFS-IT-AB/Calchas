@@ -787,12 +787,15 @@ class WeatherDisplayComponent {
               : dt && !Number.isNaN(dt.getTime())
               ? dt.getHours()
               : null;
+          const precipProb =
+            slot.precipitationProbability ?? slot.precipProb ?? null;
           return {
             hour,
             temperature: slot.temperature,
             emoji: slot.emoji,
             precipitation: slot.precipitation,
-            precipitationProbability: slot.precipitationProbability,
+            precipitationProbability: precipProb,
+            precipProb: precipProb,
             windSpeed: slot.windSpeed,
             windDirection: slot.windDirection,
             humidity: slot.humidity,

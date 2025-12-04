@@ -23,9 +23,9 @@ const API_ENDPOINTS = {
     TIMEOUT: 5000,
     PARAMS: {
       hourly:
-        "temperature_2m,apparent_temperature,dewpoint_2m,relativehumidity_2m,weathercode,windspeed_10m,winddirection_10m,pressure_msl,precipitation,precipitation_probability,uv_index,uv_index_clear_sky,is_day",
+        "temperature_2m,apparent_temperature,dewpoint_2m,relativehumidity_2m,weathercode,windspeed_10m,winddirection_10m,windgusts_10m,pressure_msl,surface_pressure,precipitation,precipitation_probability,uv_index,uv_index_clear_sky,cloudcover,visibility,is_day",
       daily:
-        "weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,uv_index_clear_sky_max,precipitation_sum,precipitation_hours",
+        "weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,uv_index_clear_sky_max,precipitation_sum,precipitation_hours,precipitation_probability_max,windspeed_10m_max",
       timezone: "auto",
       forecast_days: 7,
     },

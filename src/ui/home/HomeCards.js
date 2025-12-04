@@ -221,12 +221,24 @@
         const iconHtml =
           h.iconHtml || getWeatherIcon(h.weatherCode, h.isDay !== false);
         const isNow = index === 0;
+        const precipProb =
+          h.precipProb != null
+            ? Math.round(h.precipProb)
+            : h.precipitationProbability != null
+            ? Math.round(h.precipitationProbability)
+            : null;
+        const showPrecip = precipProb != null;
 
         return `
         <div class="hourly-item ${isNow ? "hourly-item--now" : ""}">
           <span class="hourly-item__temp ${
             isNow ? "hourly-item__temp--highlight" : ""
           }">${temp}°</span>
+          ${
+            showPrecip
+              ? `<span class="hourly-item__precip">💧${precipProb}%</span>`
+              : ""
+          }
           <span class="hourly-item__icon">${iconHtml}</span>
           <span class="hourly-item__time">${hourLabel}</span>
         </div>
@@ -295,7 +307,7 @@
           <span class="daily-item__max">${max}°</span>
           <span class="daily-item__min">${min}°</span>
           <span class="daily-item__icon">${iconHtml}</span>
-          <span class="daily-item__precip ${precipClass}">${precip}%</span>
+          <span class="daily-item__precip ${precipClass}">💧${precip}%</span>
           <span class="daily-item__weekday">${
             isToday ? "Heute" : weekday
           }</span>
