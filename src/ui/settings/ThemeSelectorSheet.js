@@ -54,10 +54,28 @@ import "../../i18n/helper.js";
     } catch (e) {}
 
     const root = document.documentElement;
+    const body = document.body;
+
+    // Entferne alte Theme-Klassen
+    body.classList.remove("dark-mode", "light-mode");
+
     if (value === "system") {
       root.removeAttribute("data-theme");
-    } else {
-      root.setAttribute("data-theme", value);
+      // System-Präferenz prüfen
+      const prefersDark = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      ).matches;
+      if (prefersDark) {
+        body.classList.add("dark-mode");
+      } else {
+        body.classList.add("light-mode");
+      }
+    } else if (value === "dark") {
+      root.setAttribute("data-theme", "dark");
+      body.classList.add("dark-mode");
+    } else if (value === "light") {
+      root.setAttribute("data-theme", "light");
+      body.classList.add("light-mode");
     }
   }
 

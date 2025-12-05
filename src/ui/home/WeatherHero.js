@@ -60,6 +60,43 @@
     return descriptions[code] || "Bewölkt";
   }
 
+  function formatUpdatedLabel(lastUpdated) {
+    if (!lastUpdated) return "jetzt";
+
+    const now = Date.now();
+    const diff = now - lastUpdated;
+    const minutesAgo = Math.floor(diff / 60000);
+
+    // Wenn weniger als 2 Minuten, zeige "jetzt"
+    if (minutesAgo < 2) {
+      return "jetzt";
+    }
+
+    // Ansonsten zeige die Uhrzeit
+    try {
+      const date = new Date(lastUpdated);
+      return date.toLocaleTimeString("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (e) {
+      return "jetzt";
+    }
+  }
+
+  function getLocationTime(timezone) {
+    if (!timezone) return null;
+    try {
+      return new Date().toLocaleTimeString("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: timezone,
+      });
+    } catch (e) {
+      return null;
+    }
+  }
+
   function buildHeroHtml(data) {
     const {
       locationName,
@@ -73,10 +110,15 @@
       isDay,
       updatedLabel,
       tempUnit,
+      locationTime,
     } = data;
 
     const icon = getWeatherIcon(weatherCode, isDay);
     const weatherDesc = description || getWeatherDescription(weatherCode);
+
+    const locationTimeHtml = locationTime
+      ? `<span class="weather-hero__local-time">🕐 ${locationTime}</span>`
+      : "";
 
     return `
       <div class="weather-hero__header">
@@ -100,6 +142,7 @@
             feelsLike,
             tempUnit
           )}</span>
+          ${locationTimeHtml}
           <span class="weather-hero__updated">⏱ ${
             updatedLabel || "jetzt"
           }</span>
@@ -126,19 +169,13 @@
 
     const tempUnit = appState.temperatureUnit || "C";
 
-    // Format updated time
-    let updatedLabel = "jetzt";
-    if (appState.lastUpdated) {
-      try {
-        const date = new Date(appState.lastUpdated);
-        updatedLabel = date.toLocaleTimeString("de-DE", {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      } catch (e) {
-        updatedLabel = "jetzt";
-      }
-    }
+    // Dynamische Aktualisierungsanzeige
+    const updatedLabel = formatUpdatedLabel(appState.lastUpdated);
+
+    // Standort-Uhrzeit (falls Timezone verfügbar)
+    const locationTime = getLocationTime(
+      appState.timezone || location.timezone
+    );
 
     const data = {
       locationName: location.name || location.cityName || "Unbekannt",
@@ -152,15 +189,27 @@
       isDay: current.isDay !== false,
       updatedLabel,
       tempUnit,
+      locationTime,
     };
 
     console.log("[WeatherHero] Rendering with data:", data);
     heroEl.innerHTML = buildHeroHtml(data);
 
-    // Render Frog Background
+    // Render Frog Background - stelle sicher dass weatherCode übergeben wird
     if (global.FrogHeroPlayer && global.FrogHeroPlayer.renderFrogHero) {
       try {
-        global.FrogHeroPlayer.renderFrogHero(current);
+        // Erweitere current mit weatherCode falls nicht vorhanden
+        const frogData = {
+          ...current,
+          weatherCode:
+            current.weatherCode ??
+            current.code ??
+            current.weather_code ??
+            data.weatherCode,
+          time: current.time || new Date().toISOString(),
+        };
+        console.log("[WeatherHero] FrogHero data:", frogData);
+        global.FrogHeroPlayer.renderFrogHero(frogData);
       } catch (e) {
         console.warn("FrogHero konnte nicht gerendert werden", e);
       }

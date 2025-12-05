@@ -1,6 +1,52 @@
 (function (global) {
   let activeSheetId = null;
 
+  // Mapping von Sheet-IDs zu Render-Funktionen
+  function renderSheetContent(sheetId) {
+    const appState = global.appState || {};
+
+    const renderMap = {
+      "sheet-settings-theme": () => {
+        if (global.ThemeSelectorSheet?.renderThemeSheet) {
+          global.ThemeSelectorSheet.renderThemeSheet(appState);
+        }
+      },
+      "sheet-settings-units": () => {
+        if (global.UnitsSelectorSheet?.renderUnitsSheet) {
+          global.UnitsSelectorSheet.renderUnitsSheet(appState);
+        }
+      },
+      "sheet-settings-language": () => {
+        if (global.LanguageSelectorSheet?.renderLanguageSheet) {
+          global.LanguageSelectorSheet.renderLanguageSheet(appState);
+        }
+      },
+      "sheet-settings-home": () => {
+        if (global.HomeLocationSheet?.renderHomeSheet) {
+          global.HomeLocationSheet.renderHomeSheet(appState);
+        }
+      },
+      "sheet-settings-about": () => {
+        if (global.AboutSheet?.renderAboutSheet) {
+          global.AboutSheet.renderAboutSheet(appState);
+        }
+      },
+      "sheet-settings-privacy": () => {
+        if (global.PrivacyApiInfoSheet?.renderPrivacySheet) {
+          global.PrivacyApiInfoSheet.renderPrivacySheet(appState);
+        }
+      },
+    };
+
+    if (renderMap[sheetId]) {
+      try {
+        renderMap[sheetId]();
+      } catch (e) {
+        console.warn(`[ModalController] Render failed for ${sheetId}:`, e);
+      }
+    }
+  }
+
   function resolveSheetId(idOrMetric) {
     if (!idOrMetric) return null;
     if (idOrMetric.startsWith("sheet-")) return idOrMetric;
@@ -27,6 +73,9 @@
     const resolvedId = resolveSheetId(idOrMetric);
     const sheet = resolvedId && document.getElementById(resolvedId);
     if (!overlay || !sheet) return;
+
+    // Render Sheet content vor dem Öffnen
+    renderSheetContent(resolvedId);
 
     overlay.hidden = false;
     overlay.setAttribute("aria-hidden", "false");

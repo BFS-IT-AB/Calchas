@@ -544,8 +544,9 @@ body.mobile-app .app-footer {
 }
 
 body.mobile-app .toast-stack {
-  top: 1rem;
+  top: 70px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(92vw, 420px);
+  width: min(92vw, 360px);
+  z-index: 9999;
 }

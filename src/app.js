@@ -301,6 +301,230 @@ function setupMobileViewportWatcher() {
   }
 }
 
+/**
+ * Versteckt die App-Bar beim Runterscrollen und zeigt sie beim Hochscrollen
+ */
+function setupAppBarScrollBehavior() {
+  const appBar = document.getElementById("app-bar");
+  const scrollContainer = document.querySelector(".app-main-views");
+
+  if (!appBar || !scrollContainer) return;
+
+  let lastScrollTop = 0;
+  let ticking = false;
+  const scrollThreshold = 10; // Mindest-Scroll-Distanz vor Reaktion
+
+  scrollContainer.addEventListener(
+    "scroll",
+    () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollTop = scrollContainer.scrollTop;
+          const scrollDelta = currentScrollTop - lastScrollTop;
+
+          // Nur reagieren wenn Scroll-Distanz größer als Schwellenwert
+          if (Math.abs(scrollDelta) > scrollThreshold) {
+            if (scrollDelta > 0 && currentScrollTop > 60) {
+              // Runterscrollen - verstecken
+              appBar.classList.add("app-bar--hidden");
+            } else if (scrollDelta < 0) {
+              // Hochscrollen - zeigen
+              appBar.classList.remove("app-bar--hidden");
+            }
+            lastScrollTop = currentScrollTop;
+          }
+
+          // Am Anfang der Seite immer zeigen
+          if (currentScrollTop <= 10) {
+            appBar.classList.remove("app-bar--hidden");
+          }
+
+          ticking = false;
+        });
+        ticking = true;
+      }
+    },
+    { passive: true }
+  );
+}
+
+/**
+ * Pull-to-Refresh mit Rate-Limiting (5 Minuten Cooldown)
+ */
+const REFRESH_COOLDOWN_MS = 5 * 60 * 1000; // 5 Minuten
+let lastManualRefreshTime = 0;
+
+function getLastRefreshTime() {
+  try {
+    const stored = localStorage.getItem("wetter_last_refresh");
+    return stored ? parseInt(stored, 10) : 0;
+  } catch (e) {
+    return lastManualRefreshTime;
+  }
+}
+
+function setLastRefreshTime(time) {
+  lastManualRefreshTime = time;
+  try {
+    localStorage.setItem("wetter_last_refresh", time.toString());
+  } catch (e) {
+    // Ignorieren
+  }
+}
+
+function canRefresh() {
+  const lastRefresh = getLastRefreshTime();
+  const now = Date.now();
+  return now - lastRefresh >= REFRESH_COOLDOWN_MS;
+}
+
+function getTimeUntilNextRefresh() {
+  const lastRefresh = getLastRefreshTime();
+  const now = Date.now();
+  const remaining = REFRESH_COOLDOWN_MS - (now - lastRefresh);
+  return Math.max(0, Math.ceil(remaining / 60000)); // Minuten
+}
+
+function showPullRefreshIndicator(message, type = "info", duration = 2500) {
+  let indicator = document.getElementById("pull-refresh-indicator");
+
+  if (!indicator) {
+    indicator = document.createElement("div");
+    indicator.id = "pull-refresh-indicator";
+    indicator.className = "pull-refresh-indicator";
+    document.body.appendChild(indicator);
+  }
+
+  indicator.textContent = message;
+  indicator.className = "pull-refresh-indicator";
+
+  if (type === "warning") {
+    indicator.classList.add("pull-refresh-indicator--warning");
+  } else if (type === "success") {
+    indicator.classList.add("pull-refresh-indicator--success");
+  }
+
+  // Zeige Indikator
+  requestAnimationFrame(() => {
+    indicator.classList.add("visible");
+  });
+
+  // Verstecke nach Dauer
+  setTimeout(() => {
+    indicator.classList.remove("visible");
+  }, duration);
+}
+
+function setupPullToRefresh() {
+  const scrollContainer = document.querySelector(".app-main-views");
+  if (!scrollContainer) return;
+
+  let touchStartY = 0;
+  let touchCurrentY = 0;
+  let isPulling = false;
+  const pullThreshold = 80; // Pixel zum Auslösen
+
+  scrollContainer.addEventListener(
+    "touchstart",
+    (e) => {
+      if (scrollContainer.scrollTop <= 5) {
+        touchStartY = e.touches[0].clientY;
+        isPulling = true;
+      }
+    },
+    { passive: true }
+  );
+
+  scrollContainer.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!isPulling) return;
+      touchCurrentY = e.touches[0].clientY;
+      const pullDistance = touchCurrentY - touchStartY;
+
+      // Zeige visuelles Feedback beim Ziehen
+      if (pullDistance > 30 && scrollContainer.scrollTop <= 0) {
+        const indicator = document.getElementById("pull-refresh-indicator");
+        if (indicator) {
+          indicator.classList.add("pulling");
+          if (pullDistance > pullThreshold) {
+            indicator.textContent = "↻ Loslassen zum Aktualisieren";
+          } else {
+            indicator.textContent = "↓ Zum Aktualisieren ziehen";
+          }
+          indicator.classList.add("visible");
+        } else {
+          showPullRefreshIndicator("↓ Zum Aktualisieren ziehen", "info", 500);
+        }
+      }
+    },
+    { passive: true }
+  );
+
+  scrollContainer.addEventListener(
+    "touchend",
+    async () => {
+      if (!isPulling) return;
+
+      const pullDistance = touchCurrentY - touchStartY;
+      isPulling = false;
+      touchStartY = 0;
+      touchCurrentY = 0;
+
+      const indicator = document.getElementById("pull-refresh-indicator");
+      if (indicator) {
+        indicator.classList.remove("pulling");
+      }
+
+      // Prüfe ob Pull-Distanz ausreichend war
+      if (pullDistance > pullThreshold && scrollContainer.scrollTop <= 5) {
+        // Prüfe Rate-Limit
+        if (!canRefresh()) {
+          const minutesLeft = getTimeUntilNextRefresh();
+          if (minutesLeft > 0) {
+            showPullRefreshIndicator(
+              `⏳ Bitte warte noch ${minutesLeft} Min.`,
+              "warning",
+              2500
+            );
+          } else {
+            showPullRefreshIndicator(
+              "✓ Bereits auf dem neuesten Stand",
+              "info",
+              2000
+            );
+          }
+          return;
+        }
+
+        // Aktualisierung durchführen
+        showPullRefreshIndicator("↻ Aktualisiere...", "info", 1500);
+
+        try {
+          if (appState && appState.currentCity) {
+            setLastRefreshTime(Date.now());
+            await loadWeather(appState.currentCity, { silent: false });
+            showPullRefreshIndicator("✓ Aktualisiert!", "success", 1500);
+          }
+        } catch (e) {
+          showPullRefreshIndicator(
+            "✗ Fehler beim Aktualisieren",
+            "warning",
+            2500
+          );
+          console.error("Pull-to-Refresh Fehler:", e);
+        }
+      }
+    },
+    { passive: true }
+  );
+}
+
+// Exportiere für globale Verwendung
+window.canRefresh = canRefresh;
+window.getTimeUntilNextRefresh = getTimeUntilNextRefresh;
+window.setLastRefreshTime = setLastRefreshTime;
+
 async function initAppShell(appState) {
   try {
     setupMobileViewportWatcher();
@@ -3087,6 +3311,10 @@ async function loadWeather(city, options = {}) {
             locationDetails.country ||
             weatherData?.locationDetails?.countryCode ||
             "Deutschland",
+          timezone:
+            weatherData?.openMeteo?.timezone ||
+            locationDetails?.timezone ||
+            null,
         },
         locationDetails: locationDetails,
         sunEvents: sunEvents,
@@ -3094,6 +3322,10 @@ async function loadWeather(city, options = {}) {
         windUnit: units.wind || "km/h",
         locale: appState.locale || "de-DE",
         lastUpdated: Date.now(),
+        timezone:
+          weatherData?.openMeteo?.timezone ||
+          locationDetails?.timezone ||
+          "Europe/Berlin",
         aqi: appState.renderData?.aqi || appState.aqi || {},
         pollen: appState.renderData?.pollen || {},
         moonPhase: appState.renderData?.moonPhase || {},
@@ -3293,11 +3525,13 @@ async function loadWeatherByCoords(lat, lon, cityName, options = {}) {
         location: {
           name: location.city,
           country: weatherData?.locationDetails?.countryCode,
+          timezone: weatherData?.openMeteo?.timezone || null,
         },
         temperatureUnit: units.temperature || "C",
         windUnit: units.wind || "km/h",
         locale: appState.locale || "de-DE",
         lastUpdated: Date.now(),
+        timezone: weatherData?.openMeteo?.timezone || "Europe/Berlin",
         aqi: appState.renderData?.aqi || appState.aqi || {},
         pollen: appState.renderData?.pollen || {},
       };
@@ -3620,6 +3854,8 @@ function initApp() {
 
   setupMobileViewportWatcher();
   setupSettingsNavigation();
+  setupAppBarScrollBehavior();
+  setupPullToRefresh();
 
   // Initialisiere API Key Manager
   window.apiKeyManager = new APIKeyManager();

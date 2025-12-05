@@ -31,33 +31,32 @@
   <body class="mobile-app">
     <div id="app-shell" class="app-shell app-shell">
       <header id="app-bar" class="app-bar">
-        <button
-          id="location-picker-btn"
-          class="app-bar__location"
-          type="button"
-          aria-label="Standort wählen"
-          data-bottom-sheet-target="sheet-location-picker"
-        >
-          <span class="app-bar__location-icon material-symbols-outlined" aria-hidden="true">location_on</span>
-          <div class="app-bar__location-meta">
-            <span id="app-bar-location" class="app-bar__location-text">Noch kein Ort</span>
-            <small id="topbar-updated" class="app-bar__updated">Keine Aktualisierung</small>
-          </div>
-          <span class="material-symbols-outlined app-bar__chevron" aria-hidden="true">expand_more</span>
-        </button>
-        <div class="app-bar__actions">
+        <div class="app-bar__pill">
           <button
-            id="favoriteToggle"
-            class="icon-button app-bar__action-btn"
+            id="location-picker-btn"
+            class="app-bar__location"
             type="button"
-            aria-label="Zu Favoriten hinzufügen"
-            data-city=""
+            aria-label="Standort wählen"
+            data-bottom-sheet-target="sheet-location-picker"
           >
-            ☆
+            <span class="app-bar__location-icon material-symbols-outlined" aria-hidden="true">location_on</span>
+            <div class="app-bar__location-meta">
+              <span id="app-bar-location" class="app-bar__location-text">Noch kein Ort</span>
+              <small id="topbar-updated" class="app-bar__updated">Keine Aktualisierung</small>
+            </div>
+            <span class="material-symbols-outlined app-bar__chevron" aria-hidden="true">expand_more</span>
           </button>
-          <button id="app-bar-settings" class="icon-button" aria-label="Einstellungen öffnen" data-nav-target="settings">
-            <span class="material-symbols-outlined" aria-hidden="true">settings</span>
-          </button>
+          <div class="app-bar__actions">
+            <button
+              id="favoriteToggle"
+              class="icon-button app-bar__action-btn"
+              type="button"
+              aria-label="Zu Favoriten hinzufügen"
+              data-city=""
+            >
+              ☆
+            </button>
+          </div>
         </div>
       </header>
 
@@ -213,6 +212,10 @@
         <button class="bottom-nav__button" type="button" data-nav-target="history">
           <span class="bottom-nav__icon material-symbols-outlined" aria-hidden="true">history</span>
           <span class="bottom-nav__label">Historie</span>
+        </button>
+        <button class="bottom-nav__button" type="button" data-nav-target="settings">
+          <span class="bottom-nav__icon material-symbols-outlined" aria-hidden="true">settings</span>
+          <span class="bottom-nav__label">Settings</span>
         </button>
       </nav>
 
