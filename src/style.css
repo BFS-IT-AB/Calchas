@@ -2700,7 +2700,7 @@ body.mobile-app #legacy-content {
     display: flex;
     align-items: center;
     gap: var(--space-s);
-    margin-bottom: var(--space-m);
+    margin-bottom: var(--space-s);
   }
 
   .hourly-card__icon {
@@ -2719,12 +2719,14 @@ body.mobile-app #legacy-content {
     gap: var(--space-m);
     overflow-x: auto;
     padding-bottom: var(--space-s);
+    padding-top: var(--space-s);
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
   }
 
   .hourly-card__scroll::-webkit-scrollbar {
-    height: 4px;
+    height: 10px;
+    border: #ffffff
   }
 
   .hourly-card__scroll::-webkit-scrollbar-thumb {
@@ -2732,12 +2734,15 @@ body.mobile-app #legacy-content {
     border-radius: 2px;
   }
 
-  .hourly-item {
+.hourly-item {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: var(--space-xs);
-    min-width: 50px;
+    /* WICHTIG: Korrigierte Breitenberechnung 
+       (Gesamtbreite / 3 minus die Gaps, die dazwischen liegen) */
+    flex: 0 0 calc(33.333% - (2 * var(--space-m) / 3));
+    /* min-width: 50px; wird nicht mehr benötigt */
     scroll-snap-align: start;
   }
 
