@@ -29,10 +29,25 @@ class WeatherDisplayComponent {
 
       const open = weatherData.openMeteo || {};
       const bright = weatherData.brightSky || {};
-      const openHourly = Array.isArray(open.hourly) ? open.hourly : [];
-      const brightHourly = Array.isArray(bright.hourly) ? bright.hourly : [];
-      const primarySeries = openHourly.length ? openHourly : brightHourly;
-      const currentHour = primarySeries[0];
+
+      // Priorisiere currentSnapshot (bereits auf aktuelle Stunde gefiltert)
+      // oder verwende die gefilterten hourly-Daten aus renderData
+      let currentHour = weatherData.currentSnapshot || weatherData.current;
+
+      if (!currentHour) {
+        // Fallback: Verwende die gefilterten hourly-Daten oder die ersten Stunden der API
+        const filteredHourly = Array.isArray(weatherData.hourly)
+          ? weatherData.hourly
+          : [];
+        const openHourly = Array.isArray(open.hourly) ? open.hourly : [];
+        const brightHourly = Array.isArray(bright.hourly) ? bright.hourly : [];
+        const primarySeries = filteredHourly.length
+          ? filteredHourly
+          : openHourly.length
+          ? openHourly
+          : brightHourly;
+        currentHour = primarySeries[0];
+      }
 
       if (!currentHour) {
         this.showError("Keine aktuellen Wetterdaten gefunden.");

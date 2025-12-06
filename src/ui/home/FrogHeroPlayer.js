@@ -6,34 +6,36 @@
   const SCENE_TYPE = "fields"; // Landschaft-Szene für dynamisches Wetter
 
   // Dynamische Himmelfarben basierend auf Wetter und Tageszeit
+  // WICHTIG: Diese Farben müssen exakt zum Himmel der Fields-Bilder passen!
+  // Die Farben wurden aus den tatsächlichen Fields-Bildern extrahiert
   const SKY_COLORS = {
-    // Morning
-    morning_sunny: { top: "#87CEEB", mid: "#B0E0E6", bottom: "#E0F0E0" },
-    morning_cloudy: { top: "#6B7B8C", mid: "#8899AA", bottom: "#A0B0A8" },
-    morning_rainy: { top: "#4A5568", mid: "#5C6878", bottom: "#6E7E78" },
-    morning_snowy: { top: "#B8C6D6", mid: "#C8D6E6", bottom: "#E0E8E8" },
-    morning_hazy: { top: "#9CA3AF", mid: "#B0B8C0", bottom: "#C0C8C0" },
+    // Morning - Morgenhimmel
+    morning_sunny: { top: "#A8D4E6", mid: "#B8DEF0", bottom: "#C8E8F5" },
+    morning_cloudy: { top: "#8A9AA8", mid: "#96A6B4", bottom: "#A2B2C0" },
+    morning_rainy: { top: "#6D7D8B", mid: "#7A8A96", bottom: "#8797A2" },
+    morning_snowy: { top: "#C0D0DE", mid: "#CCE0EE", bottom: "#D8EAF4" },
+    morning_hazy: { top: "#9AAAB8", mid: "#A6B6C4", bottom: "#B2C2D0" },
 
-    // Day
-    day_sunny: { top: "#4A90D9", mid: "#6BA3E0", bottom: "#8CB8E0" },
-    day_cloudy: { top: "#5A6A7A", mid: "#6E7E8E", bottom: "#7A8A82" },
-    day_rainy: { top: "#3D4852", mid: "#4A5662", bottom: "#5A6A62" },
-    day_snowy: { top: "#8899AA", mid: "#99AABB", bottom: "#B0C0B8" },
-    day_hazy: { top: "#7A8A9A", mid: "#8A9AA8", bottom: "#9AA8A0" },
+    // Day - Tageshimmel (aus Fields-Bildern extrahiert)
+    day_sunny: { top: "#7EC8E3", mid: "#8AD0E8", bottom: "#96D8ED" },
+    day_cloudy: { top: "#5A6B73", mid: "#687982", bottom: "#768790" },
+    day_rainy: { top: "#5A6A72", mid: "#677780", bottom: "#74848C" },
+    day_snowy: { top: "#A8B8C6", mid: "#B4C4D2", bottom: "#C0D0DE" },
+    day_hazy: { top: "#7A8A92", mid: "#8898A0", bottom: "#96A6AE" },
 
-    // Sunset
-    sunset_sunny: { top: "#FF7E5F", mid: "#FEB47B", bottom: "#FFD89B" },
-    sunset_cloudy: { top: "#5D4E6D", mid: "#7E6E8E", bottom: "#9E8E8E" },
-    sunset_rainy: { top: "#4A3F5A", mid: "#5A4F6A", bottom: "#6A5F6A" },
-    sunset_snowy: { top: "#8E7E9E", mid: "#9E8EAE", bottom: "#AE9EAE" },
-    sunset_hazy: { top: "#6E5E7E", mid: "#8E7E8E", bottom: "#AE9E8E" },
+    // Sunset - Abendhimmel
+    sunset_sunny: { top: "#E8A07A", mid: "#F0B892", bottom: "#F8D0AA" },
+    sunset_cloudy: { top: "#7D6E80", mid: "#8D7E90", bottom: "#9D8EA0" },
+    sunset_rainy: { top: "#5A5060", mid: "#6A6070", bottom: "#7A7080" },
+    sunset_snowy: { top: "#9888A0", mid: "#A898B0", bottom: "#B8A8C0" },
+    sunset_hazy: { top: "#8A7A8A", mid: "#9A8A9A", bottom: "#AA9AAA" },
 
-    // Night
-    night_sunny: { top: "#1a1f3a", mid: "#252a45", bottom: "#2a3040" },
-    night_cloudy: { top: "#252a3a", mid: "#303545", bottom: "#353a40" },
-    night_rainy: { top: "#1a1f2a", mid: "#252a35", bottom: "#2a2f35" },
-    night_snowy: { top: "#2a3040", mid: "#353a4a", bottom: "#3a4045" },
-    night_hazy: { top: "#2a2f3a", mid: "#353a45", bottom: "#3a3f42" },
+    // Night - Nachthimmel
+    night_sunny: { top: "#1E2340", mid: "#2A3050", bottom: "#364060" },
+    night_cloudy: { top: "#262C3A", mid: "#323848", bottom: "#3E4456" },
+    night_rainy: { top: "#1E2430", mid: "#2A3040", bottom: "#363C50" },
+    night_snowy: { top: "#3A4050", mid: "#464C60", bottom: "#525870" },
+    night_hazy: { top: "#2A3040", mid: "#363C50", bottom: "#424860" },
   };
 
   // Karten-Hintergrundfarbe (für unteren Übergang)
@@ -105,21 +107,31 @@
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
+  function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `${r}, ${g}, ${b}`;
+  }
+
   function applyDynamicGradients(tod, cond) {
     const colors = getSkyColors(tod, cond);
     const pond = document.getElementById("frog-hero-pond");
     const appShell = document.querySelector(".app-shell");
     const weatherHero = document.querySelector(".weather-hero");
+    const appBar = document.getElementById("app-bar");
+    const body = document.body;
 
     if (!pond) return;
 
-    // Erstelle dynamischen oberen Gradient - sanfter und länger
+    // Erstelle dynamischen oberen Gradient - sanfter Übergang von Himmelsfarbe zum Fields-Bild
+    // Sehr langer, weicher Übergang für nahtlose Verschmelzung
     const topGradient = `linear-gradient(to bottom,
       ${colors.top} 0%,
-      ${colors.top} 15%,
-      ${hexToRgba(colors.top, 0.8)} 35%,
-      ${hexToRgba(colors.top, 0.5)} 55%,
-      ${hexToRgba(colors.top, 0.2)} 75%,
+      ${colors.top} 40%,
+      ${hexToRgba(colors.top, 0.85)} 55%,
+      ${hexToRgba(colors.top, 0.6)} 70%,
+      ${hexToRgba(colors.top, 0.3)} 85%,
       transparent 100%)`;
 
     // Erstelle dynamischen unteren Gradient (für Übergang zu Karten)
@@ -129,8 +141,20 @@
       ${hexToRgba(CARD_BG_COLOR, 0.3)} 70%,
       transparent 100%)`;
 
+    // App-Bar Gradient - nahtloser Übergang von Himmelfarbe zu transparent
+    const appBarGradient = `linear-gradient(to bottom,
+      ${colors.top} 0%,
+      ${hexToRgba(colors.top, 0.85)} 30%,
+      ${hexToRgba(colors.top, 0.5)} 60%,
+      ${hexToRgba(colors.top, 0.15)} 85%,
+      transparent 100%)`;
+
     // Setze CSS Custom Properties global auf document.documentElement
     document.documentElement.style.setProperty("--sky-top", colors.top);
+    document.documentElement.style.setProperty(
+      "--sky-top-rgb",
+      hexToRgb(colors.top)
+    );
     document.documentElement.style.setProperty("--sky-mid", colors.mid);
     document.documentElement.style.setProperty("--sky-bottom", colors.bottom);
     document.documentElement.style.setProperty("--top-gradient", topGradient);
@@ -139,27 +163,45 @@
       bottomGradient
     );
     document.documentElement.style.setProperty("--card-bg", CARD_BG_COLOR);
+    document.documentElement.style.setProperty(
+      "--app-bar-gradient",
+      appBarGradient
+    );
 
     // Auch auf pond für lokale Verwendung
     pond.style.setProperty("--sky-top", colors.top);
+    pond.style.setProperty("--sky-top-rgb", hexToRgb(colors.top));
     pond.style.setProperty("--sky-mid", colors.mid);
     pond.style.setProperty("--sky-bottom", colors.bottom);
     pond.style.setProperty("--top-gradient", topGradient);
     pond.style.setProperty("--bottom-gradient", bottomGradient);
     pond.style.setProperty("--card-bg", CARD_BG_COLOR);
 
+    // HTML und Body bekommen die Himmelfarbe als Basis-Hintergrund
+    document.documentElement.style.background = colors.top;
+    if (body) {
+      body.style.background = colors.top;
+    }
+
     // App-shell bekommt den Basis-Hintergrund (Himmelfarbe oben)
     if (appShell) {
       appShell.style.background = colors.top;
     }
 
-    // Weather-hero bekommt den Farbübergang von oben (Himmel) nach unten (Richtung Fields)
-    // Dieser Gradient verbindet den oberen Bereich mit dem Fields-Bild
+    // App-Bar bekommt die Himmelsfarbe als Hintergrund
+    if (appBar) {
+      appBar.style.background = colors.top;
+    }
+
+    // Weather-hero bekommt die Himmelsfarbe als Hintergrund
     if (weatherHero) {
-      weatherHero.style.background = `linear-gradient(to bottom,
-        ${colors.top} 0%,
-        ${colors.mid} 50%,
-        ${colors.bottom} 100%)`;
+      weatherHero.style.background = colors.top;
+    }
+
+    // Weather-hero Header bekommt die Himmelsfarbe als Hintergrund (Bereich über dem Bild)
+    const weatherHeroHeader = document.querySelector(".weather-hero__header");
+    if (weatherHeroHeader) {
+      weatherHeroHeader.style.background = colors.top;
     }
 
     console.log("[FrogHero] Applied sky colors for", tod, cond, ":", colors);

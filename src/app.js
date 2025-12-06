@@ -2387,11 +2387,44 @@ function buildRenderData(rawData, units) {
         }
       : null;
     result.pollen = rawData.pollen || null;
-    result.hourly = result.openMeteo?.hourly || [];
 
-    // Erstelle currentSnapshot aus der ersten Stunde
+    // Finde den Index der aktuellen Stunde in den hourly-Daten
+    const findCurrentHourIndex = (hourlyArray) => {
+      if (!Array.isArray(hourlyArray) || !hourlyArray.length) return 0;
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentDateStr = now.toISOString().split("T")[0];
+
+      // Suche die Stunde, die am nächsten zur aktuellen Zeit ist
+      for (let i = 0; i < hourlyArray.length; i++) {
+        const h = hourlyArray[i];
+        if (!h.time) continue;
+        const hDate = new Date(h.time);
+        const hDateStr = h.time.includes("T")
+          ? h.time.split("T")[0]
+          : hDate.toISOString().split("T")[0];
+        const hHour = hDate.getHours();
+
+        // Wenn das Datum und die Stunde übereinstimmen oder wir in der Zukunft sind
+        if (hDateStr === currentDateStr && hHour >= currentHour) {
+          return i;
+        }
+        // Wenn wir bereits im nächsten Tag sind
+        if (hDateStr > currentDateStr) {
+          return Math.max(0, i - 1);
+        }
+      }
+      return 0;
+    };
+
+    // Filtere hourly-Daten ab der aktuellen Stunde
+    const currentHourIdx = findCurrentHourIndex(result.openMeteo?.hourly);
+    result.hourly = result.openMeteo?.hourly?.slice(currentHourIdx) || [];
+
+    // Erstelle currentSnapshot aus der AKTUELLEN Stunde (nicht der ersten im Array)
     if (result.openMeteo?.hourly?.length) {
-      const h = result.openMeteo.hourly[0];
+      const h =
+        result.openMeteo.hourly[currentHourIdx] || result.openMeteo.hourly[0];
       const d = result.openMeteo?.daily?.[0] || {};
       result.currentSnapshot = {
         temperature: h.temperature,
@@ -2541,6 +2574,15 @@ function buildHourlyDisplayPayload(renderData, limit = 24) {
   if (!renderData) {
     return { hours: [], label: "" };
   }
+
+  // Priorisiere die bereits ab der aktuellen Stunde gefilterten hourly-Daten
+  if (Array.isArray(renderData?.hourly) && renderData.hourly.length) {
+    return {
+      hours: renderData.hourly.slice(0, limit),
+      label: "Open-Meteo",
+    };
+  }
+
   const openHourly = Array.isArray(renderData?.openMeteo?.hourly)
     ? renderData.openMeteo.hourly
     : [];
@@ -3289,8 +3331,8 @@ async function loadWeather(city, options = {}) {
       const sunEvents =
         appState.renderData?.sunEvents || weatherData?.sunEvents || {};
       const daily = appState.renderData?.openMeteo?.daily || [];
+      // Verwende die bereits ab der aktuellen Stunde gefilterten hourly-Daten
       const hourlyData =
-        appState.renderData?.openMeteo?.hourly ||
         appState.renderData?.hourly ||
         buildHourlyDisplayPayload(appState.renderData, 24).hours ||
         [];
@@ -3507,8 +3549,8 @@ async function loadWeatherByCoords(lat, lon, cityName, options = {}) {
     // Home-Layout rendern
     try {
       const units = appState.units || { temperature: "C", wind: "km/h" };
+      // Verwende die bereits ab der aktuellen Stunde gefilterten hourly-Daten
       const hourlyData2 =
-        appState.renderData?.openMeteo?.hourly ||
         appState.renderData?.hourly ||
         buildHourlyDisplayPayload(appState.renderData, 24).hours ||
         [];
