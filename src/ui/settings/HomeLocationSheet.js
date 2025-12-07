@@ -3,6 +3,17 @@
  * Design inspiriert von WeatherMaster App
  */
 (function (global) {
+  const STORAGE_KEY_FAVORITES = "weather-favorites";
+
+  // Get favorites from localStorage (same as LocationPickerController)
+  function getFavorites() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY_FAVORITES)) || [];
+    } catch {
+      return [];
+    }
+  }
+
   // Toast notification helper
   function showToast(message, isError) {
     var existing = document.querySelector(".settings-toast");
@@ -48,7 +59,8 @@
         };
 
     const home = appState.homeLocation || appState.home || null;
-    const favorites = appState.favorites || [];
+    // Load favorites from localStorage (same source as LocationPickerController)
+    const favorites = getFavorites();
 
     container.innerHTML =
       '<div class="home-settings">' +
@@ -98,13 +110,19 @@
           "</p>"
         : favorites
             .map(function (fav, idx) {
+              // Support both old format (city, coords) and new format (name, lat, lon)
+              const cityName = fav.city || fav.name || "Unbekannt";
+              const countryName = fav.country || "";
+              const displayName = countryName
+                ? cityName + ", " + countryName
+                : cityName;
               return (
                 '<button type="button" class="home-favorite-item" data-fav-index="' +
                 idx +
                 '">' +
                 '<span class="home-favorite-item__icon">⭐</span>' +
                 '<span class="home-favorite-item__text">' +
-                fav.city +
+                displayName +
                 "</span>" +
                 '<span class="home-favorite-item__action">' +
                 t("settings.home.setAsHome") +
@@ -132,11 +150,16 @@
         var idx = parseInt(btn.getAttribute("data-fav-index"), 10);
         var fav = favorites[idx];
         if (!fav || !appState.setHomeLocation) return;
-        appState.setHomeLocation(fav.city, fav.coords, {
-          country: fav.country,
-          countryCode: fav.countryCode,
+
+        // Support both old format (city, coords) and new format (name, lat, lon)
+        const cityName = fav.city || fav.name || "Unbekannt";
+        const coords = fav.coords || { lat: fav.lat, lon: fav.lon };
+
+        appState.setHomeLocation(cityName, coords, {
+          country: fav.country || "",
+          countryCode: fav.countryCode || "",
         });
-        showToast("✓ Heimatort auf " + fav.city + " gesetzt");
+        showToast("✓ Heimatort auf " + cityName + " gesetzt");
         renderHomeSheet(appState);
       });
     });
