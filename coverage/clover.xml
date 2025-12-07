@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1765015863634" clover="3.2.0">
-  <project timestamp="1765015863634" name="All files">
+<coverage generated="1765101220243" clover="3.2.0">
+  <project timestamp="1765101220243" name="All files">
     <metrics statements="1238" coveredstatements="102" conditionals="973" coveredconditionals="30" methods="204" coveredmethods="15" elements="2415" coveredelements="147" complexity="0" loc="1238" ncloc="1238" packages="1" files="1" classes="1"/>
     <file name="features.js" path="C:\Users\wifel\Desktop\Assets\BFS IT\Projekt\wetter-app-main\src\features.js">
       <metrics statements="1238" coveredstatements="102" conditionals="973" coveredconditionals="30" methods="204" coveredmethods="15"/>

@@ -3976,6 +3976,26 @@ function syncExtendedPanels(locationLike) {
   if (historicalChart) {
     historicalChart.fetchAndRender(lat, lon, label);
   }
+  // Fetch health alerts for the Health page
+  if (window.HealthSafetyView && window.HealthSafetyView.fetchHealthAlerts) {
+    window.HealthSafetyView.fetchHealthAlerts(lat, lon)
+      .then(() => {
+        // Re-render Health view with new alerts if it's currently visible
+        const healthSection = document.querySelector('[data-view="health"]');
+        if (
+          healthSection &&
+          !healthSection.hidden &&
+          window.HealthSafetyView.render
+        ) {
+          const homeState = window.appState || {};
+          const healthState = window.healthSafetyEngine
+            ? window.healthSafetyEngine(homeState)
+            : {};
+          window.HealthSafetyView.render(homeState, healthState);
+        }
+      })
+      .catch((err) => console.warn("Health alerts fetch failed:", err));
+  }
   refreshAnalyticsPanel();
 }
 

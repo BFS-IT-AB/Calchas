@@ -575,3 +575,57 @@ body.mobile-app .toast-stack {
   width: min(92vw, 360px);
   z-index: 9999;
 }
+
+/* Health Page - Mobile Anpassungen */
+body.mobile-app .health-view-grid {
+  gap: 16px;
+}
+
+body.mobile-app .health-cards-grid {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+body.mobile-app .health-metric-card {
+  min-height: 110px;
+  padding: 12px 10px;
+}
+
+body.mobile-app .health-metric-card__value {
+  font-size: 1.4rem;
+}
+
+body.mobile-app .health-metric-card__label {
+  font-size: 0.75rem;
+}
+
+body.mobile-app .health-metric-card__sublabel {
+  font-size: 0.68rem;
+}
+
+body.mobile-app .health-alerts-section,
+body.mobile-app .health-cards-section,
+body.mobile-app .health-timeline-section {
+  border-radius: 20px;
+  padding: 14px;
+}
+
+body.mobile-app .health-alert-card {
+  padding: 10px;
+}
+
+body.mobile-app .health-alert-card__description {
+  font-size: 0.8rem;
+}
+
+body.mobile-app .health-timeline-chart {
+  height: 100px;
+}
+
+body.mobile-app .health-timeline-bar__value {
+  font-size: 0.65rem;
+}
+
+body.mobile-app .health-timeline-bar__time {
+  font-size: 0.6rem;
+}
