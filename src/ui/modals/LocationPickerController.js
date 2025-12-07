@@ -77,8 +77,57 @@
       resultsContainer.innerHTML = "";
       data.results.forEach((result) => {
         const li = document.createElement("li");
-        li.textContent = formatLocationName(result);
-        li.addEventListener("click", () => selectLocation(result));
+        li.className = "location-search__item";
+
+        const cityData = {
+          name: result.name,
+          lat: result.latitude,
+          lon: result.longitude,
+          country: result.country || "",
+          admin1: result.admin1 || "",
+        };
+
+        const isFavorite = isCityFavorite(cityData);
+
+        li.innerHTML = `
+          <span class="location-search__name">${formatLocationName(
+            result
+          )}</span>
+          <button class="location-search__fav-btn ${
+            isFavorite ? "is-favorite" : ""
+          }"
+                  type="button"
+                  aria-label="${
+                    isFavorite
+                      ? "Aus Favoriten entfernen"
+                      : "Zu Favoriten hinzufügen"
+                  }"
+                  title="${
+                    isFavorite
+                      ? "Aus Favoriten entfernen"
+                      : "Zu Favoriten hinzufügen"
+                  }">
+            ${isFavorite ? "⭐" : "☆"}
+          </button>
+        `;
+
+        // Click on name selects location
+        li.querySelector(".location-search__name").addEventListener(
+          "click",
+          () => {
+            selectLocation(result);
+          }
+        );
+
+        // Click on star toggles favorite
+        li.querySelector(".location-search__fav-btn").addEventListener(
+          "click",
+          (e) => {
+            e.stopPropagation();
+            toggleFavorite(cityData, e.target);
+          }
+        );
+
         resultsContainer.appendChild(li);
       });
     } catch (error) {
@@ -183,6 +232,37 @@
 
   function saveFavorites(favorites) {
     localStorage.setItem(STORAGE_KEY_FAVORITES, JSON.stringify(favorites));
+  }
+
+  function isCityFavorite(cityData) {
+    const favorites = getFavorites();
+    return favorites.some(
+      (f) =>
+        Math.abs(f.lat - cityData.lat) < 0.01 &&
+        Math.abs(f.lon - cityData.lon) < 0.01
+    );
+  }
+
+  function toggleFavorite(cityData, buttonEl) {
+    const isFav = isCityFavorite(cityData);
+    if (isFav) {
+      removeFromFavorites(cityData);
+      buttonEl.textContent = "☆";
+      buttonEl.classList.remove("is-favorite");
+      buttonEl.setAttribute("aria-label", "Zu Favoriten hinzufügen");
+      buttonEl.title = "Zu Favoriten hinzufügen";
+    } else {
+      addToFavorites(cityData);
+      buttonEl.textContent = "⭐";
+      buttonEl.classList.add("is-favorite");
+      buttonEl.setAttribute("aria-label", "Aus Favoriten entfernen");
+      buttonEl.title = "Aus Favoriten entfernen";
+    }
+    // Update favorites list if visible
+    const favoritesList = document.getElementById("favorites-list");
+    if (favoritesList) {
+      renderFavorites(favoritesList);
+    }
   }
 
   function addToFavorites(cityData) {
