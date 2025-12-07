@@ -93,18 +93,37 @@
   }
 
   /**
-   * Format time from ISO string
+   * Format time from ISO string or other formats
    */
-  function formatTime(isoString) {
-    if (!isoString) return "";
+  function formatTime(timeInput) {
+    if (!timeInput) return "";
     try {
-      const date = new Date(isoString);
+      // If it's already in HH:MM format, return it
+      if (typeof timeInput === "string" && /^\d{1,2}:\d{2}$/.test(timeInput)) {
+        return timeInput;
+      }
+      // If it's a timeLabel like "14:00", return it
+      if (
+        typeof timeInput === "string" &&
+        timeInput.includes(":") &&
+        timeInput.length <= 5
+      ) {
+        return timeInput;
+      }
+      // Try to parse as date
+      const date = new Date(timeInput);
+      if (isNaN(date.getTime())) {
+        // If parsing fails, try to extract time from string
+        const match = String(timeInput).match(/(\d{1,2}):(\d{2})/);
+        if (match) return `${match[1].padStart(2, "0")}:${match[2]}`;
+        return String(timeInput).substring(0, 5);
+      }
       return date.toLocaleTimeString("de-DE", {
         hour: "2-digit",
         minute: "2-digit",
       });
     } catch {
-      return isoString;
+      return String(timeInput).substring(0, 5);
     }
   }
 
@@ -449,14 +468,18 @@
 
     const bars = sliced
       .map((slot) => {
-        const time = formatTime(slot.time) || slot.time;
-        const score = slot.score || 0;
+        const time = formatTime(slot.time) || slot.time || "";
+        // Only show short time (HH:MM or just hour)
+        const shortTime = time.length > 5 ? time.substring(0, 5) : time;
+        const score = Math.round(slot.score || 0);
         const color = getScoreColor(score);
+        // Calculate bar height in pixels (max height ~90px for score 100)
+        const barHeight = Math.max(8, Math.round((score / 100) * 90));
         return `
         <div class="health-timeline-bar">
-          <div class="health-timeline-bar__fill" style="height:${score}%;background:${color}"></div>
+          <div class="health-timeline-bar__fill" style="height:${barHeight}px;background:${color}"></div>
           <span class="health-timeline-bar__value">${score}</span>
-          <span class="health-timeline-bar__time">${time}</span>
+          <span class="health-timeline-bar__time">${shortTime}</span>
         </div>
       `;
       })
@@ -467,16 +490,14 @@
         <div class="health-timeline-header">
           <span class="health-timeline-icon">📊</span>
           <h3>Outdoor-Verlauf</h3>
-          <span class="health-timeline-sublabel">Nächste 12 Stunden</span>
+          <span class="health-timeline-sublabel">Nächste 12h</span>
         </div>
         <div class="health-timeline-chart">
           ${bars}
         </div>
         <div class="health-timeline-legend">
-          <span style="color:#4CAF50">●</span> Sehr gut
-          <span style="color:#8BC34A">●</span> Gut
+          <span style="color:#4CAF50">●</span> Gut
           <span style="color:#FFEB3B">●</span> OK
-          <span style="color:#FF9800">●</span> Mäßig
           <span style="color:#F44336">●</span> Kritisch
         </div>
       </section>

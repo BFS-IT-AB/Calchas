@@ -224,12 +224,12 @@ body.dark-mode a {
 
 /* Settings Row - Light Mode */
 [data-theme="light"] .settings-row {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.98);
+  border-bottom-color: rgba(0, 0, 0, 0.08);
 }
 
 [data-theme="light"] .settings-row:hover {
-  background: rgba(255, 255, 255, 1);
+  background: rgba(248, 250, 252, 1);
 }
 
 [data-theme="light"] .settings-row__title {
@@ -237,11 +237,11 @@ body.dark-mode a {
 }
 
 [data-theme="light"] .settings-row__subtitle {
-  color: #5a5a7a;
+  color: rgba(60, 70, 90, 0.8);
 }
 
 [data-theme="light"] .settings-row__chevron {
-  color: rgba(26, 26, 46, 0.4);
+  color: rgba(26, 26, 46, 0.35);
 }
 
 /* Units Row - Light Mode */
@@ -1482,48 +1482,60 @@ body.mobile-app #legacy-content {
 .settings-home {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px 0 80px 0;
+  gap: 0;
+  padding: 0 0 80px 0;
   max-width: 100%;
 }
 
-/* Settings Row (Main navigation items) */
+/* Settings Row (Main navigation items) - Compact List Style */
 .settings-row {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(18, 22, 36, 0.9);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  gap: 16px;
+  padding: 16px 20px;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(22, 28, 42, 0.7);
   color: inherit;
   text-align: left;
   cursor: pointer;
-  transition: transform 0.15s, background 0.2s;
+  transition: background 0.15s ease;
+}
+
+.settings-row:first-child {
+  border-radius: 16px 16px 0 0;
+}
+
+.settings-row:last-child {
+  border-radius: 0 0 16px 16px;
+  border-bottom: none;
+}
+
+.settings-row:only-child {
+  border-radius: 16px;
 }
 
 .settings-row:hover {
-  background: rgba(25, 30, 48, 0.95);
+  background: rgba(30, 38, 55, 0.85);
 }
 
 .settings-row:active {
-  transform: scale(0.99);
+  background: rgba(35, 45, 65, 0.9);
 }
 
 .settings-row__icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
   flex-shrink: 0;
 }
 
 .settings-row__icon svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   color: #ffffff;
 }
 
@@ -1531,37 +1543,50 @@ body.mobile-app #legacy-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
   overflow: hidden;
 }
 
 .settings-row__title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 500;
   color: #ffffff;
+  letter-spacing: -0.01em;
 }
 
 .settings-row__subtitle {
   font-size: 13px;
-  color: rgba(200, 210, 240, 0.65);
-  line-height: 1.35;
+  color: rgba(180, 190, 210, 0.7);
+  line-height: 1.4;
   margin: 0;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .settings-row__chevron {
-  width: 18px;
-  height: 18px;
-  color: rgba(255, 255, 255, 0.35);
+  width: 20px;
+  height: 20px;
+  color: rgba(255, 255, 255, 0.3);
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .settings-row__chevron svg {
   width: 100%;
   height: 100%;
+}
+
+/* Settings Row - External Link Variant */
+.settings-row--external {
+  text-decoration: none;
+  color: inherit;
+}
+
+.settings-row--external:hover {
+  text-decoration: none;
 }
 
 /* Units Settings Page */
@@ -4294,18 +4319,26 @@ body.mobile-app #legacy-content {
 .settings-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: 0;
 }
 
-.settings-row {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: 1.2rem 1.35rem;
-  border-radius: 1.25rem;
-  background: var(--settings-card-bg);
-  border: 1px solid var(--settings-card-border);
-  box-shadow: 0 25px 55px rgba(5, 9, 20, 0.55);
+/* Override for .settings-row in settings-list context - use new compact style */
+.settings-list .settings-row {
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+  padding: 16px 20px;
+  background: rgba(22, 28, 42, 0.7);
+}
+
+.settings-list .settings-row:first-child {
+  border-radius: 16px 16px 0 0;
+}
+
+.settings-list .settings-row:last-child {
+  border-radius: 0 0 16px 16px;
+  border-bottom: none;
 }
 
 .settings-row.settings-link,
@@ -4313,19 +4346,18 @@ body.mobile-app #legacy-content {
   cursor: pointer;
   text-decoration: none;
   color: inherit;
-  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  transition: background 0.15s ease;
 }
 
 .settings-row.settings-link:hover,
 .settings-row.external-link:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(30, 38, 55, 0.85);
 }
 
 .settings-row.settings-link:focus-visible,
 .settings-row.external-link:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 
 .settings-row-chevron {
@@ -13003,55 +13035,75 @@ body.dark-mode .map-inspector {
 
 .health-timeline-chart {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   align-items: flex-end;
-  height: 120px;
-  padding: 0 4px;
+  height: 160px;
+  padding: 0 8px 45px;
   overflow-x: auto;
+  position: relative;
 }
 
 .health-timeline-bar {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-end;
   flex: 1;
-  min-width: 32px;
+  min-width: 28px;
+  max-width: 50px;
   height: 100%;
+  position: relative;
+  /* The bar fill area is the remaining height minus score label */
+  box-sizing: border-box;
 }
 
 .health-timeline-bar__fill {
-  width: 100%;
-  max-width: 24px;
-  border-radius: 6px 6px 0 0;
+  width: 16px;
+  min-height: 5px;
+  border-radius: 4px 4px 0 0;
   transition: height 0.3s ease;
   flex-shrink: 0;
+  /* Height is set via inline style as percentage */
 }
 
 .health-timeline-bar__value {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
   margin-top: 4px;
   color: var(--color-text);
+  white-space: nowrap;
 }
 
 .health-timeline-bar__time {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   color: var(--color-text-muted);
   margin-top: 2px;
+  white-space: nowrap;
+  position: absolute;
+  bottom: -35px;
+  transform: rotate(-45deg);
+  transform-origin: top center;
 }
 
 .health-timeline-legend {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  margin-top: 12px;
-  font-size: 0.7rem;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.65rem;
   color: var(--color-text-muted);
   flex-wrap: wrap;
 }
 
 .health-timeline-legend span {
   margin-right: 2px;
+}
+
+/* Hide legend on very small screens */
+@media (max-width: 380px) {
+  .health-timeline-legend {
+    display: none;
+  }
 }
 
 /* Light Theme Overrides */

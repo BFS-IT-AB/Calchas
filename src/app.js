@@ -3546,6 +3546,19 @@ async function loadWeather(city, options = {}) {
           console.warn("FrogHeroPlayer Rendering fehlgeschlagen", e);
         }
       }
+
+      // Render Health & Safety View mit echten Daten
+      if (window.HealthSafetyView && window.HealthSafetyView.render) {
+        try {
+          window.HealthSafetyView.render(homeState, healthState);
+        } catch (e) {
+          console.warn("HealthSafetyView Rendering fehlgeschlagen", e);
+        }
+      }
+
+      // Store homeState globally for later use (e.g., in syncExtendedPanels)
+      window._currentHomeState = homeState;
+      window._currentHealthState = healthState;
     } catch (e) {
       console.warn("Neues Home-Layout Rendering fehlgeschlagen", e);
     }
@@ -3738,6 +3751,19 @@ async function loadWeatherByCoords(lat, lon, cityName, options = {}) {
           console.warn("FrogHeroPlayer Rendering fehlgeschlagen", e);
         }
       }
+
+      // Render Health & Safety View mit echten Daten
+      if (window.HealthSafetyView && window.HealthSafetyView.render) {
+        try {
+          window.HealthSafetyView.render(homeState, healthState);
+        } catch (e) {
+          console.warn("HealthSafetyView Rendering fehlgeschlagen", e);
+        }
+      }
+
+      // Store homeState globally for later use (e.g., in syncExtendedPanels)
+      window._currentHomeState = homeState;
+      window._currentHealthState = healthState;
     } catch (e) {
       console.warn("Home-Layout Rendering fehlgeschlagen", e);
     }
@@ -3754,6 +3780,14 @@ async function loadWeatherByCoords(lat, lon, cityName, options = {}) {
       addSearchHistory(location.city);
       document.title = `Calchas – ${location.city}`;
     }
+
+    syncExtendedPanels({
+      city: location.city,
+      lat: location.lat,
+      lon: location.lon,
+      locationDetails: weatherData?.locationDetails,
+      coords: location,
+    });
 
     if (!silent) {
       weatherDisplay.hideLoading();
@@ -3982,15 +4016,14 @@ function syncExtendedPanels(locationLike) {
       .then(() => {
         // Re-render Health view with new alerts if it's currently visible
         const healthSection = document.querySelector('[data-view="health"]');
-        if (
-          healthSection &&
-          !healthSection.hidden &&
-          window.HealthSafetyView.render
-        ) {
-          const homeState = window.appState || {};
-          const healthState = window.healthSafetyEngine
-            ? window.healthSafetyEngine(homeState)
-            : {};
+        if (healthSection && window.HealthSafetyView.render) {
+          // Use stored homeState/healthState if available, otherwise build from appState
+          const homeState = window._currentHomeState || window.appState || {};
+          const healthState =
+            window._currentHealthState ||
+            (window.healthSafetyEngine
+              ? window.healthSafetyEngine(homeState)
+              : {});
           window.HealthSafetyView.render(homeState, healthState);
         }
       })
