@@ -2,6 +2,29 @@
   let currentView = "home";
   let globalListenerBound = false;
 
+  function createRipple(event, button) {
+    const circle = document.createElement("span");
+    const diameter = Math.max(button.clientWidth, button.clientHeight);
+    const radius = diameter / 2;
+    const rect = button.getBoundingClientRect();
+
+    circle.style.width = circle.style.height = `${diameter}px`;
+    circle.style.left = `${event.clientX - rect.left - radius}px`;
+    circle.style.top = `${event.clientY - rect.top - radius}px`;
+    circle.classList.add("ripple");
+
+    // Remove existing ripples
+    const existingRipple = button.querySelector(".ripple");
+    if (existingRipple) {
+      existingRipple.remove();
+    }
+
+    button.appendChild(circle);
+
+    // Remove ripple after animation
+    setTimeout(() => circle.remove(), 600);
+  }
+
   function setActive(viewId) {
     if (!viewId) return;
     currentView = viewId;
@@ -59,6 +82,10 @@
         if (!target) return;
         const viewId = target.getAttribute("data-nav-target");
         if (!viewId) return;
+
+        // Create ripple effect
+        createRipple(event, target);
+
         event.preventDefault();
         setActive(viewId);
       });
