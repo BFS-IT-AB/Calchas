@@ -1346,7 +1346,6 @@ body.mobile-app #legacy-content {
   flex: 1;
   min-height: 0;
   border-radius: var(--radius-l);
-  overflow: hidden;
   margin: var(--space-s);
   margin-bottom: 0;
 }
@@ -1361,6 +1360,21 @@ body.mobile-app #legacy-content {
     #050810 100%
   );
   border-radius: var(--radius-l);
+  z-index: 1;
+  position: relative;
+}
+
+/* Ensure map tiles and overlays render properly */
+.radar-view__map .leaflet-container {
+  z-index: 1 !important;
+}
+
+.radar-view__map .leaflet-tile-pane {
+  z-index: 1 !important;
+}
+
+.radar-view__map .leaflet-overlay-pane {
+  z-index: 2 !important;
 }
 
 .radar-view__map-placeholder {
@@ -1395,7 +1409,7 @@ body.mobile-app #legacy-content {
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-m);
-  z-index: 10;
+  z-index: 1000;
   pointer-events: none;
 }
 
@@ -1471,7 +1485,7 @@ body.mobile-app #legacy-content {
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-m);
   padding: 4px;
-  z-index: 10;
+  z-index: 1000;
 }
 
 .radar-view__control-btn {
@@ -1520,7 +1534,29 @@ body.mobile-app #legacy-content {
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-pill);
-  z-index: 10;
+  z-index: 1000;
+}
+
+/* Layer Selector Popup */
+#map-layer-selector {
+  z-index: 1001 !important;
+}
+
+#map-layer-selector > div {
+  z-index: 1001 !important;
+}
+
+/* Ensure Leaflet controls don't interfere */
+.leaflet-control-container {
+  z-index: 900 !important;
+}
+
+.leaflet-popup {
+  z-index: 950 !important;
+}
+
+.leaflet-tooltip {
+  z-index: 950 !important;
 }
 
 .radar-view__legend-item {
@@ -5137,6 +5173,102 @@ body.mobile-app #legacy-content {
   padding: var(--space-m);
   text-align: center;
   font-size: 0.9rem;
+
+  .map-fullscreen-btn {
+      width: 40px;
+      height: 40px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      cursor: pointer;
+      font-size: 1.2rem;
+      z-index: 1000;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+  .map-fullscreen-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transform: scale(1.05);
+  }
+
+  .map-container {
+    position: relative;
+  }
+
+  /* Position when the fullscreen button is placed inside the legend */
+  .map-legend-strip {
+    position: relative;
+  }
+
+  .map-legend-strip .map-fullscreen-btn.map-fullscreen-in-legend {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10001;
+  }
+
+  /* Fullscreen overlay that will contain the moved map container */
+  #map-fullscreen-overlay,
+  .map-fullscreen-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    background: transparent;
+  }
+
+  #map-fullscreen-overlay .map-container,
+  .map-fullscreen-overlay .map-container {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+
+  /* Support native Fullscreen API pseudo-class */
+  .map-container:fullscreen,
+  .map-container:-webkit-full-screen,
+  .map-container:-moz-full-screen {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    z-index: 100000 !important;
+    border-radius: 0 !important;
+  }
+
+  .map-container.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    z-index: 9998;
+    border-radius: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .map-fullscreen-btn.fullscreen-active {
+    background: rgba(255, 0, 0, 0.9);
+    color: white;
+  }
+
+  .map-fullscreen-btn.fullscreen-active:hover {
+    background: rgba(255, 0, 0, 1);
+  }
   color: var(--color-text-muted-2);
 }
 
@@ -5197,7 +5329,7 @@ body.mobile-app #legacy-content {
   background: rgba(0, 0, 0, 0);
   backdrop-filter: blur(0px);
   -webkit-backdrop-filter: blur(0px);
-  z-index: 50;
+  z-index: 9999;
   pointer-events: none;
   transition: background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
     backdrop-filter 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -5235,6 +5367,7 @@ body.mobile-app #legacy-content {
   display: none;
   padding: 20px;
   overflow: visible;
+  z-index: 10000;
   transform: translateY(100%);
   opacity: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.15);

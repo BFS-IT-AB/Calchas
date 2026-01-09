@@ -1,5 +1,10 @@
 /**
  * API Key Manager - Zentralisierte Verwaltung aller API-Keys
+ *
+ * Live-Seite: Speichert und stellt API-Keys bereit, die von anderen
+ * Modulen (z. B. `openweathermap`, `visualcrossing`) verwendet werden.
+ * Bei Erststart werden ggf. Demo-Keys geladen; Benutzer können eigene Keys
+ * in den Einstellungen hinterlegen.
  */
 
 class APIKeyManager {
@@ -195,3 +200,4 @@ class APIKeyManager {
 
 // Global verfügbar machen
 window.APIKeyManager = APIKeyManager;
+window.apiKeyManager = new APIKeyManager();

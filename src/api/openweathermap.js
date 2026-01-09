@@ -9,6 +9,10 @@
  * - daily: Daily forecast (next 8 days in free tier)
  */
 
+// Live-Seite: Dieses Modul liefert Rohdaten von OpenWeatherMap. Es wird
+// primär für optionale Overlays (z. B. Temperatur-, Niederschlags- oder
+// Wolken-Tiles) und als zusätzlicher Datenprovider für Forecasts verwendet.
+
 class OpenWeatherMapAPI {
   constructor() {
     this.timeout = 5000;

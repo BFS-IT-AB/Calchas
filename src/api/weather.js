@@ -1,5 +1,9 @@
 /* open-meteo.com API Integration */
 
+// Live-Seite: `OpenMeteoAPI` ist die primäre Quellenintegration für
+// Vorhersagen und aktuelle Messwerte (stündliche/tägliche Serien). Die
+// UI-Komponenten (Hero, Forecast-Listen) beziehen hier ihre Daten her.
+
 class OpenMeteoAPI {
   constructor() {
     this.baseUrl = API_ENDPOINTS.OPEN_METEO.BASE;

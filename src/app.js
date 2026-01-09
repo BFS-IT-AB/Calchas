@@ -1,6 +1,11 @@
 // === Haupt-JavaScript-Datei - Interaktivität und Logik ===
 // (API-Calls, Button-Clicks, DOM-Manipulation)
-
+//
+// Live-Seite: Dieser Datei ist die zentrale Bootstrap- und Orchestrierungs-
+// logik der Anwendung. Sie initialisiert die UI-Komponenten (Suchfeld,
+// Wetter-Hero, Karten-Module), lädt API-Keys, synchronisiert Seitenbereiche
+// (z. B. `#weather-map` und `#map-container`) und verbindet Daten-APIs mit
+// der Anzeige. Kurz: alles, was die Seite beim Laden funktionsfähig macht.
 /**
  * App-State Management
  */
@@ -719,9 +724,9 @@ async function initAppShell(appState) {
     console.warn("LayerBottomSheet Initialisierung fehlgeschlagen", e);
   }
 
-  // Radar / Kartenansicht vorbereiten (MapContainer + Layers + Timeline-Stub)
+  // Radar / Kartenansicht mit Leaflet-basierter MapComponent vorbereiten (MapContainer + Layers + Timeline-Stub)
   try {
-    if (window.MapContainer && typeof window.MapContainer.init === "function") {
+      if (window.MapContainer && typeof window.MapContainer.init === "function") {
       const center =
         appState && appState.currentCoordinates
           ? [
@@ -730,6 +735,7 @@ async function initAppShell(appState) {
             ]
           : [52.52, 13.405];
 
+
       window.MapContainer.init({
         domSelector: "#map-container",
         center,
@@ -737,14 +743,41 @@ async function initAppShell(appState) {
       });
     }
 
+
     // Optionale MapComponent-Integration (falls vorhanden)
     if (window.MapComponent) {
       const map = new window.MapComponent("map-container");
       map.render();
 
+      // Dispatch current location if available
+      if (appState && appState.currentCoordinates && appState.currentCity) {
+        try {
+          const locationEvent = new CustomEvent('app:locationChanged', {
+            detail: {
+              lat: appState.currentCoordinates.lat,
+              lon: appState.currentCoordinates.lon,
+              label: appState.currentCity
+            }
+          });
+          document.dispatchEvent(locationEvent);
+        } catch (e) {
+          console.warn('Failed to dispatch initial location event:', e);
+        }
+      }
+
       // Expose for debugging or späteren Gebrauch
       window._radarMap = map;
+
+      // Connect layer button to MapComponent's layer selector
+      const layerBtn = document.getElementById("map-layer-toggle");
+      if (layerBtn) {
+        layerBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          map.showLayerSelector();
+        });
+      }
     }
+
 
     if (window.MapLayerManager) {
       window.MapLayerManager.init(window.MapContainer);
@@ -926,6 +959,58 @@ async function initAppShell(appState) {
           );
         }
       });
+    }
+
+    // Fullscreen button
+    const fullscreenBtn = document.getElementById("map-fullscreen-btn");
+    if (fullscreenBtn) {
+      let isFullscreen = false;
+      const mapContainer = document.getElementById("map-container");
+
+      fullscreenBtn.addEventListener("click", () => {
+        if (!mapContainer) return;
+
+        if (!isFullscreen) {
+          // Enter fullscreen
+          if (mapContainer.requestFullscreen) {
+            mapContainer.requestFullscreen();
+          } else if (mapContainer.webkitRequestFullscreen) {
+            mapContainer.webkitRequestFullscreen();
+          } else if (mapContainer.msRequestFullscreen) {
+            mapContainer.msRequestFullscreen();
+          }
+        } else {
+          // Exit fullscreen
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+          } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+          }
+        }
+      });
+
+      // Handle fullscreen change events
+      const handleFullscreenChange = () => {
+        isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+        fullscreenBtn.classList.toggle("fullscreen-active", isFullscreen);
+        fullscreenBtn.textContent = isFullscreen ? "✕" : "🖥️";
+
+        // Resize map when entering/exiting fullscreen
+        setTimeout(() => {
+          if (window.MapContainer && window.MapContainer.resize) {
+            window.MapContainer.resize();
+          }
+          if (window._radarMap && window._radarMap.map && window._radarMap.map.invalidateSize) {
+            window._radarMap.map.invalidateSize();
+          }
+        }, 100);
+      };
+
+      document.addEventListener("fullscreenchange", handleFullscreenChange);
+      document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+      document.addEventListener("msfullscreenchange", handleFullscreenChange);
     }
   } catch (e) {
     console.warn("Radar / Karten-Initialisierung fehlgeschlagen", e);
@@ -3479,6 +3564,20 @@ async function loadWeather(city, options = {}) {
       lng: location.lon,
     };
 
+    // Dispatch location changed event for map components
+    try {
+      const locationEvent = new CustomEvent('app:locationChanged', {
+        detail: {
+          lat: location.lat,
+          lon: location.lon,
+          label: location.city
+        }
+      });
+      document.dispatchEvent(locationEvent);
+    } catch (e) {
+      console.warn('Failed to dispatch location changed event:', e);
+    }
+
     // Lade Wetterdaten
     const weatherData = await fetchWeatherData(location.lat, location.lon);
 
@@ -3727,6 +3826,20 @@ async function loadWeatherByCoords(lat, lon, cityName, options = {}) {
       lon: location.lon,
       lng: location.lon,
     };
+
+    // Dispatch location changed event for map components
+    try {
+      const locationEvent = new CustomEvent('app:locationChanged', {
+        detail: {
+          lat: location.lat,
+          lon: location.lon,
+          label: location.city
+        }
+      });
+      document.dispatchEvent(locationEvent);
+    } catch (e) {
+      console.warn('Failed to dispatch location changed event:', e);
+    }
 
     const weatherData = await fetchWeatherData(location.lat, location.lon);
 

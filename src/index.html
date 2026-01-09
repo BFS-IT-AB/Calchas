@@ -1,5 +1,14 @@
 ﻿<!DOCTYPE html>
 <html lang="de">
+  <!--
+    Live-Seite: Diese HTML-Datei ist die App-Shell. Wichtige sichtbare
+    Bereiche auf der Seite:
+    - `#weather-map`: Kleinere interaktive Karte in der "Radar & Layers"-Kachel
+    - `#map-container`: Große zentrale Radar/Kartenansicht (MapLibre/Leaflet)
+    - `#current-weather`, `#forecast-container`: Wetter-Hero und Vorhersage
+    Script-Order ist wichtig: Bibliotheken (Leaflet) und Module (features.js,
+    app.js) müssen in der richtigen Reihenfolge geladen werden.
+  -->
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -117,7 +126,6 @@
                 id="map-layer-toggle"
                 class="radar-view__layer-btn"
                 type="button"
-                data-bottom-sheet-target="sheet-map-layers"
                 aria-label="Layer auswählen"
               >
                 <span class="material-symbols-outlined">layers</span>
@@ -161,6 +169,7 @@
               <span class="radar-view__legend-item"><span class="radar-view__legend-swatch radar-view__legend-swatch--temp"></span>Temp</span>
               <span class="radar-view__legend-item"><span class="radar-view__legend-swatch radar-view__legend-swatch--wind"></span>Wind</span>
               <span class="radar-view__legend-item"><span class="radar-view__legend-swatch radar-view__legend-swatch--clouds"></span>Wolken</span>
+              <button id="map-fullscreen-btn" class="map-fullscreen-btn map-fullscreen-in-legend" type="button" aria-label="Vollbildmodus" title="Vollbildmodus">🖥️</button>
             </div>
           </div>
 
@@ -1994,6 +2003,8 @@
     <script src="ui/settings/AboutSheet.js"></script>
     <script src="ui/settings/PrivacyApiInfoSheet.js"></script>
     <script src="ui/shared/BottomNav.js"></script>
+    <!--mapComponent seems to be what's driving the map for the most part.-->
+    <script src="ui/mapComponent.js"></script>
     <script src="features.js"></script>
     <script src="app.js"></script>
   </body>

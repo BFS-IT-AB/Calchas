@@ -46,7 +46,15 @@ function getChartInstance() {
 // ============================================
 // 1. LEAFLET MAP / OVERLAYS
 // ============================================
-
+// Die Klasse `WeatherMap` erzeugt die umfangreiche Kartenansicht, die in der
+// Hauptseite unter der Karte "Radar & Layers" gerendert wird (`#weather-map`).
+//
+// Verantwortlichkeiten auf der Live-Seite:
+// - Initialisierung eines Leaflet-Map-Objekts mit OSM-Basiskarten
+// - Management von Overlays (RainViewer, OpenWeatherMap-Layer wie Temperatur,
+//   Niederschlag, Wolken) und einer Toolbar zum Umschalten dieser Layer
+// - Bereitstellung eines Inspectors (Hover-Info) und einer Legende/Timeline
+// - Bindet UI-Elemente der rechten Seitenleiste (Radar-Kontrollen, Schnellaktionen)
 class WeatherMap {
   constructor(containerId) {
     this.containerId = containerId;

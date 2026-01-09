@@ -3,6 +3,11 @@
   let layers = new Map();
   let currentTimestamp = null;
 
+  // `MapContainer.init` ist der Einstieg für die MapLibre-GL basierte Karte,
+  // die im Haupt-Radarbereich (`#map-container`) verwendet wird. Auf der
+  // Live-Seite ist dies die große, zentrale Kartenansicht mit Layer-Management
+  // für spezialisierte MapLibre-Layer (Raster-/Heatmap-Layer etc.). Wenn
+  // MapLibre nicht geladen ist, wird ein Platzhalter angezeigt.
   function init(options) {
     const opts = options || {};
     const selector = opts.domSelector || "#map-container";
