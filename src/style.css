@@ -3187,6 +3187,7 @@ body.mobile-app #legacy-content {
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -14749,6 +14750,7 @@ body.dark-mode .map-inspector {
   height: auto;
   padding: 14px 16px 18px;
   overflow: visible;
+  margin-bottom: 32px; /* Mehr Abstand nach unten für die Navigationsleiste */
 }
 
 .weather-card--wide {

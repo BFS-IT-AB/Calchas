@@ -126,11 +126,6 @@
 
     return `
       <div class="weather-hero__widget">
-        <div class="weather-hero__location">
-          <span class="weather-hero__location-icon">📍</span>
-          <span class="weather-hero__location-name">${locationName}</span>
-        </div>
-
         <div class="weather-hero__main">
           <div class="weather-hero__temp-block">
             <span class="weather-hero__temp-value">${formatTemperature(
