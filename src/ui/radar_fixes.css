@@ -97,9 +97,9 @@
 .radar-view__top-controls {
   position: absolute;
   top: max(
-    50px,
-    env(safe-area-inset-top) + 20px
-  ); /* Pushes down further for smartphone notch */
+    10px,
+    env(safe-area-inset-top) + 8px
+  ); /* Moves up closer to map ceiling as requested */
   left: 16px;
   right: calc(
     16px + env(safe-area-inset-right)

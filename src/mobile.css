@@ -896,14 +896,16 @@ body.mobile-app .settings-row__chevron {
 
 /* Fix für Notch: Searchbar verschieben, ohne darunter liegende Karte zu verdecken */
 .app-bar {
-  padding-top: max(40px, env(safe-area-inset-top));
+  padding-top: max(10px, env(safe-area-inset-top) + 8px);
   height: auto;
-  min-height: 100px;
+  min-height: 80px;
 }
 
 /* Inhalt nach unten schieben, damit er nicht von der vergrößerten App-Bar überlagert wird */
 .app-main-views {
-  padding-top: calc(60px + max(40px, env(safe-area-inset-top))) !important;
+  padding-top: calc(
+    60px + max(10px, env(safe-area-inset-top) + 8px)
+  ) !important;
 }
 
 /* Wenn gescrollt: Solider Hintergrund, passend zum Mobile-Theme */
