@@ -7231,6 +7231,30 @@ body.dark-mode .source-compare-card {
   color: rgb(0 0 0 / 92%) !important;
 }
 
+/* Make insight cards light in Light Mode to avoid grey hover shimmer */
+[data-theme="light"] .insight-card {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  color: var(--theme-text) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Disable shimmer overlay in Light Mode so hovered cards remain visually white */
+/* Light Mode: keep shimmer animation but make it a subtle white highlight */
+[data-theme="light"] .insight-card::before,
+[data-theme="light"] .detail-card::before,
+[data-theme="light"] .weather-card::before,
+[data-theme="light"] .card::before {
+  /* gentle white shimmer so boxes remain visually light on hover */
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent) !important;
+  opacity: 1 !important;
+  display: block !important;
+  pointer-events: none !important;
+  mix-blend-mode: normal !important;
+  /* keep the same slide animation as dark mode */
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
 /* Dark Mode */
 [data-theme="dark"] .insight-card__text {
   color: rgb(255 255 255 / 88%) !important;
@@ -7724,6 +7748,28 @@ body.dark-mode .source-compare-card {
 /* Make daily-item hover subtle in light mode */
 [data-theme="light"] .daily-item:hover {
   background: rgba(245,245,245,1);
+}
+
+/* Light Mode: ensure interactive boxes keep a white surface on hover (avoid grey) */
+[data-theme="light"] .card:hover,
+[data-theme="light"] .settings-row:hover,
+[data-theme="light"] .settings-card:hover,
+[data-theme="light"] .settings-option:hover,
+[data-theme="light"] .unit-selector-option:hover,
+[data-theme="light"] .theme-option:hover,
+[data-theme="light"] .language-option:hover,
+[data-theme="light"] .daily-item:hover,
+[data-theme="light"] .insight-card:hover,
+[data-theme="light"] .summary-card:hover,
+[data-theme="light"] .weather-card:hover,
+[data-theme="light"] .metric-card:hover,
+[data-theme="light"] .detail-card:hover,
+[data-theme="light"] .forecast-card:hover,
+[data-theme="light"] .source-card:hover,
+[data-theme="light"] .health-metric-card:hover {
+  background: rgba(255,255,255,1) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important;
+  border-color: rgba(0,0,0,0.06) !important;
 }
 
 /* ========================================
