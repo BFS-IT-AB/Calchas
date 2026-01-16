@@ -123,6 +123,11 @@
       global.i18n.setLanguage(lang);
     }
 
+    // Update TextReplacer for automatic text replacement
+    if (global.TextReplacer && global.TextReplacer.updateLanguage) {
+      global.TextReplacer.updateLanguage(lang);
+    }
+    
     // Dispatch event for other components
     try {
       document.dispatchEvent(
