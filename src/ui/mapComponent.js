@@ -929,6 +929,11 @@ class MapComponent {
         this.rainViewerCache.length
       );
 
+      // Regenerate RadarController frames now that data is available
+      if (global.RadarController && typeof global.RadarController.regenerateFrames === "function") {
+        global.RadarController.regenerateFrames();
+      }
+
       // If we have a pending specific timestamp, update now
       if (this.currentTimestamp) {
         this.handleTimelineUpdate(this.currentTimestamp);

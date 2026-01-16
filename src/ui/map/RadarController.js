@@ -14,20 +14,29 @@
   function generateFrames() {
     const now = Date.now();
     const stepMinutes = 10;
-    // Balanced range for reliable data
+    // Use available past data, no future data
     const pastHours = 2;
-    const futureHours = 1;
     const result = [];
 
     const pastCount = Math.floor((pastHours * 60) / stepMinutes);
-    const futureCount = Math.floor((futureHours * 60) / stepMinutes);
 
     for (let i = pastCount; i > 0; i -= 1) {
       result.push(now - i * stepMinutes * 60 * 1000);
     }
-    result.push(now);
-    for (let j = 1; j <= futureCount; j += 1) {
-      result.push(now + j * stepMinutes * 60 * 1000);
+    result.push(now); // Current time is the last point
+
+    // If RainViewer data is available, filter frames to only those with available data
+    if (global.MapComponent && global.MapComponent.rainViewerCache && global.MapComponent.rainViewerCache.length > 0) {
+      const cache = global.MapComponent.rainViewerCache;
+      const filtered = result.filter(ts => {
+        const tsSec = ts / 1000;
+        // Check if there's a frame within 5 minutes tolerance
+        return cache.some(frame => Math.abs(frame.time - tsSec) < 300);
+      });
+      if (filtered.length > 0) {
+        setFrames(filtered);
+        return filtered;
+      }
     }
 
     setFrames(result);
@@ -36,12 +45,13 @@
 
   function setFrames(timestamps) {
     frames = timestamps || [];
-    currentIndex = 0;
+    // Position at current time (last frame)
+    currentIndex = Math.max(frames.length - 1, 0);
     const slider = document.getElementById("map-timeline-slider");
     if (slider) {
       const maxIndex = Math.max(frames.length - 1, 0);
       slider.max = String(maxIndex);
-      slider.value = "0";
+      slider.value = String(currentIndex);
       slider.disabled = maxIndex === 0;
     }
     updateTimeline();
@@ -118,5 +128,6 @@
     play,
     pause,
     seek,
+    regenerateFrames: generateFrames, // Allow regeneration after data loads
   };
 })(window);
