@@ -1318,7 +1318,7 @@ body.dark-mode a {
 /* App main views outside of home should display the theme background */
 [data-view]:not([data-view="home"]) .app-main-views,
 [data-view]:not([data-view="home"]) {
-  background: var(--theme-bg) !important;
+  background: rgb(63, 59, 72);
 }
 [data-view="home"] .card-group {
   padding: 0 16px;
@@ -1347,6 +1347,10 @@ body.dark-mode a {
 [data-view="settings"] {
   padding: 0 var(--space-l);
   background: var(--theme-bg);
+}
+
+[data-view="settings"] {
+  background: rgb(63, 59, 72) !important;
 }
 
 body.mobile-app #legacy-content {
@@ -3108,7 +3112,7 @@ body.mobile-app #legacy-content {
   padding: 16px 20px;
   border: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(22, 28, 42, 0.7);
+  background: rgb(63, 59, 72);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -8261,14 +8265,14 @@ body.dark-mode .source-compare-card {
     0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
-.weather-hero__local-time {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.9);
-  margin-top: 8px;
-  font-weight: 500;
-  text-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.35),
-    0 2px 6px rgba(0, 0, 0, 0.2);
+.weather-hero__scene {
+    width: 100%;
+    position: relative;
+    z-index: 1;
+    margin-top: 8px;
+    margin-bottom: 0;
+    overflow: hidden;
+    border-radius: 24px;
 }
 
 .weather-hero__updated {
