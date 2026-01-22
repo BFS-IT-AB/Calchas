@@ -1166,6 +1166,8 @@ body.dark-mode a {
   flex-direction: column;
   color: #fff;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 /* color: #fff; */
 
@@ -1173,7 +1175,7 @@ body.dark-mode a {
   font-weight: 500;
   font-size: 0.95rem;
   white-space: nowrap;
-  overflow: visible;
+  overflow: hidden;
   text-overflow: ellipsis;
   color: #fff;
 }
