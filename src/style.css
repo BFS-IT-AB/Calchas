@@ -7783,8 +7783,8 @@ body.dark-mode .source-compare-card {
   padding-bottom: var(--space-s);
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
-  padding-left: calc(50% - 96px);
-  padding-right: calc(50% - 116px);
+  padding-left: calc(50% - 129px);
+  padding-right: calc(50% - 124px);
   scroll-padding: 50% - 96px;
 }
 
