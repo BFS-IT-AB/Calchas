@@ -1,0 +1,1000 @@
+﻿  closeModalBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const modalId = btn.dataset.close;
+      closeModal(modalId);
+    });
+  });
+
+  // Close modal on overlay click
+  if (modalOverlay) {
+    modalOverlay.addEventListener("click", () => {
+      closeAllModals();
+    });
+  }
+
+  const cityInputEl = document.getElementById("cityInput");
+  const savedHome = appState.homeLocation?.city;
+
+  if (savedHome) {
+    if (cityInputEl) cityInputEl.value = savedHome;
+    loadWeather(savedHome);
+  } else if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        console.log(`ðŸ“ Standort gefunden: ${latitude}, ${longitude}`);
+
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          );
+          const data = await response.json();
+          const cityName =
+            data.address?.city ||
+            data.address?.town ||
+            data.address?.county ||
+            "Standort";
+
+          if (cityInputEl) cityInputEl.value = cityName;
+          await loadWeather(cityName);
+          console.log(`âœ… Wetter fÃ¼r ${cityName} automatisch geladen`);
+        } catch (err) {
+          console.error("Fehler:", err);
+          if (cityInputEl) cityInputEl.value = "Berlin";
+          loadWeather("Berlin");
+        }
+      },
+      () => {
+        console.warn("âŒ Geolokalisierung abgelehnt, lade Berlin");
+        if (cityInputEl) cityInputEl.value = "Berlin";
+        loadWeather("Berlin");
+      },
+      { timeout: 5000 }
+    );
+  } else {
+    console.warn("âš ï¸ Geolokalisierung nicht unterstÃ¼tzt");
+    if (cityInputEl) cityInputEl.value = "Berlin";
+    loadWeather("Berlin");
+  }
+
+  // Units selects initial state and handlers
+  const tempSelect = document.getElementById("temp-unit-select");
+  const windSelect = document.getElementById("wind-unit-select");
+
+  if (tempSelect) {
+    tempSelect.value = appState.units.temperature || tempSelect.value;
+    tempSelect.addEventListener("change", (e) => {
+      appState.persistUnits({ temperature: e.target.value });
+      // Rebuild renderData and re-render
+      try {
+        if (appState.weatherData) {
+          appState.renderData = buildRenderData(
+            appState.weatherData,
+            appState.units
+          );
+          renderFromRenderData();
+        }
+      } catch (err) {
+        console.warn("Unit change render failed", err);
+      }
+    });
+  }
+
+  if (windSelect) {
+    windSelect.value = appState.units.wind || windSelect.value;
+    windSelect.addEventListener("change", (e) => {
+      appState.persistUnits({ wind: e.target.value });
+      try {
+        if (appState.weatherData) {
+          appState.renderData = buildRenderData(
+            appState.weatherData,
+            appState.units
+          );
+          renderFromRenderData();
+        }
+      } catch (err) {
+        console.warn("Unit change render failed", err);
+      }
+    });
+  }
+
+  // Setze initiales Theme
+  if (appState.isDarkMode) {
+    document.body.classList.add("dark-mode");
+  }
+
+  // Favoriten Toggle: Delegierter Klick-Handler (fÃ¼r den Stern-Button im aktuellen View)
+  document.addEventListener("click", (e) => {
+    const favToggle = e.target.closest && e.target.closest("#favoriteToggle");
+    if (favToggle) {
+      const city = favToggle.dataset.city;
+      if (!city) return;
+
+      if (appState.isFavorite(city)) {
+        appState.removeFavorite(city);
+        favToggle.textContent = "â˜†";
+        favToggle.title = "Zu Favoriten hinzufÃ¼gen";
+        showInfo(`${city} aus Favoriten entfernt`);
+      } else {
+        appState.saveFavorite(city, appState.currentCoordinates || null);
+        favToggle.textContent = "â­";
+        favToggle.title = "Aus Favoriten entfernen";
+        showSuccess(`${city} zu Favoriten hinzugefÃ¼gt`);
+      }
+
+      // Update Favoriten-Liste
+      try {
+        renderFavorites();
+        syncFavoriteToggleState(city);
+      } catch (err) {
+        console.warn(err);
+      }
+    }
+  });
+
+  // Starte Cache-Cleanup
+  setCacheInvalidation();
+
+  // Push toggle handler (subscribe/unsubscribe)
+  const pushBtn = document.getElementById("pushToggle");
+  if (pushBtn) {
+    syncPushToggleState();
+    pushBtn.addEventListener("click", async () => {
+      const enabled = localStorage.getItem("wetter_push_enabled") === "true";
+      setPushToggleBusy(true);
+      try {
+        if (enabled) {
+          await unsubscribeFromPush();
+          showInfo("Push-Benachrichtigungen deaktiviert");
+        } else {
+          const ok = await subscribeToPush();
+          if (ok) {
+            showSuccess(
+              "Push-Benachrichtigungen aktiviert (Subscription gespeichert)"
+            );
+          }
+        }
+      } catch (e) {
+        console.warn("Push toggle error", e);
+        handlePushToggleError(e);
+      } finally {
+        setPushToggleBusy(false);
+      }
+    });
+  }
+
+  // Cache & Verlauf Aktionen in den Einstellungen
+  const clearCacheBtn = document.getElementById("clear-cache-btn");
+  if (clearCacheBtn) {
+    clearCacheBtn.addEventListener("click", () => {
+      try {
+        const statsBefore =
+          typeof weatherCache.getStats === "function"
+            ? weatherCache.getStats()
+            : null;
+        weatherCache.clear();
+        showSuccess("Cache geleert â€“ neue Anfragen laden frische Daten.");
+        if (window.logAnalyticsEvent) {
+          window.logAnalyticsEvent("settings_action", {
+            action: "clear_cache",
+            clearedEntries: statsBefore?.totalEntries || 0,
+            clearedBytes: statsBefore?.totalSize || 0,
+          });
+        }
+      } catch (err) {
+        console.warn("Cache konnte nicht geleert werden", err);
+        showWarning(
+          "Cache konnte nicht geleert werden. Bitte erneut versuchen."
+        );
+      }
+    });
+  }
+
+  const clearRecentBtn = document.getElementById("clear-recent-btn");
+  if (clearRecentBtn) {
+    clearRecentBtn.addEventListener("click", () => {
+      const hadEntries = clearAllSearchComponentRecents();
+      if (hadEntries) {
+        showSuccess("Suchverlauf geleert.");
+      } else {
+        showInfo("Kein Suchverlauf vorhanden.");
+      }
+    });
+  }
+
+  // API Keys - Load existing keys into inputs
+  const owmKeyInput = document.getElementById("openweathermap-key");
+  const vcKeyInput = document.getElementById("visualcrossing-key");
+  const meteostatKeyInput = document.getElementById("meteostat-key");
+  if (owmKeyInput)
+    owmKeyInput.value = window.apiKeyManager.getKey("openweathermap") || "";
+  if (vcKeyInput)
+    vcKeyInput.value = window.apiKeyManager.getKey("visualcrossing") || "";
+  if (meteostatKeyInput)
+    meteostatKeyInput.value = window.apiKeyManager.getKey("meteostat") || "";
+
+  // API Keys - Save handlers
+  if (owmKeyInput) {
+    const persistOwmKey = (rawValue) => {
+      const trimmed = (rawValue || "").trim();
+      if (!trimmed) {
+        window.apiKeyManager.setKey("openweathermap", "");
+        showInfo("OpenWeatherMap API-Key entfernt");
+        syncProviderKeyState("openweathermap");
+        return;
+      }
+      if (!/^[A-Za-z0-9]{32,64}$/.test(trimmed)) {
+        showWarning(
+          "OpenWeatherMap API-Key muss 32 Zeichen enthalten. Bitte kopiere ihn exakt aus deinem OWM-Dashboard."
+        );
+        focusAndHighlight("openweathermap-key", 200);
+        return;
+      }
+      const success = window.apiKeyManager.setKey("openweathermap", trimmed);
+      if (success) {
+        showSuccess("OpenWeatherMap API-Key gespeichert");
+        syncProviderKeyState("openweathermap");
+      }
+    };
+
+    ["change", "blur"].forEach((evtName) => {
+      owmKeyInput.addEventListener(evtName, (e) =>
+        persistOwmKey(e.target.value)
+      );
+    });
+
+    owmKeyInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        persistOwmKey(e.target.value);
+      }
+    });
+  }
+  if (vcKeyInput) {
+    vcKeyInput.addEventListener("change", (e) => {
+      const success = window.apiKeyManager.setKey(
+        "visualcrossing",
+        e.target.value
+      );
+      if (success) {
+        showSuccess("VisualCrossing API-Key gespeichert");
+        syncProviderKeyState("visualcrossing");
+      }
+    });
+  }
+  if (meteostatKeyInput) {
+    meteostatKeyInput.addEventListener("change", (e) => {
+      const success = window.apiKeyManager.setKey("meteostat", e.target.value);
+      if (success) {
+        showSuccess("Meteostat API-Key gespeichert");
+        syncProviderKeyState("meteostat");
+      }
+    });
+  }
+
+  // VAPID Save button
+  const saveVapidBtn = document.getElementById("saveVapidBtn");
+  if (saveVapidBtn) {
+    saveVapidBtn.addEventListener("click", () => {
+      const v = document.getElementById("vapidKeyInput")?.value?.trim() || "";
+      if (v.length < 20) {
+        showWarning("Bitte gib einen gÃ¼ltigen VAPID Public Key an.");
+        return;
+      }
+      persistVapidKey(v);
+      showSuccess("VAPID key gespeichert.");
+      syncPushToggleState();
+    });
+  }
+
+  // Fetch VAPID from local server button
+  const fetchVapidBtn = document.getElementById("fetchVapidBtn");
+  if (fetchVapidBtn) {
+    fetchVapidBtn.addEventListener("click", async () => {
+      try {
+        fetchVapidBtn.disabled = true;
+        fetchVapidBtn.dataset.loading = "true";
+        const key = await ensureVapidKey({ forceFetch: true });
+        if (key) {
+          showSuccess("VAPID key vom lokalen Server geladen");
+        } else {
+          showWarning("Konnte VAPID key nicht vom lokalen Server laden");
+        }
+      } catch (e) {
+        showWarning("Fehler beim Laden des VAPID keys: " + (e && e.message));
+      } finally {
+        fetchVapidBtn.disabled = false;
+        delete fetchVapidBtn.dataset.loading;
+        syncPushToggleState();
+      }
+    });
+  }
+
+  // AUTO-FETCH VAPID on app init - nur wenn Push-Server erreichbar
+  // Push-Benachrichtigungen sind optional und benÃ¶tigen einen separaten Server
+  if (typeof ensureVapidKey === "function") {
+    setTimeout(async () => {
+      try {
+        // PrÃ¼fe erst ob der Push-Server Ã¼berhaupt lÃ¤uft
+        const testRes = await fetch("http://localhost:3030/keys", {
+          method: "HEAD",
+        }).catch(() => null);
+        if (!testRes || !testRes.ok) {
+          console.info(
+            "â„¹ï¸ Push-Server nicht verfÃ¼gbar â€“ Push-Benachrichtigungen deaktiviert"
+          );
+          return;
+        }
+        const key = await ensureVapidKey();
+        if (key) {
+          console.log("âœ… VAPID Key bereitgestellt");
+        }
+      } catch (e) {
+        // Stille Fehlerbehandlung - Push ist optional
+      } finally {
+        if (typeof syncPushToggleState === "function") syncPushToggleState();
+      }
+    }, 2000); // VerzÃ¶gert um App-Start nicht zu blockieren
+  }
+
+  // Home-Bereich: Immer sinnvolle Demo-Daten anzeigen, falls keine
+  // gespeicherten Live-Daten vorhanden sind. So bleibt die App auch bei
+  // 401/503/Offline sofort bedienbar.
+  const restoredSnapshot = tryRestoreLastSnapshot();
+  if (restoredSnapshot) {
+    showInfo("ðŸ“¦ Zeige letzten gespeicherten Wetterstand â€“ aktualisiere...");
+  } else {
+    const offline =
+      typeof navigator !== "undefined" && navigator.onLine === false;
+    const reason = offline
+      ? "ðŸ“º Offline erkannt â€“ Demo-Daten werden angezeigt."
+      : "ðŸ‘‹ Demo-Vorschau aktiv â€“ starte eine Suche fÃ¼r Live-Wetter.";
+    renderDemoExperience(reason);
+  }
+
+  // Expose a simple smoke-test callable from console
+  window.runSmokeTest = runSmokeTest;
+
+  // App-Shell / Navigation initialisieren (neue mobile UI)
+  try {
+    initAppShell(appState);
+  } catch (e) {
+    console.warn("App-Shell konnte nicht initialisiert werden", e);
+  }
+
+  console.log("âœ… App initialisiert");
+}
+
+// Globale Komponenten-Instanzen
+let appState;
+let searchComponent;
+let weatherDisplay;
+let weatherMapFeature;
+let mapInspector;
+let weatherAlerts;
+let historicalChart;
+let analyticsDashboard;
+
+const searchComponentRegistry = [];
+
+function getRegisteredSearchComponents() {
+  if (typeof window !== "undefined") {
+    if (Array.isArray(window.searchComponents)) {
+      window.searchComponents.forEach((component) => {
+        if (component && !searchComponentRegistry.includes(component)) {
+          searchComponentRegistry.push(component);
+        }
+      });
+    } else if (window.searchComponent) {
+      if (!searchComponentRegistry.includes(window.searchComponent)) {
+        searchComponentRegistry.push(window.searchComponent);
+      }
+    }
+  } else if (searchComponent) {
+    if (!searchComponentRegistry.includes(searchComponent)) {
+      searchComponentRegistry.push(searchComponent);
+    }
+  }
+  return searchComponentRegistry;
+}
+
+function registerSearchComponentInstance(instance, options = {}) {
+  if (!instance) return null;
+  if (!searchComponentRegistry.includes(instance)) {
+    searchComponentRegistry.push(instance);
+  }
+  if (typeof window !== "undefined") {
+    window.searchComponents = searchComponentRegistry;
+    if (!window.searchComponent || options?.primary) {
+      window.searchComponent = instance;
+    }
+  }
+  if ((!searchComponent || options?.primary) && typeof instance === "object") {
+    searchComponent = instance;
+  }
+  return instance;
+}
+
+function setSearchComponentsLoadingState(isLoading) {
+  getRegisteredSearchComponents().forEach((component) => {
+    if (component && typeof component.setLoading === "function") {
+      try {
+        component.setLoading(isLoading);
+      } catch (err) {
+        console.warn(
+          "SearchInput Loading-State konnte nicht gesetzt werden",
+          err
+        );
+      }
+    }
+  });
+}
+
+function clearAllSearchComponentRecents() {
+  let hadEntries = false;
+  getRegisteredSearchComponents().forEach((component) => {
+    if (component && typeof component.clearRecent === "function") {
+      try {
+        hadEntries = component.clearRecent() || hadEntries;
+      } catch (err) {
+        console.warn("Suchverlauf konnte nicht geleert werden", err);
+      }
+    }
+  });
+  return hadEntries;
+}
+
+if (typeof window !== "undefined") {
+  window.clearSearchHistory = clearAllSearchComponentRecents;
+  window.registerSearchComponentInstance = registerSearchComponentInstance;
+  window.setSearchComponentsLoadingState = setSearchComponentsLoadingState;
+}
+
+// Starte App wenn DOM bereit
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initApp);
+} else {
+  initApp();
+}
+
+// === Stundenanzeige mit Endlosschleife & sanftem Drag ===
+function renderHourly(
+  containerId,
+  times,
+  temps,
+  weatherCodes = [],
+  useIcons = false
+) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.classList.add("hourly");
+  container.innerHTML = `
+  <div class="hourly-bg"></div>
+`;
+
+  const baseCount = 24;
+  const hours = times.slice(0, baseCount);
+  const temps24 = temps.slice(0, baseCount);
+  const codes24 = weatherCodes.slice(0, baseCount);
+  const allTimes = [...hours, ...hours];
+  const allTemps = [...temps24, ...temps24];
+  const allCodes = [...codes24, ...codes24];
+
+  allTimes.forEach((time, i) => {
+    const date = new Date(time);
+    const hour = date.getHours().toString().padStart(2, "0");
+    const temp = allTemps[i]?.toFixed(1) ?? "-";
+    let icon = "â˜€ï¸";
+
+    if (!useIcons) {
+      const code = allCodes[i];
+      if ([0].includes(code)) icon = "â˜€ï¸";
+      else if ([1, 2].includes(code)) icon = "ðŸŒ¤ï¸";
+      else if ([3].includes(code)) icon = "â˜ï¸";
+      else if ([45, 48].includes(code)) icon = "ðŸŒ«ï¸";
+      else if ([51, 61, 80].includes(code)) icon = "ðŸŒ¦ï¸";
+      else if ([63, 65, 81, 82].includes(code)) icon = "ðŸŒ§ï¸";
+      else if ([71, 73, 75, 77, 85, 86].includes(code)) icon = "â„ï¸";
+      else icon = "ðŸŒ¡ï¸";
+    } else {
+      const code = allCodes[i] || "";
+      if (code.includes("cloudy")) icon = "â˜ï¸";
+      else if (code.includes("rain")) icon = "ðŸŒ§ï¸";
+      else if (code.includes("clear")) icon = "â˜€ï¸";
+      else icon = "ðŸŒ¦ï¸";
+    }
+
+    const div = document.createElement("div");
+    div.className = "hour";
+    div.innerHTML = `<b>${hour}h</b><br>${icon}<br>${temp}Â°C`;
+    container.appendChild(div);
+  });
+
+  // Textauswahl komplett deaktivieren
+  container.style.userSelect = "none";
+
+  // Sanftes Dragging aktivieren
+  enableSmoothDragScroll(container);
+
+  // Endlos-Loop
+  container.addEventListener("scroll", () => {
+    const half = container.scrollWidth / 2;
+    if (container.scrollLeft >= half) container.scrollLeft -= half;
+    else if (container.scrollLeft <= 0) container.scrollLeft += half;
+  });
+
+  // Startposition mittig
+  container.scrollLeft = container.scrollWidth / 4;
+}
+
+/**
+ * Einfacher Smoke-Test: prÃ¼ft presence von Kern-Komponenten und Rendertests (offline-safe)
+ * Gibt ein Objekt mit Resultaten zurÃ¼ck und loggt im Console.
+ */
+async function runSmokeTest() {
+  const results = [];
+  try {
+    results.push({
+      ok: !!window.searchComponent,
+      msg: "searchComponent vorhanden",
+    });
+    results.push({
+      ok: !!window.weatherDisplay,
+      msg: "weatherDisplay vorhanden",
+    });
+    results.push({ ok: !!window.appState, msg: "appState vorhanden" });
+
+    // Versuch Favoriten zu rendern
+    try {
+      renderFavorites();
+      results.push({
+        ok: true,
+        msg: "renderFavorites() erfolgreich ausgefÃ¼hrt",
+      });
+    } catch (e) {
+      results.push({
+        ok: false,
+        msg: "renderFavorites() fehlgeschlagen: " + e.message,
+      });
+    }
+
+    // Loading/empty view
+    try {
+      weatherDisplay.showEmpty();
+      results.push({ ok: true, msg: "weatherDisplay.showEmpty() OK" });
+    } catch (e) {
+      results.push({
+        ok: false,
+        msg: "weatherDisplay.showEmpty() failed: " + e.message,
+      });
+    }
+  } catch (err) {
+    results.push({ ok: false, msg: "Smoke test exception: " + err.message });
+  }
+
+  console.group("Smoke Test Results");
+  results.forEach((r) =>
+    console[r.ok ? "log" : "error"]((r.ok ? "PASS" : "FAIL") + " - " + r.msg)
+  );
+  console.groupEnd();
+  return results;
+}
+
+/**
+ * Subscribe to Push (best-effort). Stores subscription JSON in localStorage.
+ * Note: For production you should pass a VAPID public key (applicationServerKey).
+ */
+async function subscribeToPush() {
+  if (!("serviceWorker" in navigator))
+    throw new Error("Service Worker nicht unterstÃ¼tzt");
+  const reg = await navigator.serviceWorker.ready;
+  try {
+    let stored = await ensureVapidKey();
+    if (!stored || stored.length < 20) {
+      stored = resolveVapidKey();
+    }
+    if (!stored || stored.length < 20) {
+      throw new Error(
+        'Missing VAPID public key. Bitte fÃ¼ge in den Einstellungen deinen VAPID Public Key (Base64 URL-safe) ein oder starte den lokalen Push-Server und klicke "Fetch VAPID".'
+      );
+    }
+    persistVapidKey(stored);
+    const options = { userVisibleOnly: true };
+    try {
+      options.applicationServerKey = urlBase64ToUint8Array(stored);
+    } catch (e) {
+      throw new Error(
+        "UngÃ¼ltiges VAPID Key Format. Bitte Ã¼berprÃ¼fe den Public Key."
+      );
+    }
+
+    const sub = await reg.pushManager.subscribe(options);
+    // try to send subscription to local push server if reachable
+    try {
+      await sendSubscriptionToServer(sub);
+      showSuccess("Push-Subscription an lokalen Server Ã¼bermittelt");
+    } catch (e) {
+      console.warn("Could not send subscription to local server", e);
+    }
+    localStorage.setItem("wetter_push_subscription", JSON.stringify(sub));
+    localStorage.setItem("wetter_push_enabled", "true");
+    console.log("Push Subscription:", sub);
+    syncPushToggleState();
+    return true;
+  } catch (err) {
+    console.warn("Push subscription failed", err);
+    throw err;
+  }
+}
+
+/**
+ * Fetch VAPID public key from local push server (/keys)
+ */
+async function fetchVapidFromServer() {
+  try {
+    const res = await fetch("http://localhost:3030/keys");
+    if (!res.ok) throw new Error("Local push server not available");
+    const json = await res.json();
+    return json.publicKey || null;
+  } catch (e) {
+    console.warn("fetchVapidFromServer failed", e);
+    return null;
+  }
+}
+
+/**
+ * Send subscription object to local push server /subscribe
+ */
+async function sendSubscriptionToServer(subscription) {
+  try {
+    const res = await fetch("http://localhost:3030/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(subscription),
+    });
+    if (!res.ok) throw new Error("Server returned " + res.status);
+    return await res.json();
+  } catch (e) {
+    console.warn("sendSubscriptionToServer failed", e);
+    throw e;
+  }
+}
+
+/**
+ * Helper: converts a URL-safe base64 string to Uint8Array (for VAPID key)
+ */
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+async function unsubscribeFromPush() {
+  if (!("serviceWorker" in navigator))
+    throw new Error("Service Worker nicht unterstÃ¼tzt");
+  const reg = await navigator.serviceWorker.ready;
+  const subs = await reg.pushManager.getSubscription();
+  if (subs) {
+    await subs.unsubscribe();
+  }
+  localStorage.removeItem("wetter_push_subscription");
+  localStorage.setItem("wetter_push_enabled", "false");
+  syncPushToggleState();
+  return true;
+}
+
+function handlePushToggleError(error) {
+  const message = error?.message || "Unbekannter Fehler";
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("vapid")) {
+    showWarning(
+      "Push-Benachrichtigungen benÃ¶tigen einen gÃ¼ltigen VAPID Public Key.",
+      null,
+      {
+        title: "Push-Setup unvollstÃ¤ndig",
+        list: [
+          "Ã–ffne âš™ï¸ Einstellungen â†’ Push-Benachrichtigungen",
+          'Trage den Base64 VAPID Public Key ein oder klicke "Fetch VAPID"',
+          "Aktiviere anschlieÃŸend den Push-Schalter erneut",
+        ],
+        actions: [
+          {
+            label: "Einstellungen Ã¶ffnen",
+            kind: "primary",
+            onClick: () => openSettingsModal("vapidKeyInput"),
+          },
+          {
+            label: "Fetch VAPID",
+            onClick: () => document.getElementById("fetchVapidBtn")?.click(),
+          },
+        ],
+      }
+    );
+    return;
+  }
+
+  if (normalized.includes("service worker")) {
+    showWarning(
+      "Push-Benachrichtigungen werden von diesem Browser leider nicht unterstÃ¼tzt.",
+      null,
+      {
+        meta: "Verwende einen aktuellen Chromium- oder Firefox-Browser mit aktiviertem Service Worker Support.",
+      }
+    );
+    return;
+  }
+
+  showWarning(`Push konnte nicht umgeschaltet werden: ${message}`, null, {
+    meta: "Bitte prÃ¼fe die Browser-Konsole fÃ¼r weitere Details.",
+  });
+}
+
+function resolveVapidKey() {
+  const input = document.getElementById("vapidKeyInput");
+  const typed = input?.value?.trim();
+  if (typed && typed.length >= 20) return typed;
+  try {
+    const stored = localStorage.getItem("wetter_vapid_public") || "";
+    return stored.trim();
+  } catch (e) {
+    return "";
+  }
+}
+
+function persistVapidKey(key) {
+  if (!key) return "";
+  const normalized = key.trim();
+  if (!normalized) return "";
+  try {
+    localStorage.setItem("wetter_vapid_public", normalized);
+  } catch (e) {
+    console.warn("VAPID key konnte nicht gespeichert werden:", e);
+  }
+  const input = document.getElementById("vapidKeyInput");
+  if (input && input.value !== normalized) {
+    input.value = normalized;
+  }
+  return normalized;
+}
+
+function hasUsableVapidKey() {
+  return resolveVapidKey().length >= 20;
+}
+
+async function ensureVapidKey({ forceFetch = false } = {}) {
+  if (!forceFetch) {
+    const existing = resolveVapidKey();
+    if (existing && existing.length >= 20) {
+      return existing;
+    }
+  }
+  const fetched = await fetchVapidFromServer();
+  if (fetched && fetched.length >= 20) {
+    return persistVapidKey(fetched);
+  }
+  return null;
+}
+
+function syncPushToggleState() {
+  const pushBtn = document.getElementById("pushToggle");
+  if (!pushBtn) return;
+  let enabled = false;
+  try {
+    enabled = localStorage.getItem("wetter_push_enabled") === "true";
+  } catch (e) {
+    enabled = false;
+  }
+  const hasKey = hasUsableVapidKey();
+  pushBtn.textContent = enabled ? "ðŸ”•" : "ðŸ””";
+  pushBtn.title = enabled
+    ? "Push-Benachrichtigungen deaktivieren"
+    : hasKey
+    ? "Push-Benachrichtigungen aktivieren"
+    : "VAPID Key erforderlich";
+  pushBtn.setAttribute("aria-pressed", enabled ? "true" : "false");
+  const shouldDisable = !hasKey && !enabled;
+  pushBtn.disabled = shouldDisable;
+  pushBtn.dataset.pushState = enabled ? "on" : "off";
+  pushBtn.dataset.pushKey = hasKey ? "ready" : "missing";
+}
+
+function setPushToggleBusy(isBusy) {
+  const pushBtn = document.getElementById("pushToggle");
+  if (!pushBtn) return;
+  if (isBusy) {
+    pushBtn.setAttribute("aria-busy", "true");
+    pushBtn.dataset.loading = "true";
+    pushBtn.disabled = true;
+  } else {
+    pushBtn.removeAttribute("aria-busy");
+    delete pushBtn.dataset.loading;
+    syncPushToggleState();
+  }
+}
+
+// Legacy Settings-Modal entfernt â€“ zentrale Settings laufen Ã¼ber die
+// mobile App-View (BottomNav â†’ data-view="settings" + Bottom-Sheets).
+// Die folgenden Funktionen bleiben als No-Op bestehen, damit Ã¤ltere
+// Aufrufe nichts kaputt machen.
+
+function openSettingsModal(focusFieldId) {
+  if (focusFieldId) {
+    focusAndHighlight(focusFieldId, 250);
+  }
+}
+
+function closeModal(modalId) {
+  if (!modalId) return;
+  if (modalId === "settings-modal") {
+    closeSettingsSubview();
+  }
+}
+
+function closeAllModals() {
+  closeSettingsSubview();
+}
+
+function openSettingsSubview(targetView) {
+  if (!targetView) return;
+  if (!SETTINGS_NAV_MAP[targetView]) {
+    console.warn(`Kein Settings-View fÃ¼r "${targetView}" definiert.`);
+  }
+  const overlay = document.getElementById("settings-subview-overlay");
+  if (!overlay) return;
+  const view = overlay.querySelector(
+    `.settings-subview[data-view="${targetView}"]`
+  );
+  if (!view) return;
+
+  overlay.classList.add("active");
+  overlay.setAttribute("aria-hidden", "false");
+
+  overlay.querySelectorAll(".settings-subview").forEach((section) => {
+    if (section === view) {
+      section.setAttribute("aria-hidden", "false");
+      section.removeAttribute("hidden");
+    } else {
+      section.setAttribute("aria-hidden", "true");
+      section.setAttribute("hidden", "hidden");
+    }
+  });
+
+  activeSettingsSubview = targetView;
+
+  setTimeout(() => {
+    const config = SETTINGS_NAV_MAP[targetView];
+    const preferredFocus = config?.focusSelector
+      ? view.querySelector(config.focusSelector)
+      : null;
+    const focusTarget =
+      preferredFocus ||
+      view.querySelector("[data-settings-initial-focus]") ||
+      view.querySelector(
+        "button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea, [tabindex]:not([tabindex='-1'])"
+      );
+    focusTarget?.focus({ preventScroll: false });
+  }, 60);
+}
+
+function closeSettingsSubview() {
+  const overlay = document.getElementById("settings-subview-overlay");
+  if (!overlay) return;
+  overlay.classList.remove("active");
+  overlay.setAttribute("aria-hidden", "true");
+  overlay.querySelectorAll(".settings-subview").forEach((section) => {
+    section.setAttribute("aria-hidden", "true");
+    section.setAttribute("hidden", "hidden");
+  });
+  activeSettingsSubview = null;
+}
+
+function setupSettingsNavigation() {
+  const panel = document.querySelector(".settings-panel");
+  const overlay = document.getElementById("settings-subview-overlay");
+  if (!panel || !overlay) return;
+
+  const triggers = panel.querySelectorAll(
+    ".settings-link[data-settings-target]"
+  );
+  triggers.forEach((trigger) => {
+    const target = trigger.getAttribute("data-settings-target");
+    if (!target) return;
+    if (!SETTINGS_NAV_MAP[target]) {
+      console.warn(`Unbekannter settings target: ${target}`);
+    }
+    trigger.addEventListener("click", () => openSettingsSubview(target));
+    trigger.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openSettingsSubview(target);
+      }
+    });
+  });
+
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) {
+      closeSettingsSubview();
+    }
+  });
+
+  overlay
+    .querySelectorAll("[data-settings-back]")
+    .forEach((btn) =>
+      btn.addEventListener("click", () => closeSettingsSubview())
+    );
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && activeSettingsSubview) {
+      const isOverlayActive = overlay.classList.contains("active");
+      if (isOverlayActive) {
+        event.stopPropagation();
+        closeSettingsSubview();
+      }
+    }
+  });
+
+  closeSettingsSubview();
+}
+
+function focusAndHighlight(elementId, delay = 150) {
+  if (!elementId) return;
+  setTimeout(() => {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    const parentView = element.closest(".settings-subview");
+    const targetView = parentView?.getAttribute("data-view");
+    if (targetView && parentView?.getAttribute("aria-hidden") === "true") {
+      openSettingsSubview(targetView);
+    }
+    try {
+      element.focus({ preventScroll: false });
+    } catch (e) {
+      element.focus();
+    }
+    element.classList.add("input-highlight");
+    setTimeout(() => element.classList.remove("input-highlight"), 2200);
+  }, delay);
+}
+
+// === Drag ohne Zucken ===
+function enableSmoothDragScroll(container) {
+  let isDown = false;
+  let startX, scrollLeft;
+
+  const startDrag = (pageX) => {
+    isDown = true;
+    container.classList.add("dragging");
+    startX = pageX - container.offsetLeft;
+    scrollLeft = container.scrollLeft;
+  };
+
+  const endDrag = () => {
+    isDown = false;
+    container.classList.remove("dragging");
+  };
+
+  const moveDrag = (pageX) => {
+    if (!isDown) return;
+    const x = pageX - container.offsetLeft;
+    const walk = x - startX;
+    container.scrollLeft = scrollLeft - walk;
+  };
+
+  // Maus
+  container.addEventListener("mousedown", (e) => startDrag(e.pageX));
+  container.addEventListener("mousemove", (e) => moveDrag(e.pageX));
+  window.addEventListener("mouseup", endDrag);
+
+  // Touch
+  container.addEventListener("touchstart", (e) =>
+    startDrag(e.touches[0].pageX)
+  );
+  container.addEventListener("touchmove", (e) => moveDrag(e.touches[0].pageX));
+  container.addEventListener("touchend", endDrag);
+}

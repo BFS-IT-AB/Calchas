@@ -30,7 +30,7 @@
     currentView = viewId;
 
     const navButtons = document.querySelectorAll(
-      "#bottom-nav [data-nav-target]"
+      "#bottom-nav [data-nav-target]",
     );
     navButtons.forEach((btn) => {
       const target = btn.getAttribute("data-nav-target");
@@ -58,6 +58,14 @@
       } else {
         appBar.style.display = "none";
       }
+    }
+
+    // Toggle unified background class for non-home views
+    const unifiedBgViews = ["settings", "history", "health"];
+    if (unifiedBgViews.includes(viewId)) {
+      document.body.classList.add("view-unified-bg");
+    } else {
+      document.body.classList.remove("view-unified-bg");
     }
 
     const scrollContainer = document.querySelector(".app-main-views");

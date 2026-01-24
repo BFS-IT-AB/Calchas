@@ -15557,8 +15557,40 @@ body.dark-mode .map-inspector {
 
 /* App View Base */
 .app-view {
-  min-height: calc(100vh - 130px);
+  min-height: 100vh;
   padding-bottom: 100px;
+}
+
+/* Unified Background Mode (triggered by JS) */
+body.view-unified-bg {
+  background-color: #131318 !important;
+  --theme-bg: #131318 !important;
+  --page-bg: #131318 !important;
+}
+
+body.view-unified-bg .app-shell {
+  background-color: #131318 !important;
+}
+
+body.view-unified-bg .app-main-views {
+  padding-top: 0 !important;
+  background-color: #131318 !important;
+  background: #131318 !important;
+}
+
+body.view-unified-bg [data-view] {
+  background-color: #131318 !important;
+  background: #131318 !important;
+}
+
+body.view-unified-bg .app-view {
+  background-color: #131318 !important;
+  background: #131318 !important;
+}
+
+body.view-unified-bg .app-view__content {
+  background-color: #131318 !important;
+  background: transparent !important;
 }
 
 /* Health View Container - Extra padding for fixed bottom nav */
