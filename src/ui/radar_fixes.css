@@ -84,6 +84,14 @@
   z-index: 1; /* Below UI but above basic content */
 }
 
+/* CRITICAL: Ensure radar view doesn't block when hidden */
+.radar-view[hidden] {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+  z-index: -9999 !important;
+}
+
 .radar-view__map-wrapper {
   position: absolute;
   top: 0;
