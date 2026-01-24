@@ -419,7 +419,7 @@
                 state.favorites = data.favorites;
                 localStorage.setItem(
                   "wetter_favorites",
-                  JSON.stringify(data.favorites)
+                  JSON.stringify(data.favorites),
                 );
                 importedCount++;
               }
@@ -427,7 +427,7 @@
                 state.homeLocation = data.homeLocation;
                 localStorage.setItem(
                   "wetter_home_location",
-                  JSON.stringify(data.homeLocation)
+                  JSON.stringify(data.homeLocation),
                 );
                 importedCount++;
               }
@@ -435,7 +435,7 @@
                 if (state) state.units = data.units;
                 localStorage.setItem(
                   "wetter_units",
-                  JSON.stringify(data.units)
+                  JSON.stringify(data.units),
                 );
                 importedCount++;
               }
@@ -528,18 +528,26 @@
   }
 
   function openSheet(idOrMetric) {
-    console.log(`[ModalController.openSheet] Called with idOrMetric="${idOrMetric}"`);
-    
+    console.log(
+      `[ModalController.openSheet] Called with idOrMetric="${idOrMetric}"`,
+    );
+
     const overlay = document.getElementById("bottom-sheet-overlay");
     const resolvedId = resolveSheetId(idOrMetric);
     const sheet = resolvedId && document.getElementById(resolvedId);
-    
+
     console.log(`[ModalController.openSheet] Resolved ID: "${resolvedId}"`);
     console.log(`[ModalController.openSheet] Overlay:`, overlay);
     console.log(`[ModalController.openSheet] Sheet:`, sheet);
-    console.log(`[ModalController.openSheet] Overlay hidden attr:`, overlay?.hidden);
-    console.log(`[ModalController.openSheet] Overlay aria-hidden:`, overlay?.getAttribute('aria-hidden'));
-    
+    console.log(
+      `[ModalController.openSheet] Overlay hidden attr:`,
+      overlay?.hidden,
+    );
+    console.log(
+      `[ModalController.openSheet] Overlay aria-hidden:`,
+      overlay?.getAttribute("aria-hidden"),
+    );
+
     if (!overlay || !sheet) {
       console.error(`[ModalController.openSheet] Missing overlay or sheet!`);
       return;
@@ -553,11 +561,20 @@
     overlay.setAttribute("aria-hidden", "false");
     sheet.classList.add("bottom-sheet--visible");
     activeSheetId = resolvedId;
-    
+
     console.log(`[ModalController.openSheet] Sheet opened successfully`);
-    console.log(`[ModalController.openSheet] Overlay hidden after:`, overlay.hidden);
-    console.log(`[ModalController.openSheet] Overlay aria-hidden after:`, overlay.getAttribute('aria-hidden'));
-    console.log(`[ModalController.openSheet] Overlay display:`, getComputedStyle(overlay).display);
+    console.log(
+      `[ModalController.openSheet] Overlay hidden after:`,
+      overlay.hidden,
+    );
+    console.log(
+      `[ModalController.openSheet] Overlay aria-hidden after:`,
+      overlay.getAttribute("aria-hidden"),
+    );
+    console.log(
+      `[ModalController.openSheet] Overlay display:`,
+      getComputedStyle(overlay).display,
+    );
   }
 
   function closeSheet() {

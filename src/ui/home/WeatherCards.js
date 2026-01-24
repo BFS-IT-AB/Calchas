@@ -2301,20 +2301,28 @@
     renderCloudCoverCard(document.getElementById("card-clouds"), cardData);
     renderPollenCard(document.getElementById("card-pollen"), cardData);
 
-    // Add click handlers
+    // Add click handlers using event delegation on container
+    // This is more robust than individual listeners
     const cards = container.querySelectorAll(".weather-card");
     console.log(
       `[WeatherCards] Found ${cards.length} cards to attach listeners`,
     );
 
-    cards.forEach((card, index) => {
-      const cardType = card.dataset.card;
-      console.log(
-        `[WeatherCards] Card ${index}: type="${cardType}", element:`,
-        card,
+    // Remove old listener if exists
+    if (container._weatherCardClickHandler) {
+      container.removeEventListener(
+        "click",
+        container._weatherCardClickHandler,
       );
+    }
 
-      card.addEventListener("click", (event) => {
+    // Create new handler with current appState closure
+    container._weatherCardClickHandler = function (event) {
+      // Find the clicked card (might be child element)
+      const card = event.target.closest(".weather-card");
+
+      if (card) {
+        const cardType = card.dataset.card;
         console.log(`[WeatherCards] Card clicked: ${cardType}`, event);
         console.log(
           `[WeatherCards] ModalController available:`,
@@ -2322,12 +2330,25 @@
         );
         console.log(`[WeatherCards] appState:`, appState);
 
+        // Stop propagation to prevent conflicts
+        event.stopPropagation();
+        event.preventDefault();
+
         if (cardType) {
           openCardDetailModal(cardType, appState);
         }
-      });
-    });
-    console.log(`[WeatherCards] All ${cards.length} event listeners attached`);
+      }
+    };
+
+    // Attach delegated listener to container
+    container.addEventListener(
+      "click",
+      container._weatherCardClickHandler,
+      true,
+    );
+    console.log(
+      `[WeatherCards] Event delegation listener attached to container`,
+    );
   }
 
   // Export

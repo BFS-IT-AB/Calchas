@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Click Debug Tool</title>
+    <style>
+      body {
+        font-family: monospace;
+        padding: 20px;
+        background: #1a1a1a;
+        color: #fff;
+      }
+      button {
+        padding: 10px 20px;
+        margin: 10px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      #output {
+        background: #000;
+        padding: 20px;
+        margin-top: 20px;
+        border-radius: 8px;
+        max-height: 500px;
+        overflow-y: auto;
+      }
+      .log-entry {
+        margin: 5px 0;
+        padding: 5px;
+        border-left: 3px solid #0f0;
+      }
+      .log-error {
+        border-color: #f00;
+      }
+      .log-warn {
+        border-color: #ff0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔍 Click & Modal Debug Tool</h1>
+    <p>
+      Öffne die Developer Tools (F12) und führe diesen Code in der Console aus:
+    </p>
+
+    <h2>1. Prüfe ob Event-Listener registriert sind:</h2>
+    <pre>
+document.querySelectorAll('.weather-card').forEach((card, i) => {
+  console.log(`Card ${i}:`, card.dataset.card,
+              'Has listeners:', getEventListeners(card));
+});
+  </pre
+    >
+
+    <h2>2. Prüfe Overlay-Status:</h2>
+    <pre>
+const overlay = document.getElementById('bottom-sheet-overlay');
+console.log('Overlay exists:', !!overlay);
+console.log('Overlay hidden:', overlay?.hidden);
+console.log('Overlay aria-hidden:', overlay?.getAttribute('aria-hidden'));
+console.log('Overlay display:', getComputedStyle(overlay)?.display);
+console.log('Overlay z-index:', getComputedStyle(overlay)?.zIndex);
+console.log('Overlay pointer-events:', getComputedStyle(overlay)?.pointerEvents);
+  </pre
+    >
+
+    <h2>3. Prüfe ModalController:</h2>
+    <pre>
+console.log('ModalController exists:', !!window.ModalController);
+console.log('openSheet function:', typeof window.ModalController?.openSheet);
+  </pre
+    >
+
+    <h2>4. Prüfe WeatherCards:</h2>
+    <pre>
+console.log('WeatherCards exists:', !!window.WeatherCards);
+console.log('openCardDetailModal:', typeof window.WeatherCards?.openCardDetailModal);
+  </pre
+    >
+
+    <h2>5. Teste Manual Modal Opening:</h2>
+    <pre>
+// Teste ob Modal programmatisch geöffnet werden kann
+if (window.ModalController) {
+  window.ModalController.openSheet('sheet-location-picker');
+  setTimeout(() => {
+    const overlay = document.getElementById('bottom-sheet-overlay');
+    console.log('After openSheet - hidden:', overlay?.hidden);
+    console.log('After openSheet - aria-hidden:', overlay?.getAttribute('aria-hidden'));
+    console.log('After openSheet - display:', getComputedStyle(overlay)?.display);
+  }, 100);
+}
+  </pre
+    >
+
+    <h2>6. Finde Elemente die über den Cards liegen:</h2>
+    <pre>
+// Finde das erste weather-card Element
+const card = document.querySelector('.weather-card');
+if (card) {
+  const rect = card.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+
+  const elementAtPoint = document.elementFromPoint(centerX, centerY);
+  console.log('Card position:', rect);
+  console.log('Element at card center:', elementAtPoint);
+  console.log('Is it the card itself?', elementAtPoint === card);
+
+  // Liste alle Elemente an diesem Punkt
+  const elements = [];
+  let el = elementAtPoint;
+  while (el) {
+    elements.push({
+      tag: el.tagName,
+      id: el.id,
+      classes: el.className,
+      zIndex: getComputedStyle(el).zIndex,
+      pointerEvents: getComputedStyle(el).pointerEvents
+    });
+    el = el.parentElement;
+  }
+  console.table(elements);
+}
+  </pre
+    >
+
+    <h2>7. Simuliere Card-Click:</h2>
+    <pre>
+const card = document.querySelector('.weather-card');
+if (card) {
+  console.log('Simulating click on card:', card.dataset.card);
+  card.click();
+
+  // Warte und prüfe ob Modal geöffnet wurde
+  setTimeout(() => {
+    const overlay = document.getElementById('bottom-sheet-overlay');
+    console.log('After card.click() - hidden:', overlay?.hidden);
+    console.log('After card.click() - aria-hidden:', overlay?.getAttribute('aria-hidden'));
+    console.log('After card.click() - display:', getComputedStyle(overlay)?.display);
+
+    const sheetId = `sheet-${card.dataset.card}-detail`;
+    const sheet = document.getElementById(sheetId);
+    console.log(`Sheet ${sheetId} exists:`, !!sheet);
+    console.log(`Sheet visible class:`, sheet?.classList.contains('bottom-sheet--visible'));
+  }, 200);
+}
+  </pre
+    >
+
+    <button onclick="copyToClipboard(1)">Copy Check #1</button>
+    <button onclick="copyToClipboard(2)">Copy Check #2</button>
+    <button onclick="copyToClipboard(3)">Copy Check #3</button>
+    <button onclick="copyToClipboard(4)">Copy Check #4</button>
+    <button onclick="copyToClipboard(5)">Copy Check #5</button>
+    <button onclick="copyToClipboard(6)">Copy Check #6</button>
+    <button onclick="copyToClipboard(7)">Copy Check #7</button>
+    <button onclick="runAllChecks()">Run All Checks</button>
+
+    <div id="output"></div>
+
+    <script>
+      function copyToClipboard(checkNum) {
+        const pres = document.querySelectorAll("pre");
+        const code = pres[checkNum - 1]?.textContent?.trim();
+        if (code) {
+          navigator.clipboard.writeText(code);
+          alert("Code copied! Paste in console.");
+        }
+      }
+
+      function runAllChecks() {
+        alert("Open developer console (F12) to see results!");
+        const checks = document.querySelectorAll("pre");
+        checks.forEach((check, i) => {
+          console.log(`\n========== CHECK ${i + 1} ==========`);
+          try {
+            eval(check.textContent.trim());
+          } catch (e) {
+            console.error(`Check ${i + 1} failed:`, e);
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
