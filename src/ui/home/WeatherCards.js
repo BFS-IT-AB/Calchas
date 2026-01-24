@@ -576,7 +576,7 @@
 
   // === DETAIL MODALS ===
 
-  function openCardDetailModal(cardType, appState) {
+  function openCardDetailModal(cardType, appState, sourceElement) {
     console.log(
       `[openCardDetailModal] Called with cardType="${cardType}"`,
       appState,
@@ -637,9 +637,10 @@
     );
     if (window.ModalController) {
       console.log(
-        `[openCardDetailModal] Calling ModalController.openSheet("${sheetId}")`,
+        `[openCardDetailModal] Calling ModalController.openSheet("${sheetId}") with sourceElement`,
       );
-      window.ModalController.openSheet(sheetId);
+      // Pass the source element for FLIP animation
+      window.ModalController.openSheet(sheetId, sourceElement);
     } else {
       console.error(`[openCardDetailModal] ModalController not available!`);
     }
@@ -2335,7 +2336,8 @@
         event.preventDefault();
 
         if (cardType) {
-          openCardDetailModal(cardType, appState);
+          // Pass the card element as source for FLIP animation
+          openCardDetailModal(cardType, appState, card);
         }
       }
     };

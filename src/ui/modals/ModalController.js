@@ -527,7 +527,10 @@
     return metricMapping[idOrMetric] || idOrMetric;
   }
 
-  function openSheet(idOrMetric) {
+  // Store source element for FLIP animations
+  let lastSourceElement = null;
+
+  function openSheet(idOrMetric, sourceElement) {
     console.log(
       `[ModalController.openSheet] Called with idOrMetric="${idOrMetric}"`,
     );
@@ -535,18 +538,6 @@
     const overlay = document.getElementById("bottom-sheet-overlay");
     const resolvedId = resolveSheetId(idOrMetric);
     const sheet = resolvedId && document.getElementById(resolvedId);
-
-    console.log(`[ModalController.openSheet] Resolved ID: "${resolvedId}"`);
-    console.log(`[ModalController.openSheet] Overlay:`, overlay);
-    console.log(`[ModalController.openSheet] Sheet:`, sheet);
-    console.log(
-      `[ModalController.openSheet] Overlay hidden attr:`,
-      overlay?.hidden,
-    );
-    console.log(
-      `[ModalController.openSheet] Overlay aria-hidden:`,
-      overlay?.getAttribute("aria-hidden"),
-    );
 
     if (!overlay || !sheet) {
       console.error(`[ModalController.openSheet] Missing overlay or sheet!`);
@@ -556,39 +547,63 @@
     // Render Sheet content vor dem Öffnen
     renderSheetContent(resolvedId);
 
-    console.log(`[ModalController.openSheet] Setting overlay visible...`);
-    // WICHTIG: Alle visibility-relevanten Attribute und Klassen setzen
+    // Store source element for FLIP close animation
+    // If no explicit source, Transitions will auto-detect from last clicked element
+    lastSourceElement = sourceElement || null;
+
+    // Make overlay visible
     overlay.removeAttribute("hidden");
     overlay.setAttribute("aria-hidden", "false");
-    overlay.classList.add("is-open"); // Neue Klasse für CSS
-    sheet.classList.add("bottom-sheet--visible");
-    activeSheetId = resolvedId;
+    overlay.classList.add("is-open");
 
-    console.log(`[ModalController.openSheet] Sheet opened successfully`);
-    console.log(
-      `[ModalController.openSheet] Overlay hidden after:`,
-      overlay.hidden,
-    );
-    console.log(
-      `[ModalController.openSheet] Overlay aria-hidden after:`,
-      overlay.getAttribute("aria-hidden"),
-    );
-    console.log(
-      `[ModalController.openSheet] Overlay display:`,
-      getComputedStyle(overlay).display,
-    );
+    // Use FLIP animation if Transitions available
+    // Transitions module auto-detects source if not provided
+    if (global.Transitions) {
+      console.log(`[ModalController.openSheet] Using FLIP animation`);
+      global.Transitions.animateOpen(sourceElement, sheet).then(() => {
+        activeSheetId = resolvedId;
+      });
+    } else {
+      // Fallback: standard animation
+      sheet.classList.add("bottom-sheet--visible");
+      activeSheetId = resolvedId;
+    }
   }
 
   function closeSheet() {
     const overlay = document.getElementById("bottom-sheet-overlay");
     if (!overlay) return;
+
     const activeSheet = activeSheetId && document.getElementById(activeSheetId);
-    if (activeSheet) {
-      activeSheet.classList.remove("bottom-sheet--visible");
+
+    // Use FLIP animation if available and not already animating
+    if (global.Transitions && !global.Transitions.isAnimating()) {
+      console.log(`[ModalController.closeSheet] Using FLIP animation`);
+      global.Transitions.animateClose(activeSheet).then(() => {
+        finalizeClose(overlay, activeSheet);
+      });
+    } else {
+      // Fallback: standard close
+      if (activeSheet) {
+        activeSheet.classList.remove("bottom-sheet--visible");
+      }
+      finalizeClose(overlay, activeSheet);
     }
-    overlay.classList.remove("is-open"); // Klasse entfernen
+  }
+
+  function finalizeClose(overlay, sheet) {
+    if (sheet) {
+      sheet.classList.remove("bottom-sheet--visible");
+      sheet.style.cssText = ""; // Reset any inline styles from animation
+    }
+    overlay.classList.remove("is-open");
     overlay.setAttribute("aria-hidden", "true");
     activeSheetId = null;
+    lastSourceElement = null;
+
+    if (global.Transitions) {
+      global.Transitions.reset(); // Full reset to clean up all state
+    }
   }
 
   function initModalController() {
@@ -605,6 +620,8 @@
       }
     });
 
+    // Global click listener for data-attribute triggers
+    // Transitions.js auto-detects the clicked element, so we just pass it along
     document.addEventListener("click", (event) => {
       const trigger =
         event.target.closest("[data-bottom-sheet]") ||
@@ -616,7 +633,8 @@
         trigger.getAttribute("data-bottom-sheet-target");
       if (!targetIdAttr) return;
 
-      openSheet(targetIdAttr);
+      // Pass trigger as sourceElement for FLIP animation
+      openSheet(targetIdAttr, trigger);
     });
 
     document.addEventListener("keydown", (event) => {
@@ -626,8 +644,8 @@
     });
   }
 
-  function open(metricIdOrSheetId) {
-    openSheet(metricIdOrSheetId);
+  function open(metricIdOrSheetId, sourceElement) {
+    openSheet(metricIdOrSheetId, sourceElement);
   }
 
   global.ModalController = {

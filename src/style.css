@@ -17922,3 +17922,246 @@ body.view-unified-bg .app-view__content {
   font-weight: bold;
   font-family: "Consolas", monospace;
 }
+
+/* ============================================
+   ANDROID 15+ STYLE TRANSITION SYSTEM
+   FLIP animations with Predictive Back gestures
+============================================ */
+
+:root {
+  /* Android 15 Material Motion easing curves */
+  --transition-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --transition-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --transition-easing-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --transition-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --transition-easing-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Duration tokens */
+  --transition-duration-short: 150ms;
+  --transition-duration-medium: 300ms;
+  --transition-duration-long: 450ms;
+  --transition-duration-extra-long: 550ms;
+
+  /* Z-index layers for transitions */
+  --z-index-base: 1;
+  --z-index-elevated: 100;
+  --z-index-modal: 200;
+  --z-index-transition-layer: 9999;
+  --z-index-predictive-back: 10000;
+
+  /* Predictive back gesture thresholds */
+  --predictive-back-min-scale: 0.88;
+  --predictive-back-threshold: 100;
+  --predictive-back-edge-threshold: 50;
+}
+
+/* Transition Layer - Dedicated layer for animating elements */
+.transition-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-index-transition-layer);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.transition-layer--active {
+  pointer-events: auto;
+}
+
+/* Transition Clone - The animated element during FLIP */
+.transition-clone {
+  position: fixed;
+  z-index: var(--z-index-transition-layer);
+  will-change: transform, width, height, border-radius, opacity;
+  transform-origin: top left;
+  pointer-events: none;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.transition-clone--animating {
+  transition:
+    transform var(--transition-duration-long)
+      var(--transition-easing-emphasized),
+    width var(--transition-duration-long) var(--transition-easing-emphasized),
+    height var(--transition-duration-long) var(--transition-easing-emphasized),
+    border-radius var(--transition-duration-long)
+      var(--transition-easing-emphasized),
+    opacity var(--transition-duration-medium) var(--transition-easing-standard);
+}
+
+/* Source element states during transition */
+.transition-source--hidden {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Target modal/sheet states during transition */
+.transition-target--preparing {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transform: none !important;
+}
+
+.transition-target--animating {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Predictive Back Gesture styles */
+.predictive-back-container {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-index-predictive-back);
+  background: transparent;
+  touch-action: pan-y;
+  overflow: hidden;
+}
+
+.predictive-back-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  transition: background var(--transition-duration-short) linear;
+}
+
+.predictive-back-scrim--active {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.predictive-back-content {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+  transform-origin: center center;
+  border-radius: 0;
+  overflow: hidden;
+  transition: none;
+}
+
+.predictive-back-content--animating {
+  transition:
+    transform var(--transition-duration-medium)
+      var(--transition-easing-emphasized-decelerate),
+    border-radius var(--transition-duration-medium)
+      var(--transition-easing-standard);
+}
+
+.predictive-back-content--dragging {
+  border-radius: 16px;
+  box-shadow:
+    0 25px 80px rgba(0, 0, 0, 0.4),
+    0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Indicator pill for predictive back */
+.predictive-back-indicator {
+  position: absolute;
+  top: 50%;
+  width: 4px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 4px;
+  transform: translateY(-50%) scaleX(0);
+  transition:
+    transform var(--transition-duration-short) var(--transition-easing-spring),
+    opacity var(--transition-duration-short) linear;
+  opacity: 0;
+}
+
+.predictive-back-indicator--left {
+  left: 8px;
+  transform-origin: left center;
+}
+
+.predictive-back-indicator--right {
+  right: 8px;
+  transform-origin: right center;
+}
+
+.predictive-back-indicator--visible {
+  transform: translateY(-50%) scaleX(1);
+  opacity: 1;
+}
+
+.predictive-back-indicator--activated {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-50%) scaleX(1.5) scaleY(1.2);
+}
+
+/* Leaflet map protection during transitions */
+.leaflet-container.is-animating {
+  pointer-events: none !important;
+  overflow: hidden !important;
+}
+
+.leaflet-container.is-animating * {
+  pointer-events: none !important;
+}
+
+.leaflet-container.is-animating .leaflet-tile-container {
+  will-change: auto !important;
+}
+
+.leaflet-container.is-animating .leaflet-zoom-animated {
+  transition: none !important;
+}
+
+/* Modal animation states for FLIP */
+.bottom-sheet--flip-enter {
+  transform: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.bottom-sheet--flip-exit {
+  transform: none !important;
+}
+
+/* Disable all other transitions during FLIP */
+.flip-active * {
+  transition: none !important;
+  animation: none !important;
+}
+
+.flip-active .transition-clone,
+.flip-active .transition-clone * {
+  transition: inherit;
+}
+
+/* Smooth content fade for modal during FLIP */
+.bottom-sheet__body--flip-fade {
+  opacity: 0;
+  transition: opacity var(--transition-duration-medium)
+    var(--transition-easing-standard);
+  transition-delay: calc(var(--transition-duration-long) * 0.5);
+}
+
+.bottom-sheet__body--flip-fade-in {
+  opacity: 1;
+}
+
+/* Performance optimizations */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-duration-short: 0ms;
+    --transition-duration-medium: 0ms;
+    --transition-duration-long: 0ms;
+    --transition-duration-extra-long: 0ms;
+  }
+
+  .transition-clone--animating,
+  .predictive-back-content--animating {
+    transition: none !important;
+  }
+}
+
+/* GPU acceleration hints */
+.transition-clone,
+.predictive-back-content,
+.bottom-sheet--flip-enter,
+.bottom-sheet--flip-exit {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
