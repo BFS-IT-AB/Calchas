@@ -3318,7 +3318,7 @@ body.mobile-app #legacy-content {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 10000;
+  z-index: 1002;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -5382,7 +5382,7 @@ body.mobile-app #legacy-content {
   .map-fullscreen-overlay {
     position: fixed;
     inset: 0;
-    z-index: 100000;
+    z-index: 9998;
     display: flex;
     align-items: stretch;
     justify-content: stretch;
@@ -5406,7 +5406,7 @@ body.mobile-app #legacy-content {
     width: 100% !important;
     height: 100% !important;
     max-height: 100% !important;
-    z-index: 100000 !important;
+    z-index: 9999 !important;
     border-radius: 0 !important;
   }
 
@@ -5493,7 +5493,7 @@ body.mobile-app #legacy-content {
   background: rgba(0, 0, 0, 0);
   backdrop-filter: blur(0px);
   -webkit-backdrop-filter: blur(0px);
-  z-index: 9999;
+  z-index: 1000;
   pointer-events: none;
   transition:
     background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
@@ -5525,7 +5525,7 @@ body.mobile-app #legacy-content {
   display: none;
   padding: 20px;
   overflow: visible;
-  z-index: 10000;
+  z-index: 1001;
   transform: translateY(100%);
   opacity: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
@@ -10878,7 +10878,7 @@ body.dark-mode .source-compare {
   transform: translateX(-50%);
   max-width: 360px;
   width: calc(100% - 32px);
-  z-index: 9999;
+  z-index: 1003;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -17353,7 +17353,7 @@ body.dark-mode .map-inspector {
   font-size: 14px;
   font-weight: 500;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  z-index: 99999;
+  z-index: 1004;
   opacity: 0;
   transition:
     opacity 0.3s,
@@ -17706,218 +17706,26 @@ body.dark-mode .map-inspector {
 }
 
 /* ==========================================================================
-   EMERGENCY INTERACTIVITY FIXES
+   SIMPLE INTERACTIVITY - Only hide what needs to be hidden
    ========================================================================== */
-/* Ensures that clicks are never blocked globally by the body or html */
-body,
-html {
-  pointer-events: auto !important;
-}
 
-/* Ensure global overlays are strictly hidden when not active */
-.modal-overlay:not(.active):not(.modal-overlay--visible) {
-  display: none !important;
-  pointer-events: none !important;
-  visibility: hidden !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-
-/* Enforce hidden attribute for sections */
+/* Hide elements with hidden attribute */
 [hidden] {
   display: none !important;
-  pointer-events: none !important;
-  visibility: hidden !important;
 }
 
-/* Radar view controls container should strictly pass through clicks */
-.radar-view__top-controls {
-  pointer-events: none !important;
-  height: 0 !important;
-  overflow: visible !important;
-}
-
-/* Children of the radar controls must be clickable */
-.radar-view__top-controls > * {
-  pointer-events: auto !important;
-}
-
-/* Day detail modal should be hidden when not visible */
-.day-detail-modal:not(.is-visible) {
-  display: none !important;
-  pointer-events: none !important;
-  z-index: -1 !important;
-}
-
-/* History Page should not block when hidden */
-#history-section[hidden] .history-page {
-  display: none !important;
-}
-
-/* Toast stack should never block - only toasts themselves */
+/* Toast stack should pass through clicks */
 .toast-stack {
-  pointer-events: none !important;
-}
-.toast-stack > * {
-  pointer-events: auto !important;
-}
-
-/* ==========================================================================
-   COMPREHENSIVE INTERACTIVITY FIX - Ensure all elements are clickable
-   ========================================================================== */
-
-/* Main interactive containers must always receive pointer events */
-.app-shell,
-.app-main-views,
-.app-bar,
-.bottom-nav,
-[data-view],
-.card,
-.card-group,
-.weather-hero,
-.weather-hero__widget,
-.weather-cards-grid,
-.metric-card,
-.forecast-item,
-.hourly-item,
-.daily-item,
-.insight-card,
-.summary-card,
-.health-preview-card,
-button,
-a,
-input,
-select,
-[role="button"],
-[tabindex],
-.clickable,
-.interactive {
-  pointer-events: auto !important;
-}
-
-/* Ensure bottom-sheet-overlay is completely hidden when not active */
-.bottom-sheet-overlay:not([aria-hidden="false"]),
-.bottom-sheet-overlay[hidden],
-.bottom-sheet-overlay[aria-hidden="true"] {
-  display: none !important;
-  pointer-events: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  z-index: -9999 !important;
-}
-
-/* Settings subview overlay must be hidden when not active */
-.settings-subview-overlay:not(.active) {
-  display: none !important;
-  pointer-events: none !important;
-  visibility: hidden !important;
-  z-index: -1 !important;
-}
-
-/* Unit selector modal must be hidden when not visible */
-.unit-selector-modal:not(.unit-selector-modal--visible) {
-  display: none !important;
-  pointer-events: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-}
-
-/* Changelog overlay must be hidden when not visible */
-.changelog-overlay:not(.changelog-overlay--visible) {
-  display: none !important;
-  pointer-events: none !important;
-  visibility: hidden !important;
-}
-
-/* About modal must be hidden when not visible */
-.about-modal:not(.about-modal--visible) {
-  display: none !important;
-  pointer-events: none !important;
-  visibility: hidden !important;
-}
-
-/* Error container should pass through clicks to content below */
-#error-container {
-  pointer-events: none !important;
-}
-#error-container > * {
-  pointer-events: auto !important;
-}
-
-/* Ensure history modals container passes through when empty */
-.history-modals:empty {
-  pointer-events: none !important;
-  display: none !important;
-}
-
-/* All fixed/absolute positioned overlay elements should be hidden by default */
-.modal-overlay,
-.changelog-overlay,
-.about-modal__backdrop,
-.unit-selector-backdrop {
   pointer-events: none;
 }
-
-/* Only when explicitly active should overlays capture events */
-.modal-overlay.active,
-.modal-overlay.modal-overlay--visible,
-.changelog-overlay.changelog-overlay--visible,
-.about-modal.about-modal--visible .about-modal__backdrop,
-.unit-selector-modal.unit-selector-modal--visible .unit-selector-backdrop {
+.toast-stack > * {
   pointer-events: auto;
 }
 
-/* ==========================================================================
-   FINAL SAFETY NET - Ensure all views and sections pass through clicks when hidden
-   ========================================================================== */
-
-/* Any section/view with hidden attribute must not block interactions */
-section[hidden],
-div[hidden],
-[data-view][hidden],
-[aria-hidden="true"]:not(.bottom-sheet-overlay[aria-hidden="false"]) {
-  display: none !important;
-  pointer-events: none !important;
-  visibility: hidden !important;
-  position: absolute !important;
-  z-index: -9999 !important;
+/* Radar controls pass through, but children are clickable */
+.radar-view__top-controls {
+  pointer-events: none;
 }
-
-/* Ensure the main app-shell and its direct children can receive clicks */
-#app-shell {
-  pointer-events: auto !important;
-}
-
-/* Bottom navigation must always be clickable */
-.bottom-nav {
-  pointer-events: auto !important;
-  z-index: 999 !important;
-}
-
-.bottom-nav__btn {
-  pointer-events: auto !important;
-}
-
-/* App bar must always be clickable */
-.app-bar {
-  pointer-events: auto !important;
-}
-
-.app-bar__location,
-.app-bar__action-btn,
-#favoriteToggle {
-  pointer-events: auto !important;
-}
-
-/* Weather cards must be clickable */
-.weather-cards-grid .metric-card {
-  pointer-events: auto !important;
-  cursor: pointer;
-}
-
-/* Ensure forecast items are clickable for day detail */
-.daily-item,
-.forecast-item {
-  pointer-events: auto !important;
-  cursor: pointer;
+.radar-view__top-controls > * {
+  pointer-events: auto;
 }
