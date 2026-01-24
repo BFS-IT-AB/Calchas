@@ -2,6 +2,17 @@
 
 Diese Datei fasst alle wesentlichen Projektinformationen zusammen und dient als zentrale Anlaufstelle für Entwickler und Beteiligte.
 
+Hinweis (intern): Diese Leitlinie ist ausschließlich für Entwickler/Contributor gedacht. Nutzerinformationen, Downloads und App-Hinweise stehen in der Benutzer-README unter `README.md`.
+
+## 0. Navigation & Index (intern)
+
+- Überblick & Kern-Features: Abschnitt 1
+- Tech-Stack & Befehle: Abschnitt 2–3
+- Setup & Workflow: Abschnitt 4
+- Struktur & Architektur: Abschnitt 5–6
+- Rechtliches & Links: Abschnitt 7–8
+- Engineering-Guidelines: Abschnitt 9–18
+
 ---
 
 ## 1. Über das Projekt (What's it about?)
@@ -149,9 +160,103 @@ Die App enthält Vorlagen für rechtliche Texte, die in `src/` verlinkt/genutzt 
 - **API Testing:** `http://localhost:8000/docs/api/QUICK_TEST_API.md` (lokal prüfen).
 - **Coverage:** `coverage/lcov-report/index.html` öffnen für Test-Details.
 - **Troubleshooting:**
-  - Leaflet Karte lädt nicht? -> Internetverbindung prüfen (CDN).
-  - VAPID Key fehlt? -> Push-Server Neustart & App Reload.
+  - Leaflet Karte lädt nicht? → Internetverbindung/CDN prüfen.
+  - VAPID Key fehlt? → Push-Server Neustart & App Reload.
 
 ---
 
-_Zuletzt aktualisiert: 24.01.2026 - Zusammenfassung aller ursprünglichen Dokumentationsdateien._
+_Zuletzt aktualisiert: 24.01.2026 – Bereinigt und um praxisnahe Guidelines erweitert._
+
+---
+
+## 9. Coding Standards
+
+- **Sprachstil:** Moderne ES6+ Module, keine Frameworks. Bevorzuge reine Funktionen und kleine, gut benannte Module.
+- **Linting:** ESLint ist verbindlich. Vor jedem Commit `npm run lint` ausführen; Fehler müssen behoben sein.
+- **Namenskonventionen:**
+  - Dateien: `kebab-case.js` für Module, `PascalCase.js` für Klassen/Komponenten.
+  - Funktionen/Variablen: `camelCase`; Konstanten: `UPPER_SNAKE_CASE` nur für globale Build-Flags.
+- **Imports:** Relative Pfade innerhalb von `src/` mit klaren Ordnern (`api/`, `ui/`, `utils/`). Keine zyklischen Abhängigkeiten.
+- **Style/CSS:** Mobile-first; nutze CSS-Variablen und vermeide Inline-Styles.
+
+---
+
+## 10. Git Workflow
+
+- **Branches:**
+  - `main` (stabil),
+  - `feature/<kurz-beschreibung>` für Features,
+  - `fix/<bug-id>` für Hotfixes.
+- **Commits:** Nutze Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`). Kurze präzise Messages.
+- **Pull Requests:** Klein halten (< ~300 LoC), Tests & Lint müssen grün sein. PR-Checkliste siehe unten.
+- **Reviews:** Mind. 1 Review, Fokus auf Lesbarkeit, Tests, Sicherheitsaspekte.
+
+---
+
+## 11. Testing & QA Richtlinien
+
+- **Abdeckung:** Relevante Logik in `utils/` und `api/` mit Unit-Tests, UI-Renderer mit Smoke-Tests.
+- **Pflichtbefehle:** `npm test` muss grün sein; bei UI-Änderungen Screenshots im PR anhängen (optional).
+- **Coverage:** Ziel > 70% statements/branches. Kritische Pfade (Caching, Fallback) bevorzugt testen.
+- **Fehlerfälle:** Tests für API-Fallbacks, Offline-Zustände, ungültige Eingaben.
+
+---
+
+## 12. Accessibility & i18n
+
+- **A11y:** Semantische HTML-Struktur, ausreichende Kontraste, Fokuszustände, ARIA nur wo nötig.
+- **Tastaturbedienung:** Alle interaktiven Elemente müssen per Tab erreichbar sein.
+- **i18n:** Texte kommen aus `src/i18n/*.json`. Keine harten Strings im Code. Deutsch/Englisch vollständig halten.
+
+---
+
+## 13. Security & Privacy
+
+- **API Keys:** Niemals hartkodieren; Nutzung über `apiKeyManager` oder Umgebungsvariablen im lokalen Umfeld.
+- **Speicherung:** Nur notwendige Daten (`favorites`, `settings`, Cache). Keine personenbezogenen Daten.
+- **Push:** VAPID-Schlüssel sicher handhaben; keine Weitergabe an Dritte.
+- **Dependencies:** Regelmäßig `npm audit` prüfen; kritische CVEs zeitnah beheben.
+
+---
+
+## 14. Performance & PWA
+
+- **Caching:** Service Worker nur für statische Assets und stabile API-Responses; Stale-While-Revalidate wo sinnvoll.
+- **Lazy Loading:** Karten/History nur initialisieren, wenn Sichtbar.
+- **Netzwerk:** Fallback-Strategie strikt beibehalten (Open-Meteo → BrightSky). Timeouts und Retries angemessen.
+- **Assets:** Bilder/WebP, Icons als SVG, Fonts sparsam.
+
+---
+
+## 15. Fehlerbehandlung & Logging
+
+- **Fehleranzeigen:** Nutzerfreundliche Meldungen via `ui/errorHandler.js`.
+- **Retries:** Begrenzte Wiederholungen mit Backoff bei Netzwerkfehlern.
+- **Analytics:** Nur aggregierte, nicht-personenbezogene Nutzungsdaten; Opt-out respektieren.
+
+---
+
+## 16. Releases & Versionierung
+
+- **Versioning:** SemVer (`MAJOR.MINOR.PATCH`). Release-Notes in `src/config/changelog.js` pflegen.
+- **Predeploy:** `npm run predeploy` vor Release ausführen (Lint, Tests, PWA-Checks).
+- **Tagging:** Git-Tags für Releases (`v0.2.0`).
+
+---
+
+## 17. PR-Checkliste
+
+- Tests grün (`npm test`).
+- Linting fehlerfrei (`npm run lint`).
+- Keine sensiblen Daten/Keys im Code.
+- A11y geprüft (Fokus, Kontrast, Labels).
+- i18n-Support vorhanden (Deutsch/Englisch).
+- Screens/Flows manuell getestet (Home, Karten, Settings).
+
+---
+
+## 18. Ownership & Kontakt
+
+- Maintainer: Team Calchas.
+- Rechtliches: Siehe `legal/privacy.html` und `legal/terms.html`.
+- Fragen/Issues: bitte im Repo als Issue anlegen.
