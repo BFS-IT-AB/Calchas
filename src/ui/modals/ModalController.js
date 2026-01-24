@@ -528,18 +528,36 @@
   }
 
   function openSheet(idOrMetric) {
+    console.log(`[ModalController.openSheet] Called with idOrMetric="${idOrMetric}"`);
+    
     const overlay = document.getElementById("bottom-sheet-overlay");
     const resolvedId = resolveSheetId(idOrMetric);
     const sheet = resolvedId && document.getElementById(resolvedId);
-    if (!overlay || !sheet) return;
+    
+    console.log(`[ModalController.openSheet] Resolved ID: "${resolvedId}"`);
+    console.log(`[ModalController.openSheet] Overlay:`, overlay);
+    console.log(`[ModalController.openSheet] Sheet:`, sheet);
+    console.log(`[ModalController.openSheet] Overlay hidden attr:`, overlay?.hidden);
+    console.log(`[ModalController.openSheet] Overlay aria-hidden:`, overlay?.getAttribute('aria-hidden'));
+    
+    if (!overlay || !sheet) {
+      console.error(`[ModalController.openSheet] Missing overlay or sheet!`);
+      return;
+    }
 
     // Render Sheet content vor dem Öffnen
     renderSheetContent(resolvedId);
 
+    console.log(`[ModalController.openSheet] Setting overlay visible...`);
     overlay.hidden = false;
     overlay.setAttribute("aria-hidden", "false");
     sheet.classList.add("bottom-sheet--visible");
     activeSheetId = resolvedId;
+    
+    console.log(`[ModalController.openSheet] Sheet opened successfully`);
+    console.log(`[ModalController.openSheet] Overlay hidden after:`, overlay.hidden);
+    console.log(`[ModalController.openSheet] Overlay aria-hidden after:`, overlay.getAttribute('aria-hidden'));
+    console.log(`[ModalController.openSheet] Overlay display:`, getComputedStyle(overlay).display);
   }
 
   function closeSheet() {

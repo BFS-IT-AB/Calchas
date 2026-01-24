@@ -145,12 +145,12 @@
         </div>
         <div class="weather-card__visual weather-card__visual--gradient">
           <span class="weather-card__value-large">${Math.round(
-            humidity
+            humidity,
           )}%</span>
         </div>
         <div class="weather-card__footer">
           <span class="weather-card__sublabel">${getComfortLabel(
-            humidity
+            humidity,
           )} • ${Math.round(dewPoint)}° Taupunkt</span>
         </div>
       </button>
@@ -225,14 +225,14 @@
           ${createGaugeSVG(normalized * 100, 100, "#7FBADC", 100)}
           <div class="weather-card__gauge-value">
             <span class="weather-card__value-large">${Math.round(
-              pressure
+              pressure,
             )}</span>
             <span class="weather-card__unit">hPa</span>
           </div>
         </div>
         <div class="weather-card__footer">
           <span class="weather-card__sublabel">${getPressureLabel(
-            pressure
+            pressure,
           )}</span>
         </div>
       </button>
@@ -260,7 +260,7 @@
         </div>
         <div class="weather-card__blob">
           <span class="weather-card__value-large">${Math.round(
-            visibility
+            visibility,
           )}</span>
           <span class="weather-card__unit">km</span>
         </div>
@@ -324,14 +324,14 @@
           ${windPath}
           <div class="weather-card__wind-value">
             <span class="weather-card__value-large">${Math.round(
-              windSpeed
+              windSpeed,
             )}</span>
           </div>
         </div>
         <div class="weather-card__footer">
           <span class="weather-card__sublabel">${windDirLabel} • Böen ${Math.round(
-      windGust
-    )} km/h</span>
+            windGust,
+          )} km/h</span>
         </div>
       </button>
     `;
@@ -398,7 +398,7 @@
         <div class="aqi-gradient__bar"></div>
         <div class="aqi-gradient__marker" style="left:${Math.min(
           (aqi / 150) * 100,
-          100
+          100,
         )}%"></div>
       </div>
     `;
@@ -436,7 +436,7 @@
         </div>
         <div class="weather-card__footer">
           <span class="weather-card__sublabel">${Math.round(
-            precipProb
+            precipProb,
           )}% Wahrsch.</span>
           <span class="weather-card__precip-icon">💧</span>
         </div>
@@ -518,7 +518,7 @@
         </div>
         <div class="weather-card__blob weather-card__blob--purple">
           <span class="weather-card__value-large">${Math.round(
-            cloudCover
+            cloudCover,
           )}</span>
           <span class="weather-card__unit">%</span>
         </div>
@@ -534,10 +534,10 @@
         value <= 1
           ? "#4CAF50"
           : value <= 2
-          ? "#FFEB3B"
-          : value <= 3
-          ? "#FF9800"
-          : "#F44336";
+            ? "#FFEB3B"
+            : value <= 3
+              ? "#FF9800"
+              : "#F44336";
       return `
         <div class="pollen-gauge">
           ${createCircularProgressSVG(value, 4, color, 50)}
@@ -549,10 +549,10 @@
               value <= 1
                 ? "Wenig"
                 : value <= 2
-                ? "Moderat"
-                : value <= 3
-                ? "Hoch"
-                : "Sehr hoch"
+                  ? "Moderat"
+                  : value <= 3
+                    ? "Hoch"
+                    : "Sehr hoch"
             }</span>
           </div>
         </div>
@@ -577,6 +577,11 @@
   // === DETAIL MODALS ===
 
   function openCardDetailModal(cardType, appState) {
+    console.log(
+      `[openCardDetailModal] Called with cardType="${cardType}"`,
+      appState,
+    );
+
     const current = appState.current || {};
     const daily = (appState.daily && appState.daily[0]) || {};
     const hourly = appState.hourly || [];
@@ -596,22 +601,47 @@
     const sheetId = `sheet-${cardType}-detail`;
     let sheet = document.getElementById(sheetId);
 
+    console.log(
+      `[openCardDetailModal] Looking for sheet "${sheetId}": ${!!sheet}`,
+    );
+
     if (!sheet) {
+      console.log(`[openCardDetailModal] Creating new sheet "${sheetId}"`);
       sheet = document.createElement("section");
       sheet.id = sheetId;
       sheet.className = "bottom-sheet bottom-sheet--full";
-      document.getElementById("bottom-sheet-overlay")?.appendChild(sheet);
+
+      const overlay = document.getElementById("bottom-sheet-overlay");
+      console.log(`[openCardDetailModal] Overlay element:`, overlay);
+
+      if (overlay) {
+        overlay.appendChild(sheet);
+        console.log(`[openCardDetailModal] Sheet appended to overlay`);
+      } else {
+        console.error(`[openCardDetailModal] bottom-sheet-overlay not found!`);
+        return;
+      }
     }
 
     sheet.innerHTML = modalContent;
+    console.log(`[openCardDetailModal] Sheet content set`);
 
     // AQI Tab-Umschaltlogik initialisieren
     if (cardType === "aqi") {
       initAqiTabs(sheet);
     }
 
+    console.log(
+      `[openCardDetailModal] ModalController available:`,
+      !!window.ModalController,
+    );
     if (window.ModalController) {
+      console.log(
+        `[openCardDetailModal] Calling ModalController.openSheet("${sheetId}")`,
+      );
       window.ModalController.openSheet(sheetId);
+    } else {
+      console.error(`[openCardDetailModal] ModalController not available!`);
     }
   }
 
@@ -725,7 +755,7 @@
             }"></div>
             <span class="hourly-bar__value">${Math.round(hHumidity)}%</span>
             <span class="hourly-bar__time">${new Date(
-              h.time
+              h.time,
             ).toLocaleTimeString("de-DE", {
               hour: "2-digit",
               minute: "2-digit",
@@ -754,8 +784,8 @@
               <div class="detail-card__row" style="margin-top:12px">
                 <span>Komfort:</span>
                 <span style="font-weight:600;color:${humidityInfo.color}">${
-          humidityInfo.icon
-        } ${humidityInfo.label}</span>
+                  humidityInfo.icon
+                } ${humidityInfo.label}</span>
               </div>
               <div class="detail-card__row">
                 <span>Taupunkt:</span>
@@ -764,8 +794,8 @@
               <div class="detail-card__row">
                 <span>Schwüle-Gefühl:</span>
                 <span style="font-weight:600;color:${swelterInfo.color}">${
-          swelterInfo.label
-        }</span>
+                  swelterInfo.label
+                }</span>
               </div>
               <p class="detail-text" style="margin-top:8px;font-size:0.9rem">${
                 humidityInfo.desc
@@ -912,7 +942,7 @@
                   <div class="aqi-gradient__bar aqi-gradient__bar--eu"></div>
                   <div class="aqi-gradient__marker" style="left:${Math.min(
                     (euAqi / 100) * 100,
-                    100
+                    100,
                   )}%"></div>
                 </div>
                 <p class="detail-text" style="margin-top: 12px; font-size: 0.9rem;">${
@@ -948,7 +978,7 @@
                   <div class="aqi-gradient__bar aqi-gradient__bar--us"></div>
                   <div class="aqi-gradient__marker" style="left:${Math.min(
                     (usAqi / 300) * 100,
-                    100
+                    100,
                   )}%"></div>
                 </div>
                 <p class="detail-text" style="margin-top: 12px; font-size: 0.9rem;">${
@@ -975,16 +1005,16 @@
                 <span class="detail-card__badge" style="background: ${
                   euInfo.color
                 }20; color: ${euInfo.color}">${Math.round(euAqi)} (${
-          euInfo.label
-        })</span>
+                  euInfo.label
+                })</span>
               </div>
               <div class="detail-card__row">
                 <span>US AQI:</span>
                 <span class="detail-card__badge" style="background: ${
                   usInfo.color
                 }20; color: ${usInfo.color}">${Math.round(usAqi)} (${
-          usInfo.label
-        })</span>
+                  usInfo.label
+                })</span>
               </div>
               <p class="detail-text--secondary" style="font-size: 0.8rem; margin-top: 8px;">
                 Der EU AQI verwendet eine Skala von 0-100+, während der US AQI eine Skala von 0-500 verwendet.
@@ -1057,7 +1087,7 @@
             }%;--uv-color:${barColor}"></div>
             <span class="hourly-bar__value">${hUV}</span>
             <span class="hourly-bar__time">${new Date(
-              h.time
+              h.time,
             ).toLocaleTimeString("de-DE", {
               hour: "2-digit",
               minute: "2-digit",
@@ -1162,16 +1192,16 @@
             }%"></div>
             <span class="hourly-bar__value">${h.precipProb || 0}%</span>
             <span class="hourly-bar__amount">${(h.precipitation || 0).toFixed(
-              1
+              1,
             )}</span>
             <span class="hourly-bar__time">${new Date(
-              h.time
+              h.time,
             ).toLocaleTimeString("de-DE", {
               hour: "2-digit",
               minute: "2-digit",
             })}</span>
           </div>
-        `
+        `,
           )
           .join("");
 
@@ -1201,8 +1231,8 @@
               <div class="detail-card__row">
                 <span>Bewertung:</span>
                 <span style="font-weight:600;color:${precipInfo.color}">${
-          precipInfo.icon
-        } ${precipInfo.label}</span>
+                  precipInfo.icon
+                } ${precipInfo.label}</span>
               </div>
             </div>
             <div class="detail-card">
@@ -1278,11 +1308,11 @@
           <div class="hourly-bar">
             <div class="hourly-bar__fill hourly-bar__fill--wind" style="--bar-height:${Math.min(
               (hSpeed / 100) * 100,
-              100
+              100,
             )}%;--wind-color:${hInfo.color}"></div>
             <span class="hourly-bar__value">${hSpeed}</span>
             <span class="hourly-bar__time">${new Date(
-              h.time
+              h.time,
             ).toLocaleTimeString("de-DE", {
               hour: "2-digit",
               minute: "2-digit",
@@ -1314,25 +1344,25 @@
               <div class="detail-card__row" style="margin-top:12px">
                 <span>Windstärke:</span>
                 <span style="font-weight:600;color:${windInfo.color}">${
-          windInfo.label
-        }</span>
+                  windInfo.label
+                }</span>
               </div>
               <div class="detail-card__row">
                 <span>Böen:</span>
                 <span style="font-weight:600">${Math.round(
-                  windGust
+                  windGust,
                 )} km/h</span>
               </div>
               <div class="detail-card__row">
                 <span>Richtung:</span>
                 <span style="font-weight:600">${windDirLabel} (${Math.round(
-          windDir
-        )}°)</span>
+                  windDir,
+                )}°)</span>
               </div>
               <div class="detail-card__row">
                 <span>Tagesmaximum:</span>
                 <span style="font-weight:600">${Math.round(
-                  windSpeedMax
+                  windSpeedMax,
                 )} km/h</span>
               </div>
             </div>
@@ -1421,7 +1451,7 @@
             }"></div>
             <span class="hourly-bar__value">${Math.round(hVis)}</span>
             <span class="hourly-bar__time">${new Date(
-              h.time
+              h.time,
             ).toLocaleTimeString("de-DE", {
               hour: "2-digit",
               minute: "2-digit",
@@ -1451,8 +1481,8 @@
               <div class="detail-card__row" style="margin-top:12px">
                 <span>Bewertung:</span>
                 <span style="font-weight:600;color:${visInfo.color}">${
-          visInfo.label
-        }</span>
+                  visInfo.label
+                }</span>
               </div>
               <p class="detail-text" style="margin-top:8px;font-size:0.9rem">${
                 visInfo.desc
@@ -1563,7 +1593,7 @@
             // Normalisiere auf 0-100% (950-1050 hPa)
             const barHeight = Math.min(
               Math.max(((hPressure - 950) / 100) * 100, 0),
-              100
+              100,
             );
             return `
           <div class="hourly-bar">
@@ -1572,7 +1602,7 @@
             }"></div>
             <span class="hourly-bar__value">${Math.round(hPressure)}</span>
             <span class="hourly-bar__time">${new Date(
-              h.time
+              h.time,
             ).toLocaleTimeString("de-DE", {
               hour: "2-digit",
               minute: "2-digit",
@@ -1602,8 +1632,8 @@
               <div class="detail-card__row" style="margin-top:12px">
                 <span>Bewertung:</span>
                 <span style="font-weight:600;color:${pressureInfo.color}">${
-          pressureInfo.icon
-        } ${pressureInfo.label}</span>
+                  pressureInfo.icon
+                } ${pressureInfo.label}</span>
               </div>
               <div class="detail-card__row">
                 <span>Trend:</span>
@@ -1731,14 +1761,14 @@
           const goldenEveningStart = new Date(sunsetTime - 3600000);
           goldenHourMorning = `${new Date(sunriseTime).toLocaleTimeString(
             "de-DE",
-            { hour: "2-digit", minute: "2-digit" }
+            { hour: "2-digit", minute: "2-digit" },
           )} - ${goldenMorningEnd.toLocaleTimeString("de-DE", {
             hour: "2-digit",
             minute: "2-digit",
           })}`;
           goldenHourEvening = `${goldenEveningStart.toLocaleTimeString(
             "de-DE",
-            { hour: "2-digit", minute: "2-digit" }
+            { hour: "2-digit", minute: "2-digit" },
           )} - ${sunsetLabel}`;
         }
 
@@ -1918,16 +1948,16 @@
               h.cloudCover || 0
             }%"></div>
             <span class="hourly-bar__value">${Math.round(
-              h.cloudCover || 0
+              h.cloudCover || 0,
             )}%</span>
             <span class="hourly-bar__time">${new Date(
-              h.time
+              h.time,
             ).toLocaleTimeString("de-DE", {
               hour: "2-digit",
               minute: "2-digit",
             })}</span>
           </div>
-        `
+        `,
           )
           .join("");
 
@@ -1961,11 +1991,11 @@
               <h3>Aktueller Bedeckungsgrad</h3>
               <div class="detail-card__hero">
                 <span class="detail-card__value">${Math.round(
-                  cloudCover
+                  cloudCover,
                 )}%</span>
               </div>
               <p class="detail-text" style="margin-top: 8px;">${getCloudDescription(
-                cloudCover
+                cloudCover,
               )}</p>
             </div>
 
@@ -2080,7 +2110,7 @@
             <div class="detail-card">
               <div class="detail-card__hero">
                 <span class="detail-card__value" style="color: ${getLevelColor(
-                  overallLevel
+                  overallLevel,
                 )}">${getLevelText(overallLevel)}</span>
               </div>
               <p class="detail-text--muted" style="margin-bottom: 16px;">Gesamtbelastung heute</p>
@@ -2091,20 +2121,20 @@
               <div class="detail-card__row">
                 <span>Belastung</span>
                 <span class="detail-card__badge" style="background: ${getLevelColor(
-                  treesLevel
+                  treesLevel,
                 )}40; color: ${getLevelColor(treesLevel)}">${getLevelText(
-          treesLevel
-        )} (${treesLevel}/4)</span>
+                  treesLevel,
+                )} (${treesLevel}/4)</span>
               </div>
               <p class="detail-text--secondary" style="font-size: 0.85rem; margin-top: 8px;">
                 ${
                   treesLevel <= 1
                     ? "Kaum Belastung durch Baumpollen. Gute Bedingungen für Allergiker."
                     : treesLevel <= 2
-                    ? "Leichte Belastung möglich. Empfindliche Personen sollten Vorsicht walten lassen."
-                    : treesLevel <= 3
-                    ? "Erhöhte Belastung. Allergiker sollten längere Aufenthalte im Freien meiden."
-                    : "Sehr hohe Belastung! Allergiker sollten drinnen bleiben und Fenster geschlossen halten."
+                      ? "Leichte Belastung möglich. Empfindliche Personen sollten Vorsicht walten lassen."
+                      : treesLevel <= 3
+                        ? "Erhöhte Belastung. Allergiker sollten längere Aufenthalte im Freien meiden."
+                        : "Sehr hohe Belastung! Allergiker sollten drinnen bleiben und Fenster geschlossen halten."
                 }
               </p>
             </div>
@@ -2114,20 +2144,20 @@
               <div class="detail-card__row">
                 <span>Belastung</span>
                 <span class="detail-card__badge" style="background: ${getLevelColor(
-                  grassLevel
+                  grassLevel,
                 )}40; color: ${getLevelColor(grassLevel)}">${getLevelText(
-          grassLevel
-        )} (${grassLevel}/4)</span>
+                  grassLevel,
+                )} (${grassLevel}/4)</span>
               </div>
               <p class="detail-text--secondary" style="font-size: 0.85rem; margin-top: 8px;">
                 ${
                   grassLevel <= 1
                     ? "Minimale Gräserpollenbelastung. Ideal für Outdoor-Aktivitäten."
                     : grassLevel <= 2
-                    ? "Moderate Gräserpollenbelastung. Bei Empfindlichkeit Antihistaminika bereithalten."
-                    : grassLevel <= 3
-                    ? "Starke Gräserpollenbelastung. Aktivitäten im Freien reduzieren."
-                    : "Extreme Gräserpollenbelastung! Aufenthalt im Freien vermeiden."
+                      ? "Moderate Gräserpollenbelastung. Bei Empfindlichkeit Antihistaminika bereithalten."
+                      : grassLevel <= 3
+                        ? "Starke Gräserpollenbelastung. Aktivitäten im Freien reduzieren."
+                        : "Extreme Gräserpollenbelastung! Aufenthalt im Freien vermeiden."
                 }
               </p>
             </div>
@@ -2137,20 +2167,20 @@
               <div class="detail-card__row">
                 <span>Belastung</span>
                 <span class="detail-card__badge" style="background: ${getLevelColor(
-                  weedsLevel
+                  weedsLevel,
                 )}40; color: ${getLevelColor(weedsLevel)}">${getLevelText(
-          weedsLevel
-        )} (${weedsLevel}/4)</span>
+                  weedsLevel,
+                )} (${weedsLevel}/4)</span>
               </div>
               <p class="detail-text--secondary" style="font-size: 0.85rem; margin-top: 8px;">
                 ${
                   weedsLevel <= 1
                     ? "Geringe Kräuterpollenbelastung. Keine besonderen Vorsichtsmaßnahmen nötig."
                     : weedsLevel <= 2
-                    ? "Leichte Kräuterpollenbelastung. Bei Allergien auf Symptome achten."
-                    : weedsLevel <= 3
-                    ? "Hohe Kräuterpollenbelastung. Medikamente griffbereit halten."
-                    : "Sehr hohe Kräuterpollenbelastung! Allergiker sollten besondere Vorsicht walten lassen."
+                      ? "Leichte Kräuterpollenbelastung. Bei Allergien auf Symptome achten."
+                      : weedsLevel <= 3
+                        ? "Hohe Kräuterpollenbelastung. Medikamente griffbereit halten."
+                        : "Sehr hohe Kräuterpollenbelastung! Allergiker sollten besondere Vorsicht walten lassen."
                 }
               </p>
             </div>
@@ -2265,21 +2295,39 @@
     renderAQICard(document.getElementById("card-aqi"), cardData);
     renderPrecipitationCard(
       document.getElementById("card-precipitation"),
-      cardData
+      cardData,
     );
     renderMoonCard(document.getElementById("card-moon"), cardData);
     renderCloudCoverCard(document.getElementById("card-clouds"), cardData);
     renderPollenCard(document.getElementById("card-pollen"), cardData);
 
     // Add click handlers
-    container.querySelectorAll(".weather-card").forEach((card) => {
-      card.addEventListener("click", () => {
-        const cardType = card.dataset.card;
+    const cards = container.querySelectorAll(".weather-card");
+    console.log(
+      `[WeatherCards] Found ${cards.length} cards to attach listeners`,
+    );
+
+    cards.forEach((card, index) => {
+      const cardType = card.dataset.card;
+      console.log(
+        `[WeatherCards] Card ${index}: type="${cardType}", element:`,
+        card,
+      );
+
+      card.addEventListener("click", (event) => {
+        console.log(`[WeatherCards] Card clicked: ${cardType}`, event);
+        console.log(
+          `[WeatherCards] ModalController available:`,
+          !!window.ModalController,
+        );
+        console.log(`[WeatherCards] appState:`, appState);
+
         if (cardType) {
           openCardDetailModal(cardType, appState);
         }
       });
     });
+    console.log(`[WeatherCards] All ${cards.length} event listeners attached`);
   }
 
   // Export
