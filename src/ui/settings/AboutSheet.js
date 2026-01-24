@@ -15,12 +15,14 @@
     terms: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>`,
     privacy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
     refresh: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>`,
+    website: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>`,
   };
 
   // GitHub Repo Contributors
   const GITHUB_REPO = "wetter-app-bfsit/wetter-app";
   const GITHUB_URL = "https://github.com/wetter-app-bfsit/wetter-app.git";
   const DISCORD_URL = "https://discord.gg/bjFM6zCZ";
+  const WEBSITE_URL = "https://calchas.dev";
 
   function renderAboutSheet() {
     const container = document.getElementById("settings-about-body");
@@ -62,9 +64,16 @@
           ${renderAboutRow(
             "email",
             "E-Mail",
-            "Noch keine E-Mail verfügbar",
+            "team@calchas.dev",
             "#5c6bc0",
             "email",
+          )}
+          ${renderAboutRow(
+            "website",
+            "Website",
+            "calchas.dev",
+            "#5c6bc0",
+            "website",
           )}
           ${renderAboutRow(
             "code",
@@ -165,10 +174,10 @@
         showLicenseModal();
         break;
       case "email":
-        showInfoModal(
-          "E-Mail",
-          "Es ist noch keine Kontakt-E-Mail verfügbar. Bitte nutze GitHub für Anfragen.",
-        );
+        window.location.href = "mailto:team@calchas.dev";
+        break;
+      case "website":
+        window.open(WEBSITE_URL, "_blank", "noopener,noreferrer");
         break;
       case "sourcecode":
         window.open(GITHUB_URL, "_blank", "noopener,noreferrer");
