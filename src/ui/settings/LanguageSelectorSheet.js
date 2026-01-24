@@ -28,7 +28,12 @@
 
   var LANGUAGE_OPTIONS = [
     { value: "de", flag: "🇩🇪", title: "Deutsch" },
-    { value: "en", flag: "🇬🇧", title: "English" },
+    {
+      value: "en",
+      flag: "🇬🇧",
+      title: "English (in Entwicklung)",
+      disabled: true,
+    },
   ];
 
   function getCurrentLanguage() {
@@ -65,12 +70,17 @@
 
     LANGUAGE_OPTIONS.forEach(function (opt) {
       var isActive = current === opt.value;
+      var disabledAttr = opt.disabled
+        ? "disabled style='opacity:0.5;pointer-events:none'"
+        : "";
       html +=
         '<button type="button" class="language-option' +
         (isActive ? " language-option--active" : "") +
         '" data-lang="' +
         opt.value +
-        '">' +
+        '" ' +
+        disabledAttr +
+        ">" +
         '<span class="language-option__flag">' +
         opt.flag +
         "</span>" +
@@ -94,7 +104,7 @@
         });
         applyLanguage(appState, lang);
         showToast(
-          "✓ Sprache auf " + (option ? option.title : lang) + " geändert"
+          "✓ Sprache auf " + (option ? option.title : lang) + " geändert",
         );
         renderLanguageSheet(appState);
 
@@ -127,11 +137,11 @@
     if (global.TextReplacer && global.TextReplacer.updateLanguage) {
       global.TextReplacer.updateLanguage(lang);
     }
-    
+
     // Dispatch event for other components
     try {
       document.dispatchEvent(
-        new CustomEvent("language-changed", { detail: { lang: lang } })
+        new CustomEvent("language-changed", { detail: { lang: lang } }),
       );
     } catch (e) {}
   }

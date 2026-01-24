@@ -14,7 +14,8 @@
       value: "light",
       icon: "☀️",
       title: "Hell",
-      subtitle: "Helles Layout mit hohem Kontrast",
+      subtitle: "Helles Layout mit hohem Kontrast (in Entwicklung)",
+      disabled: true,
     },
     {
       value: "dark",
@@ -82,7 +83,10 @@
   function renderThemeSheet(appState) {
     const container = document.getElementById("settings-theme-body");
     if (!container) return;
-    const current = appState?.settings?.theme || localStorage.getItem("wetter_theme") || "system";
+    const current =
+      appState?.settings?.theme ||
+      localStorage.getItem("wetter_theme") ||
+      "system";
 
     container.innerHTML = `
       <div class="theme-settings">
@@ -102,19 +106,22 @@
   function renderThemeOption(option, current) {
     const isActive = current === option.value;
     const activeClass = isActive ? " theme-option--active" : "";
-
+    const disabledAttr = option.disabled
+      ? "disabled style='opacity:0.5;pointer-events:none'"
+      : "";
     return `
       <button
         type="button"
         class="theme-option${activeClass}"
         data-theme-value="${option.value}"
+        ${disabledAttr}
       >
         <span class="theme-option__icon">${option.icon}</span>
         <span class="theme-option__content">
           <span class="theme-option__title">${option.title}</span>
           <span class="theme-option__subtitle">${option.subtitle}</span>
         </span>
-        <span class="theme-option__check">${isActive ? '✓' : ''}</span>
+        <span class="theme-option__check">${isActive ? "✓" : ""}</span>
       </button>
     `;
   }

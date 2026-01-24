@@ -213,18 +213,21 @@
   function renderUnitRow(kind, currentValue) {
     const config = UNIT_CONFIGS[kind];
     if (!config) return "";
-
     const currentOption = config.options.find((o) => o.value === currentValue);
     const displayValue = currentOption
       ? currentOption.label
       : currentValue || "-";
-
+    const defaultValue = DEFAULT_UNITS[kind];
+    const disabledAttr =
+      currentValue !== defaultValue
+        ? "disabled style='opacity:0.5;pointer-events:none'"
+        : "";
     return `
-      <button class="units-row" type="button" data-unit-kind="${kind}">
+      <button class="units-row" type="button" data-unit-kind="${kind}" ${disabledAttr}>
         <span class="units-row__icon">${config.icon}</span>
         <span class="units-row__content">
           <span class="units-row__title">${config.title}</span>
-          <span class="units-row__value">${displayValue}</span>
+          <span class="units-row__value">${displayValue}${currentValue !== defaultValue ? " (in Entwicklung)" : ""}</span>
         </span>
       </button>
     `;
@@ -233,10 +236,9 @@
   function showUnitSelector(appState, kind, currentValue) {
     const config = UNIT_CONFIGS[kind];
     if (!config) return;
-
+    const defaultValue = DEFAULT_UNITS[kind];
     const existingModal = document.getElementById("unit-selector-modal");
     if (existingModal) existingModal.remove();
-
     const modal = document.createElement("div");
     modal.id = "unit-selector-modal";
     modal.className = "unit-selector-modal";
@@ -254,27 +256,25 @@
               }"
               type="button"
               data-value="${opt.value}"
+              ${opt.value !== defaultValue ? "disabled style='opacity:0.5;pointer-events:none'" : ""}
             >
-              <span class="unit-selector-option__label">${opt.label}</span>
+              <span class="unit-selector-option__label">${opt.label}${opt.value !== defaultValue ? " (in Entwicklung)" : ""}</span>
               ${
                 opt.value === currentValue
                   ? '<span class="unit-selector-option__check">✓</span>'
                   : ""
               }
             </button>
-          `
+          `,
             )
             .join("")}
         </div>
       </div>
     `;
-
     document.body.appendChild(modal);
-
     modal
       .querySelector(".unit-selector-backdrop")
       .addEventListener("click", () => modal.remove());
-
     modal.querySelectorAll(".unit-selector-option").forEach((btn) => {
       btn.addEventListener("click", () => {
         const value = btn.getAttribute("data-value");
@@ -287,9 +287,8 @@
         renderUnitsSheet(appState);
       });
     });
-
     requestAnimationFrame(() =>
-      modal.classList.add("unit-selector-modal--visible")
+      modal.classList.add("unit-selector-modal--visible"),
     );
   }
 
@@ -335,7 +334,7 @@
       ) {
         const updatedRenderData = window.buildRenderData(
           appState.weatherData,
-          appState.units || mapped
+          appState.units || mapped,
         );
         appState.renderData = updatedRenderData;
         window.renderFromRenderData();
@@ -343,7 +342,7 @@
     } catch (e) {
       console.warn(
         "[UnitsSelectorSheet] Re-Render nach Unit-Change fehlgeschlagen",
-        e
+        e,
       );
     }
   }
