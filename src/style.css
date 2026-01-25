@@ -5953,17 +5953,43 @@ body.mobile-app #legacy-content {
   margin-top: 8px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-right: 4px;
-  padding-bottom: 20px;
+  gap: 16px;
+  padding: 16px 16px 80px 16px;
   animation: slideUpFade 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.15s both;
+  box-sizing: border-box;
+  width: 100%;
 }
 
-/* Ensure all cards inside modals show full content */
+/* Section separators in modals - refined spacing */
 .bottom-sheet__body .detail-card {
   flex-shrink: 0;
   height: auto;
   min-height: fit-content;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 18px 16px;
+  margin: 0;
+  border: 0.5px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Nested cards need subtle shadow for depth */
+.bottom-sheet__body .detail-card .detail-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 0.5px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  margin: 10px 0;
+  padding: 14px;
+}
+
+/* Charts wrapper in modals */
+.bottom-sheet__body .chart-wrapper,
+.bottom-sheet__body .hourly-bars {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .bottom-sheet__body .detail-card p,
@@ -15417,33 +15443,74 @@ body.dark-mode .map-inspector {
   height: auto;
 }
 
-/* Hourly Bars for Detail Modals */
+/* ============================================
+   SLEEK CHART SYSTEM - Anti-Squash Architecture
+   ============================================ */
+
+/* Chart Wrapper - allows horizontal scroll when needed */
+.chart-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  padding-bottom: 4px;
+}
+
+.chart-wrapper::-webkit-scrollbar {
+  height: 4px;
+}
+
+.chart-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chart-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+/* Hourly Bars - Sleek Design */
 .hourly-bars {
   display: flex;
-  gap: var(--space-xs);
-  overflow-x: auto;
-  padding: var(--space-m) 0;
-  margin-top: var(--space-m);
+  gap: 8px;
+  min-width: max-content;
+  padding: 12px 0;
+  box-sizing: border-box;
 }
 
 .hourly-bar {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 45px;
-  gap: 4px;
+  min-width: 38px;
+  gap: 6px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease;
 }
 
+.hourly-bar:hover {
+  transform: scale(1.05);
+}
+
+.hourly-bar:active {
+  transform: scale(0.98);
+}
+
+/* Sleek Bar Fill - Thin & Elegant */
 .hourly-bar__fill {
-  width: 24px;
-  height: 60px;
-  background: rgba(100, 180, 100, 0.2);
-  border-radius: 12px;
+  width: 10px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
   position: relative;
   overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* Inner fill bar using CSS custom property --bar-height */
+/* Inner fill bar - gradient with glow */
 .hourly-bar__fill::before {
   content: "";
   position: absolute;
@@ -15451,91 +15518,124 @@ body.dark-mode .map-inspector {
   left: 0;
   right: 0;
   height: var(--bar-height, 0%);
-  /* Default UV gradient */
-  background: linear-gradient(to top, #4caf50, #8bc34a);
-  border-radius: 12px;
-  transition: height 0.3s;
+  min-height: 4px;
+  background: linear-gradient(to top, #4ade80, #22c55e);
+  border-radius: 20px;
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.3);
 }
 
-/* Precipitation variant */
+/* Precipitation variant - Dynamic blue gradient */
 .hourly-bar__fill--precip {
-  background: rgba(100, 140, 200, 0.2);
+  background: rgba(96, 165, 250, 0.08);
 }
 
 .hourly-bar__fill--precip::before {
-  background: linear-gradient(to top, #64b5f6, #42a5f5);
+  background: var(--precip-gradient, linear-gradient(to top, #3b82f6, #60a5fa));
+  box-shadow: 0 0 8px var(--precip-glow, rgba(96, 165, 250, 0.4));
 }
 
-/* Clouds variant */
+/* Clouds variant - Dynamic gray gradient */
 .hourly-bar__fill--clouds {
-  background: rgba(150, 150, 170, 0.2);
+  background: rgba(148, 163, 184, 0.08);
 }
 
 .hourly-bar__fill--clouds::before {
-  background: linear-gradient(to top, #78909c, #b0bec5);
+  background: var(--clouds-gradient, linear-gradient(to top, #64748b, #94a3b8));
+  box-shadow: 0 0 6px var(--clouds-glow, rgba(148, 163, 184, 0.3));
 }
 
-/* UV variant - dynamische Farbe basierend auf UV-Wert */
+/* UV variant - Dynamic warm colors */
 .hourly-bar__fill--uv {
-  background: rgba(255, 200, 100, 0.15);
+  background: rgba(251, 191, 36, 0.08);
 }
 
 .hourly-bar__fill--uv::before {
-  background: var(--uv-color, #ffeb3b);
+  background: var(--uv-gradient, linear-gradient(to top, #f59e0b, #fbbf24));
+  box-shadow: 0 0 8px var(--uv-glow, rgba(251, 191, 36, 0.4));
 }
 
-/* Wind variant - dynamische Farbe basierend auf Beaufort-Skala */
+/* Wind variant - Teal gradient */
 .hourly-bar__fill--wind {
-  background: rgba(100, 180, 246, 0.15);
+  background: rgba(34, 211, 238, 0.08);
 }
 
 .hourly-bar__fill--wind::before {
-  background: var(--wind-color, #42a5f5);
+  background: var(--wind-gradient, linear-gradient(to top, #06b6d4, #22d3ee));
+  box-shadow: 0 0 8px var(--wind-glow, rgba(34, 211, 238, 0.4));
 }
 
-/* Visibility variant - dynamische Farbe basierend auf Sichtweite */
+/* Visibility variant - Green gradient */
 .hourly-bar__fill--visibility {
-  background: rgba(100, 200, 150, 0.15);
+  background: rgba(132, 204, 22, 0.08);
 }
 
 .hourly-bar__fill--visibility::before {
-  background: var(--vis-color, #8bc34a);
+  background: var(--vis-gradient, linear-gradient(to top, #65a30d, #84cc16));
+  box-shadow: 0 0 8px var(--vis-glow, rgba(132, 204, 22, 0.3));
 }
 
-/* Pressure variant - dynamische Farbe basierend auf Luftdruck */
+/* Pressure variant - Purple-blue gradient */
 .hourly-bar__fill--pressure {
-  background: rgba(127, 186, 220, 0.15);
+  background: rgba(139, 92, 246, 0.08);
 }
 
 .hourly-bar__fill--pressure::before {
-  background: var(--pressure-color, #7fbadc);
+  background: var(
+    --pressure-gradient,
+    linear-gradient(to top, #7c3aed, #a78bfa)
+  );
+  box-shadow: 0 0 8px var(--pressure-glow, rgba(139, 92, 246, 0.3));
 }
 
-/* Humidity variant - dynamische Farbe basierend auf Komfort */
+/* Humidity variant - Cyan gradient */
 .hourly-bar__fill--humidity {
-  background: rgba(100, 180, 246, 0.15);
+  background: rgba(56, 189, 248, 0.08);
 }
 
 .hourly-bar__fill--humidity::before {
-  background: var(--humidity-color, #64b5f6);
+  background: var(
+    --humidity-gradient,
+    linear-gradient(to top, #0284c7, #38bdf8)
+  );
+  box-shadow: 0 0 8px var(--humidity-glow, rgba(56, 189, 248, 0.4));
 }
 
+/* Sleek Typography for Chart Labels */
 .hourly-bar__value {
-  font-size: 0.75rem;
-  font-weight: 500;
-  background: rgba(100, 140, 180, 0.3);
-  padding: 2px 6px;
-  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 3px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+  line-height: 1;
+  letter-spacing: -0.02em;
 }
 
 .hourly-bar__amount {
-  font-size: 0.65rem;
-  color: var(--color-text-muted-2);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+  line-height: 1;
 }
 
 .hourly-bar__time {
-  font-size: 0.65rem;
-  color: var(--color-text-muted-2);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* Hide every other time label on small screens */
+@media (max-width: 400px) {
+  .hourly-bar:nth-child(even) .hourly-bar__time {
+    visibility: hidden;
+  }
 }
 
 /* Direct style approach for hourly bars (Health page) */

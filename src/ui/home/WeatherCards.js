@@ -743,17 +743,26 @@
 
         const swelterInfo = getSwelterInfo(dewPoint);
 
-        // Stündliche Luftfeuchtigkeit-Vorhersage
+        // Stündliche Luftfeuchtigkeit-Vorhersage mit Contextual Color Engine
         const hourlyHumidity = hourly
           .slice(0, 12)
           .map((h) => {
             const hHumidity = h.humidity ?? 50;
             const hInfo = getHumidityInfo(hHumidity);
+            // Use contextual color engine
+            const colorEngine = global.WeatherMath?.getHealthColorByValue;
+            const barColors = colorEngine
+              ? colorEngine("humidity", hHumidity)
+              : {
+                  color: hInfo.color,
+                  gradient: `linear-gradient(to top, ${hInfo.color}cc, ${hInfo.color})`,
+                  glow: "rgba(56, 189, 248, 0.4)",
+                };
             return `
           <div class="hourly-bar">
             <div class="hourly-bar__fill hourly-bar__fill--humidity" style="--bar-height:${hHumidity}%;--humidity-color:${
-              hInfo.color
-            }"></div>
+              barColors.color
+            };--humidity-gradient:${barColors.gradient};--humidity-glow:${barColors.glow}"></div>
             <span class="hourly-bar__value">${Math.round(hHumidity)}%</span>
             <span class="hourly-bar__time">${new Date(
               h.time,
@@ -807,7 +816,7 @@
               <p class="detail-text--muted" style="font-size:0.85rem;margin-bottom:8px">
                 Luftfeuchtigkeit in %
               </p>
-              <div class="hourly-bars">${hourlyHumidity}</div>
+              <div class="chart-wrapper"><div class="hourly-bars">${hourlyHumidity}</div></div>
             </div>
             <div class="detail-card">
               <h3>Komfort-Skala</h3>
@@ -1067,12 +1076,42 @@
         const uvMaxInfo = getUVInfo(uvMax);
 
         // Farbe basierend auf UV-Wert für Balken
+        // Use WeatherMath contextual color engine for dynamic colors
         const getBarColor = (uv) => {
-          if (uv <= 2) return "#4CAF50";
-          if (uv <= 5) return "#FFEB3B";
-          if (uv <= 7) return "#FF9800";
-          if (uv <= 10) return "#F44336";
-          return "#9C27B0";
+          const colorEngine = global.WeatherMath?.getHealthColorByValue;
+          if (colorEngine) {
+            return colorEngine("uv", uv);
+          }
+          // Fallback colors
+          if (uv <= 2)
+            return {
+              color: "#4CAF50",
+              gradient: "linear-gradient(to top, #388E3C, #4CAF50)",
+              glow: "rgba(76, 175, 80, 0.4)",
+            };
+          if (uv <= 5)
+            return {
+              color: "#FFEB3B",
+              gradient: "linear-gradient(to top, #FBC02D, #FFEB3B)",
+              glow: "rgba(255, 235, 59, 0.4)",
+            };
+          if (uv <= 7)
+            return {
+              color: "#FF9800",
+              gradient: "linear-gradient(to top, #F57C00, #FF9800)",
+              glow: "rgba(255, 152, 0, 0.4)",
+            };
+          if (uv <= 10)
+            return {
+              color: "#F44336",
+              gradient: "linear-gradient(to top, #D32F2F, #F44336)",
+              glow: "rgba(244, 67, 54, 0.4)",
+            };
+          return {
+            color: "#9C27B0",
+            gradient: "linear-gradient(to top, #7B1FA2, #9C27B0)",
+            glow: "rgba(156, 39, 176, 0.5)",
+          };
         };
 
         // Create hourly UV data
@@ -1080,12 +1119,12 @@
           .slice(0, 12)
           .map((h) => {
             const hUV = Math.round(h.uvIndex || 0);
-            const barColor = getBarColor(hUV);
+            const barColors = getBarColor(hUV);
             return `
           <div class="hourly-bar">
             <div class="hourly-bar__fill hourly-bar__fill--uv" style="--bar-height:${
               (hUV / 11) * 100
-            }%;--uv-color:${barColor}"></div>
+            }%;--uv-color:${barColors.color};--uv-gradient:${barColors.gradient};--uv-glow:${barColors.glow}"></div>
             <span class="hourly-bar__value">${hUV}</span>
             <span class="hourly-bar__time">${new Date(
               h.time,
@@ -1127,7 +1166,7 @@
               <p class="detail-text--muted" style="font-size:0.85rem;margin-bottom:8px">
                 Balkenfarbe zeigt UV-Intensität (grün=niedrig → lila=extrem)
               </p>
-              <div class="hourly-bars">${hourlyUV}</div>
+              <div class="chart-wrapper"><div class="hourly-bars">${hourlyUV}</div></div>
             </div>
             <div class="detail-card">
               <h3>UV-Index Skala</h3>
@@ -1183,15 +1222,23 @@
 
         const precipInfo = getPrecipInfo(precipSum);
 
+        // Use contextual color engine for rain probability
         const hourlyPrecip = hourly
           .slice(0, 12)
-          .map(
-            (h) => `
+          .map((h) => {
+            const prob = h.precipProb || 0;
+            const colorEngine = global.WeatherMath?.getHealthColorByValue;
+            const barColors = colorEngine
+              ? colorEngine("rain", prob)
+              : {
+                  color: "#3b82f6",
+                  gradient: "linear-gradient(to top, #2563eb, #3b82f6)",
+                  glow: "rgba(59, 130, 246, 0.4)",
+                };
+            return `
           <div class="hourly-bar">
-            <div class="hourly-bar__fill hourly-bar__fill--precip" style="--bar-height:${
-              h.precipProb || 0
-            }%"></div>
-            <span class="hourly-bar__value">${h.precipProb || 0}%</span>
+            <div class="hourly-bar__fill hourly-bar__fill--precip" style="--bar-height:${prob}%;--precip-gradient:${barColors.gradient};--precip-glow:${barColors.glow}"></div>
+            <span class="hourly-bar__value">${prob}%</span>
             <span class="hourly-bar__amount">${(h.precipitation || 0).toFixed(
               1,
             )}</span>
@@ -1202,8 +1249,8 @@
               minute: "2-digit",
             })}</span>
           </div>
-        `,
-          )
+        `;
+          })
           .join("");
 
         return `
@@ -1241,7 +1288,7 @@
               <p class="detail-text--muted" style="font-size:0.85rem;margin-bottom:8px">
                 Balken = Wahrscheinlichkeit (%) • Wert unter Balken = Menge (mm)
               </p>
-              <div class="hourly-bars">${hourlyPrecip}</div>
+              <div class="chart-wrapper"><div class="hourly-bars">${hourlyPrecip}</div></div>
             </div>
             <div class="detail-card">
               <h3>Intensitätsskala</h3>
@@ -1299,18 +1346,27 @@
 
         const windInfo = getWindInfo(windSpeed);
 
-        // Stündliche Windvorhersage
+        // Stündliche Windvorhersage mit Contextual Color Engine
         const hourlyWind = hourly
           .slice(0, 12)
           .map((h) => {
             const hSpeed = Math.round(h.windSpeed || 0);
             const hInfo = getWindInfo(hSpeed);
+            // Use contextual color engine
+            const colorEngine = global.WeatherMath?.getHealthColorByValue;
+            const barColors = colorEngine
+              ? colorEngine("wind", hSpeed)
+              : {
+                  color: hInfo.color,
+                  gradient: `linear-gradient(to top, ${hInfo.color}cc, ${hInfo.color})`,
+                  glow: `rgba(34, 211, 238, 0.4)`,
+                };
             return `
           <div class="hourly-bar">
             <div class="hourly-bar__fill hourly-bar__fill--wind" style="--bar-height:${Math.min(
               (hSpeed / 100) * 100,
               100,
-            )}%;--wind-color:${hInfo.color}"></div>
+            )}%;--wind-color:${barColors.color};--wind-gradient:${barColors.gradient};--wind-glow:${barColors.glow}"></div>
             <span class="hourly-bar__value">${hSpeed}</span>
             <span class="hourly-bar__time">${new Date(
               h.time,
@@ -1372,7 +1428,7 @@
               <p class="detail-text--muted" style="font-size:0.85rem;margin-bottom:8px">
                 Windgeschwindigkeit in km/h
               </p>
-              <div class="hourly-bars">${hourlyWind}</div>
+              <div class="chart-wrapper"><div class="hourly-bars">${hourlyWind}</div></div>
             </div>
             <div class="detail-card">
               <h3>Beaufort-Skala</h3>
@@ -1437,7 +1493,7 @@
 
         const visInfo = getVisInfo(visibility);
 
-        // Stündliche Sichtweite-Vorhersage
+        // Stündliche Sichtweite-Vorhersage mit Contextual Color Engine
         const hourlyVis = hourly
           .slice(0, 12)
           .map((h) => {
@@ -1445,11 +1501,20 @@
             const hInfo = getVisInfo(hVis);
             // Normalisiere auf 0-100% (max 50km = 100%)
             const barHeight = Math.min((hVis / 50) * 100, 100);
+            // Use contextual color engine
+            const colorEngine = global.WeatherMath?.getHealthColorByValue;
+            const barColors = colorEngine
+              ? colorEngine("visibility", hVis)
+              : {
+                  color: hInfo.color,
+                  gradient: `linear-gradient(to top, ${hInfo.color}cc, ${hInfo.color})`,
+                  glow: "rgba(132, 204, 22, 0.3)",
+                };
             return `
           <div class="hourly-bar">
             <div class="hourly-bar__fill hourly-bar__fill--visibility" style="--bar-height:${barHeight}%;--vis-color:${
-              hInfo.color
-            }"></div>
+              barColors.color
+            };--vis-gradient:${barColors.gradient};--vis-glow:${barColors.glow}"></div>
             <span class="hourly-bar__value">${Math.round(hVis)}</span>
             <span class="hourly-bar__time">${new Date(
               h.time,
@@ -1494,7 +1559,7 @@
               <p class="detail-text--muted" style="font-size:0.85rem;margin-bottom:8px">
                 Sichtweite in km
               </p>
-              <div class="hourly-bars">${hourlyVis}</div>
+              <div class="chart-wrapper"><div class="hourly-bars">${hourlyVis}</div></div>
             </div>
             <div class="detail-card">
               <h3>Sichtweite-Skala</h3>
@@ -1585,7 +1650,7 @@
           }
         }
 
-        // Stündliche Luftdruck-Vorhersage
+        // Stündliche Luftdruck-Vorhersage mit Contextual Color Engine
         const hourlyPressure = hourly
           .slice(0, 12)
           .map((h) => {
@@ -1596,11 +1661,20 @@
               Math.max(((hPressure - 950) / 100) * 100, 0),
               100,
             );
+            // Use contextual color engine
+            const colorEngine = global.WeatherMath?.getHealthColorByValue;
+            const barColors = colorEngine
+              ? colorEngine("pressure", hPressure)
+              : {
+                  color: hInfo.color,
+                  gradient: `linear-gradient(to top, ${hInfo.color}cc, ${hInfo.color})`,
+                  glow: "rgba(139, 92, 246, 0.3)",
+                };
             return `
           <div class="hourly-bar">
             <div class="hourly-bar__fill hourly-bar__fill--pressure" style="--bar-height:${barHeight}%;--pressure-color:${
-              hInfo.color
-            }"></div>
+              barColors.color
+            };--pressure-gradient:${barColors.gradient};--pressure-glow:${barColors.glow}"></div>
             <span class="hourly-bar__value">${Math.round(hPressure)}</span>
             <span class="hourly-bar__time">${new Date(
               h.time,
@@ -1649,7 +1723,7 @@
               <p class="detail-text--muted" style="font-size:0.85rem;margin-bottom:8px">
                 Luftdruck in hPa
               </p>
-              <div class="hourly-bars">${hourlyPressure}</div>
+              <div class="chart-wrapper"><div class="hourly-bars">${hourlyPressure}</div></div>
             </div>
             <div class="detail-card">
               <h3>Luftdruck-Skala</h3>
@@ -1939,18 +2013,24 @@
       clouds: () => {
         const cloudCover = current.cloudCover ?? 0;
 
-        // Create hourly cloud data
+        // Create hourly cloud data with Contextual Color Engine
         const hourlyCloudData = hourly
           .slice(0, 12)
-          .map(
-            (h) => `
+          .map((h) => {
+            const cover = h.cloudCover || 0;
+            // Use contextual color engine
+            const colorEngine = global.WeatherMath?.getHealthColorByValue;
+            const barColors = colorEngine
+              ? colorEngine("clouds", cover)
+              : {
+                  color: "#94a3b8",
+                  gradient: "linear-gradient(to top, #64748b, #94a3b8)",
+                  glow: "rgba(148, 163, 184, 0.3)",
+                };
+            return `
           <div class="hourly-bar">
-            <div class="hourly-bar__fill hourly-bar__fill--clouds" style="--bar-height:${
-              h.cloudCover || 0
-            }%"></div>
-            <span class="hourly-bar__value">${Math.round(
-              h.cloudCover || 0,
-            )}%</span>
+            <div class="hourly-bar__fill hourly-bar__fill--clouds" style="--bar-height:${cover}%;--clouds-gradient:${barColors.gradient};--clouds-glow:${barColors.glow}"></div>
+            <span class="hourly-bar__value">${Math.round(cover)}%</span>
             <span class="hourly-bar__time">${new Date(
               h.time,
             ).toLocaleTimeString("de-DE", {
@@ -1958,8 +2038,8 @@
               minute: "2-digit",
             })}</span>
           </div>
-        `,
-          )
+        `;
+          })
           .join("");
 
         const getCloudDescription = (cover) => {
@@ -2005,7 +2085,7 @@
                 ? `
             <div class="detail-card">
               <h3>Nächste 12 Stunden</h3>
-              <div class="hourly-bars">${hourlyCloudData}</div>
+              <div class="chart-wrapper"><div class="hourly-bars">${hourlyCloudData}</div></div>
             </div>
             `
                 : ""

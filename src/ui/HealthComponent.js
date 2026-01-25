@@ -178,10 +178,12 @@
         timeline,
         lastUpdated,
         isOffline,
+        officialAlerts,
       } = analysisResult;
 
       const html = `
         <div class="health-section" data-health-component>
+          ${this.renderPriorityAlertBanner(officialAlerts)}
           ${this.renderOutdoorQualityCard(outdoorScore, timeline, bestTimeWindow)}
           ${this.renderQuickCheckGrid(quickChecks)}
           ${this.renderBioInsights(headacheRisk, vitaminDTimer)}
@@ -197,6 +199,64 @@
       }
 
       return html;
+    }
+
+    /**
+     * Render Priority Alert Banner for official weather warnings (CAP)
+     */
+    renderPriorityAlertBanner(officialAlerts) {
+      if (!officialAlerts || officialAlerts.length === 0) {
+        return "";
+      }
+
+      // Get the most severe alert
+      const severityOrder = { extreme: 4, severe: 3, moderate: 2, minor: 1 };
+      const sortedAlerts = [...officialAlerts].sort(
+        (a, b) =>
+          (severityOrder[b.severity] || 0) - (severityOrder[a.severity] || 0),
+      );
+      const primaryAlert = sortedAlerts[0];
+
+      const severityColors = {
+        extreme: "#dc2626",
+        severe: "#ea580c",
+        moderate: "#d97706",
+        minor: "#ca8a04",
+      };
+
+      const color = severityColors[primaryAlert.severity] || "#ef4444";
+      const icon =
+        primaryAlert.event?.includes("Sturm") ||
+        primaryAlert.event?.includes("Wind")
+          ? "🌪️"
+          : primaryAlert.event?.includes("Gewitter")
+            ? "⛈️"
+            : primaryAlert.event?.includes("Regen") ||
+                primaryAlert.event?.includes("Überschwemmung")
+              ? "🌊"
+              : primaryAlert.event?.includes("Schnee") ||
+                  primaryAlert.event?.includes("Eis")
+                ? "❄️"
+                : primaryAlert.event?.includes("Hitze")
+                  ? "🔥"
+                  : "⚠️";
+
+      return `
+        <div class="priority-alert-banner js-open-details"
+             data-detail-type="official-alerts"
+             style="--alert-color: ${color}">
+          <div class="priority-alert-banner__pulse"></div>
+          <div class="priority-alert-banner__content">
+            <span class="priority-alert-banner__icon">${icon}</span>
+            <div class="priority-alert-banner__text">
+              <span class="priority-alert-banner__title">${primaryAlert.event || (this.language === "de" ? "Wetterwarnung" : "Weather Warning")}</span>
+              <span class="priority-alert-banner__subtitle">${primaryAlert.headline || primaryAlert.description || ""}</span>
+            </div>
+            <span class="priority-alert-banner__arrow">›</span>
+          </div>
+          ${officialAlerts.length > 1 ? `<span class="priority-alert-banner__badge">+${officialAlerts.length - 1}</span>` : ""}
+        </div>
+      `;
     }
 
     /**
@@ -387,25 +447,19 @@
           const slotColor = this.getScoreColor(hour.score);
           const colorClass = this.getScoreColorClass(hour.score);
 
-          // DEBUG: Log each slot's color assignment
-          if (index < 3) {
-            console.log(
-              `[Timeline Slot ${index}] Score: ${hour.score}, Color: ${slotColor}, Class: ${colorClass}`,
-            );
-          }
-
+          // FORCE the color directly via inline style on the fill element
           return `
           <div class="timeline-slot ${isBestWindow ? "timeline-slot--best" : ""} ${isNow ? "timeline-slot--now" : ""}"
                data-hour="${timeLabel}"
                data-score="${hour.score}"
-               data-slot-color="${slotColor}"
                data-detail-type="timeline-hour"
-               style="--slot-height: ${heightPercent}%; --slot-color: ${slotColor}">
+               data-hour-index="${index}"
+               style="--slot-color: ${slotColor}; --slot-height: ${heightPercent}%">
             <div class="timeline-slot__bar">
-              <div class="timeline-slot__fill"></div>
-              <span class="timeline-slot__score ${colorClass}">${hour.score}</span>
+              <div class="timeline-slot__fill" style="background: ${slotColor} !important; height: ${heightPercent}%"></div>
+              <span class="timeline-slot__score" style="color: ${slotColor}">${hour.score}</span>
             </div>
-            <span class="timeline-slot__time">${isNow ? this.t("now") : timeLabel}</span>
+            <span class="timeline-slot__time" ${isNow ? `style="color: ${slotColor}"` : ""}>${isNow ? this.t("now") : timeLabel}</span>
             ${isBestWindow && index === bestStartIdx ? `<span class="timeline-slot__badge">${this.language === "de" ? "Empfohlen" : "Recommended"}</span>` : ""}
           </div>
         `;
@@ -919,7 +973,10 @@
             </button>
           </header>
           <div class="bottom-sheet__body">
-            <p>Detailinformationen werden geladen...</p>
+            <div class="modal-spinner">
+              <div class="modal-spinner__circle"></div>
+              <span class="modal-spinner__text">Analyse läuft...</span>
+            </div>
           </div>
         </div>
       `;

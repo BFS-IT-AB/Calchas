@@ -601,6 +601,289 @@
     return activities;
   };
 
+  // ============================================
+  // CONTEXTUAL COLOR ENGINE FOR CHARTS
+  // ============================================
+
+  /**
+   * Get contextual color based on metric type and value
+   * Returns both solid color and gradient for sleek charts
+   * @param {string} type - Metric type: 'uv', 'temp', 'rain', 'humidity', 'wind', 'pressure'
+   * @param {number} value - The metric value
+   * @returns {object} { color, gradient, glow }
+   */
+  WeatherMath.getHealthColorByValue = function (type, value) {
+    const colors = {
+      // UV Index - Green to Violet scale
+      uv: () => {
+        if (value <= 2)
+          return {
+            color: "#4ade80",
+            gradient: "linear-gradient(to top, #22c55e, #4ade80)",
+            glow: "rgba(74, 222, 128, 0.4)",
+          };
+        if (value <= 5)
+          return {
+            color: "#fbbf24",
+            gradient: "linear-gradient(to top, #f59e0b, #fbbf24)",
+            glow: "rgba(251, 191, 36, 0.4)",
+          };
+        if (value <= 7)
+          return {
+            color: "#fb923c",
+            gradient: "linear-gradient(to top, #f97316, #fb923c)",
+            glow: "rgba(251, 146, 60, 0.4)",
+          };
+        if (value <= 10)
+          return {
+            color: "#ef4444",
+            gradient: "linear-gradient(to top, #dc2626, #ef4444)",
+            glow: "rgba(239, 68, 68, 0.4)",
+          };
+        return {
+          color: "#a855f7",
+          gradient: "linear-gradient(to top, #9333ea, #a855f7)",
+          glow: "rgba(168, 85, 247, 0.5)",
+        };
+      },
+
+      // Temperature - Blue to Red divergence
+      temp: () => {
+        if (value < 0)
+          return {
+            color: "#60a5fa",
+            gradient: "linear-gradient(to top, #3b82f6, #60a5fa)",
+            glow: "rgba(96, 165, 250, 0.4)",
+          };
+        if (value < 10)
+          return {
+            color: "#22d3ee",
+            gradient: "linear-gradient(to top, #06b6d4, #22d3ee)",
+            glow: "rgba(34, 211, 238, 0.4)",
+          };
+        if (value < 20)
+          return {
+            color: "#4ade80",
+            gradient: "linear-gradient(to top, #22c55e, #4ade80)",
+            glow: "rgba(74, 222, 128, 0.4)",
+          };
+        if (value < 28)
+          return {
+            color: "#fbbf24",
+            gradient: "linear-gradient(to top, #f59e0b, #fbbf24)",
+            glow: "rgba(251, 191, 36, 0.4)",
+          };
+        if (value < 35)
+          return {
+            color: "#fb923c",
+            gradient: "linear-gradient(to top, #f97316, #fb923c)",
+            glow: "rgba(251, 146, 60, 0.4)",
+          };
+        return {
+          color: "#ef4444",
+          gradient: "linear-gradient(to top, #dc2626, #ef4444)",
+          glow: "rgba(239, 68, 68, 0.5)",
+        };
+      },
+
+      // Rain - Light to deep blue
+      rain: () => {
+        if (value === 0)
+          return {
+            color: "#4ade80",
+            gradient: "linear-gradient(to top, #22c55e, #4ade80)",
+            glow: "rgba(74, 222, 128, 0.3)",
+          };
+        if (value < 20)
+          return {
+            color: "#38bdf8",
+            gradient: "linear-gradient(to top, #0ea5e9, #38bdf8)",
+            glow: "rgba(56, 189, 248, 0.4)",
+          };
+        if (value < 50)
+          return {
+            color: "#60a5fa",
+            gradient: "linear-gradient(to top, #3b82f6, #60a5fa)",
+            glow: "rgba(96, 165, 250, 0.4)",
+          };
+        if (value < 80)
+          return {
+            color: "#3b82f6",
+            gradient: "linear-gradient(to top, #2563eb, #3b82f6)",
+            glow: "rgba(59, 130, 246, 0.5)",
+          };
+        return {
+          color: "#1d4ed8",
+          gradient: "linear-gradient(to top, #1e40af, #1d4ed8)",
+          glow: "rgba(29, 78, 216, 0.5)",
+        };
+      },
+
+      // Humidity - Cyan scale
+      humidity: () => {
+        if (value < 30)
+          return {
+            color: "#fb923c",
+            gradient: "linear-gradient(to top, #f97316, #fb923c)",
+            glow: "rgba(251, 146, 60, 0.3)",
+          };
+        if (value < 60)
+          return {
+            color: "#4ade80",
+            gradient: "linear-gradient(to top, #22c55e, #4ade80)",
+            glow: "rgba(74, 222, 128, 0.4)",
+          };
+        if (value < 80)
+          return {
+            color: "#38bdf8",
+            gradient: "linear-gradient(to top, #0ea5e9, #38bdf8)",
+            glow: "rgba(56, 189, 248, 0.4)",
+          };
+        return {
+          color: "#3b82f6",
+          gradient: "linear-gradient(to top, #2563eb, #3b82f6)",
+          glow: "rgba(59, 130, 246, 0.5)",
+        };
+      },
+
+      // Wind - Teal to purple
+      wind: () => {
+        if (value < 10)
+          return {
+            color: "#4ade80",
+            gradient: "linear-gradient(to top, #22c55e, #4ade80)",
+            glow: "rgba(74, 222, 128, 0.3)",
+          };
+        if (value < 25)
+          return {
+            color: "#22d3ee",
+            gradient: "linear-gradient(to top, #06b6d4, #22d3ee)",
+            glow: "rgba(34, 211, 238, 0.4)",
+          };
+        if (value < 50)
+          return {
+            color: "#fbbf24",
+            gradient: "linear-gradient(to top, #f59e0b, #fbbf24)",
+            glow: "rgba(251, 191, 36, 0.4)",
+          };
+        if (value < 75)
+          return {
+            color: "#fb923c",
+            gradient: "linear-gradient(to top, #f97316, #fb923c)",
+            glow: "rgba(251, 146, 60, 0.5)",
+          };
+        return {
+          color: "#ef4444",
+          gradient: "linear-gradient(to top, #dc2626, #ef4444)",
+          glow: "rgba(239, 68, 68, 0.5)",
+        };
+      },
+
+      // Pressure - Purple-blue
+      pressure: () => {
+        if (value < 1000)
+          return {
+            color: "#f87171",
+            gradient: "linear-gradient(to top, #ef4444, #f87171)",
+            glow: "rgba(248, 113, 113, 0.3)",
+          };
+        if (value < 1010)
+          return {
+            color: "#fbbf24",
+            gradient: "linear-gradient(to top, #f59e0b, #fbbf24)",
+            glow: "rgba(251, 191, 36, 0.3)",
+          };
+        if (value < 1020)
+          return {
+            color: "#4ade80",
+            gradient: "linear-gradient(to top, #22c55e, #4ade80)",
+            glow: "rgba(74, 222, 128, 0.4)",
+          };
+        if (value < 1030)
+          return {
+            color: "#38bdf8",
+            gradient: "linear-gradient(to top, #0ea5e9, #38bdf8)",
+            glow: "rgba(56, 189, 248, 0.4)",
+          };
+        return {
+          color: "#a78bfa",
+          gradient: "linear-gradient(to top, #8b5cf6, #a78bfa)",
+          glow: "rgba(167, 139, 250, 0.4)",
+        };
+      },
+
+      // Visibility - Green scale (higher is better)
+      visibility: () => {
+        if (value < 1)
+          return {
+            color: "#ef4444",
+            gradient: "linear-gradient(to top, #dc2626, #ef4444)",
+            glow: "rgba(239, 68, 68, 0.4)",
+          };
+        if (value < 4)
+          return {
+            color: "#fb923c",
+            gradient: "linear-gradient(to top, #f97316, #fb923c)",
+            glow: "rgba(251, 146, 60, 0.4)",
+          };
+        if (value < 10)
+          return {
+            color: "#fbbf24",
+            gradient: "linear-gradient(to top, #f59e0b, #fbbf24)",
+            glow: "rgba(251, 191, 36, 0.4)",
+          };
+        if (value < 20)
+          return {
+            color: "#a3e635",
+            gradient: "linear-gradient(to top, #84cc16, #a3e635)",
+            glow: "rgba(163, 230, 53, 0.4)",
+          };
+        return {
+          color: "#4ade80",
+          gradient: "linear-gradient(to top, #22c55e, #4ade80)",
+          glow: "rgba(74, 222, 128, 0.4)",
+        };
+      },
+
+      // Clouds - Gray scale
+      clouds: () => {
+        if (value < 20)
+          return {
+            color: "#4ade80",
+            gradient: "linear-gradient(to top, #22c55e, #4ade80)",
+            glow: "rgba(74, 222, 128, 0.3)",
+          };
+        if (value < 50)
+          return {
+            color: "#94a3b8",
+            gradient: "linear-gradient(to top, #64748b, #94a3b8)",
+            glow: "rgba(148, 163, 184, 0.3)",
+          };
+        if (value < 80)
+          return {
+            color: "#64748b",
+            gradient: "linear-gradient(to top, #475569, #64748b)",
+            glow: "rgba(100, 116, 139, 0.4)",
+          };
+        return {
+          color: "#475569",
+          gradient: "linear-gradient(to top, #334155, #475569)",
+          glow: "rgba(71, 85, 105, 0.4)",
+        };
+      },
+
+      // Default - Green
+      default: () => ({
+        color: "#4ade80",
+        gradient: "linear-gradient(to top, #22c55e, #4ade80)",
+        glow: "rgba(74, 222, 128, 0.4)",
+      }),
+    };
+
+    const getColor = colors[type] || colors.default;
+    return getColor();
+  };
+
   // Export to global scope
   global.WeatherMath = WeatherMath;
 
