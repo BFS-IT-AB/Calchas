@@ -1,7 +1,8 @@
 // Service Worker für Calchas
 // Ermöglicht Offline-Funktionalität, Caching und Push-Notifications
 
-const CACHE_NAME = "calchas-v7"; // Version erhöht für kleinere Cards
+const CACHE_NAME = "calchas-v9"; // Version erhöht für Health Deep Update
+const HEALTH_CACHE_NAME = "calchas-health-data"; // Separate cache for health data
 const urlsToCache = [
   "/",
   "/index.html",
@@ -11,16 +12,22 @@ const urlsToCache = [
   "/src/utils/constants.js",
   "/src/utils/cache.js",
   "/src/utils/validation.js",
+  "/src/utils/WeatherMath.js",
   "/src/api/weather.js",
   "/src/api/brightsky.js",
+  "/src/api/healthDataTransformer.js",
+  "/src/logic/HealthEngine.js",
   "/src/ui/errorHandler.js",
   "/src/ui/searchInput.js",
   "/src/ui/weatherDisplay.js",
+  "/src/ui/HealthComponent.js",
+  "/src/ui/templates.js",
   "/src/ui/home/WeatherHero.js",
   "/src/ui/home/HomeCards.js",
   "/src/ui/home/WeatherCards.js",
   "/src/ui/home/FrogHeroPlayer.js",
   "/src/ui/health/HealthSafetyView.js",
+  "/src/ui/health/health.css",
   "/src/ui/history/HistoryViewBrowser.js",
   "/src/ui/settings/SettingsHome.js",
   "/manifest.json",
@@ -41,7 +48,7 @@ self.addEventListener("install", (event) => {
         // Wenn ein einzelner Fetch in addAll fehlschlägt, logge und install trotzdem abschließen
         console.warn("Service Worker: cache.addAll failed (continuing):", err);
         return Promise.resolve();
-      })
+      }),
   );
 
   // Skip waiting - aktiviere sofort
@@ -60,9 +67,9 @@ self.addEventListener("activate", (event) => {
             console.log("Service Worker: Deleting old cache", cacheName);
             return caches.delete(cacheName);
           }
-        })
+        }),
       );
-    })
+    }),
   );
 
   // Claim clients sofort
@@ -110,14 +117,14 @@ self.addEventListener("fetch", (event) => {
                       console.warn(
                         "Service Worker: cache.put failed",
                         err,
-                        reqUrl.href
+                        reqUrl.href,
                       );
                     });
                   } catch (e) {
                     console.warn(
                       "Service Worker: cache.put wrapper failed",
                       e,
-                      request.url
+                      request.url,
                     );
                   }
                 });
@@ -128,7 +135,7 @@ self.addEventListener("fetch", (event) => {
             console.warn(
               "Service Worker: skipping cache for",
               request.url,
-              err
+              err,
             );
           }
         }
@@ -138,18 +145,18 @@ self.addEventListener("fetch", (event) => {
         // Fallback auf Cache wenn Netzwerk fehlt
         console.log(
           "Service Worker: Network request failed, trying cache",
-          request.url
+          request.url,
         );
         return caches.match(request).then((response) => {
           return (
             response ||
             new Response(
               "Offline - Diese Seite ist im Offline-Modus nicht verfügbar",
-              { status: 503, statusText: "Service Unavailable" }
+              { status: 503, statusText: "Service Unavailable" },
             )
           );
         });
-      })
+      }),
   );
 });
 
@@ -159,6 +166,10 @@ self.addEventListener("sync", (event) => {
 
   if (event.tag === "weather-update") {
     event.waitUntil(updateWeatherData());
+  }
+
+  if (event.tag === "health-data-sync") {
+    event.waitUntil(syncHealthData());
   }
 });
 
@@ -186,6 +197,106 @@ async function updateWeatherData() {
   } catch (error) {
     console.error("Service Worker: Weather update failed", error);
   }
+}
+
+/**
+ * Sync Health Intelligence data for offline access
+ */
+async function syncHealthData() {
+  try {
+    console.log("Service Worker: Syncing health data...");
+
+    const healthCache = await caches.open(HEALTH_CACHE_NAME);
+
+    // Notify clients about health data sync
+    const clients = await self.clients.matchAll();
+    clients.forEach((client) => {
+      client.postMessage({
+        type: "HEALTH_DATA_SYNC",
+        timestamp: Date.now(),
+      });
+    });
+
+    console.log("Service Worker: Health data sync completed");
+  } catch (error) {
+    console.error("Service Worker: Health data sync failed", error);
+  }
+}
+
+/**
+ * Store health data in cache (called from client via postMessage)
+ * After caching, notifies all clients to update their UI
+ */
+async function cacheHealthData(data) {
+  try {
+    const healthCache = await caches.open(HEALTH_CACHE_NAME);
+    const cachedData = {
+      ...data,
+      cachedAt: new Date().toISOString(),
+      cacheVersion: 1,
+    };
+    const response = new Response(JSON.stringify(cachedData), {
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "max-age=1800", // 30 minutes
+      },
+    });
+    await healthCache.put("/health-data", response);
+    console.log("Service Worker: Health data cached successfully");
+
+    // Notify all clients about new health data - triggers UI update
+    await notifyClientsHealthUpdate(cachedData);
+  } catch (error) {
+    console.error("Service Worker: Failed to cache health data", error);
+  }
+}
+
+/**
+ * Notify all clients that health data has been updated
+ * This triggers HealthSafetyView.update() in the client
+ */
+async function notifyClientsHealthUpdate(data) {
+  try {
+    const clients = await self.clients.matchAll({ type: "window" });
+    console.log(
+      `Service Worker: Notifying ${clients.length} client(s) of health update`,
+    );
+
+    clients.forEach((client) => {
+      client.postMessage({
+        type: "HEALTH_DATA_UPDATED",
+        timestamp: Date.now(),
+        data: data,
+      });
+    });
+  } catch (error) {
+    console.error("Service Worker: Failed to notify clients", error);
+  }
+}
+
+/**
+ * Retrieve cached health data
+ */
+async function getCachedHealthData() {
+  try {
+    const healthCache = await caches.open(HEALTH_CACHE_NAME);
+    const response = await healthCache.match("/health-data");
+
+    if (response) {
+      const data = await response.json();
+      return {
+        ...data,
+        fromCache: true,
+        fromServiceWorker: true,
+      };
+    }
+  } catch (error) {
+    console.error(
+      "Service Worker: Failed to retrieve cached health data",
+      error,
+    );
+  }
+  return null;
 }
 
 // Push Notifications
@@ -223,7 +334,10 @@ self.addEventListener("push", (event) => {
   }
 
   event.waitUntil(
-    self.registration.showNotification(notificationData.title, notificationData)
+    self.registration.showNotification(
+      notificationData.title,
+      notificationData,
+    ),
   );
 });
 
@@ -242,7 +356,7 @@ self.addEventListener("pushsubscriptionchange", (event) => {
       } catch (err) {
         console.warn("Service Worker: failed to re-subscribe", err);
       }
-    })()
+    })(),
   );
 });
 // Notification Clicks
@@ -267,7 +381,7 @@ self.addEventListener("notificationclick", (event) => {
       if (clients.openWindow) {
         return clients.openWindow("/");
       }
-    })
+    }),
   );
 });
 
@@ -332,7 +446,7 @@ async function syncFavoritesData() {
         if (lat && lng) {
           // Attempt fetch (won't update UI, just updates cache)
           await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,precipitation,weathercode&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto`
+            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,precipitation,weathercode&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto`,
           )
             .then((r) => r.json())
             .catch(() => null);
@@ -434,7 +548,7 @@ self.addEventListener("message", (event) => {
         .register("update-weather", { minInterval: 60 * 60 * 1000 }) // 1 hour
         .then(() => console.log("✅ Periodic sync registered"))
         .catch((err) =>
-          console.warn("Periodic sync registration failed:", err)
+          console.warn("Periodic sync registration failed:", err),
         );
     }
   }
@@ -445,10 +559,51 @@ self.addEventListener("message", (event) => {
         .register("sync-favorites", { minInterval: 12 * 60 * 60 * 1000 }) // 12 hours
         .then(() => console.log("✅ Favorites sync registered"))
         .catch((err) =>
-          console.warn("Favorites sync registration failed:", err)
+          console.warn("Favorites sync registration failed:", err),
         );
+    }
+  }
+
+  // Health Intelligence data caching
+  if (event.data && event.data.type === "CACHE_HEALTH_DATA") {
+    cacheHealthData(event.data.payload)
+      .then(() => {
+        // Respond to client
+        if (event.ports && event.ports[0]) {
+          event.ports[0].postMessage({ success: true });
+        }
+      })
+      .catch((err) => {
+        if (event.ports && event.ports[0]) {
+          event.ports[0].postMessage({ success: false, error: err.message });
+        }
+      });
+  }
+
+  // Request cached health data
+  if (event.data && event.data.type === "GET_CACHED_HEALTH_DATA") {
+    getCachedHealthData()
+      .then((data) => {
+        if (event.ports && event.ports[0]) {
+          event.ports[0].postMessage({ success: true, data });
+        }
+      })
+      .catch((err) => {
+        if (event.ports && event.ports[0]) {
+          event.ports[0].postMessage({ success: false, error: err.message });
+        }
+      });
+  }
+
+  // Register health data sync
+  if (event.data && event.data.type === "REGISTER_HEALTH_SYNC") {
+    if ("sync" in self.registration) {
+      self.registration.sync
+        .register("health-data-sync")
+        .then(() => console.log("✅ Health data sync registered"))
+        .catch((err) => console.warn("Health sync registration failed:", err));
     }
   }
 });
 
-console.log("Service Worker: Loaded");
+console.log("Service Worker: Loaded (with Health Intelligence support)");
