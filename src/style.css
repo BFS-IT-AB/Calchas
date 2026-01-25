@@ -4411,6 +4411,9 @@ body.mobile-app #legacy-content {
 }
 
 .about-modal__container--changelog .changelog-version-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 18px 22px 14px;
   background: rgba(26, 31, 46, 0.95);
   position: sticky;

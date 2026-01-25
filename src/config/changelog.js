@@ -30,7 +30,7 @@
   const CHANGELOG = [
     {
       version: "1.0.0",
-      date: "24.01.2026",
+      date: "02.02.2026",
       isLatest: true,
       title: "🎉 Erster offizieller Release von Calchas - BFS-IT OpenDay 2026",
       changes: [

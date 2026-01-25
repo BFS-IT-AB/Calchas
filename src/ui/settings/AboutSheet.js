@@ -383,8 +383,9 @@
                   : ""
               }
             </div>
-            <h4 class="changelog-title">${release.title}</h4>
+            <span class="changelog-release__date">${release.date || ""}</span>
           </div>
+          <h4 class="changelog-title">${release.title}</h4>
           <ul class="changelog-list">
             ${changesHtml}
           </ul>
@@ -412,14 +413,16 @@
         (release) => `
       <div class="changelog-release">
         <div class="changelog-release__header">
-          <span class="changelog-badge changelog-badge--version">v${
-            release.version
-          }</span>
-          ${
-            release.isLatest
-              ? '<span class="changelog-badge changelog-badge--latest">Latest</span>'
-              : ""
-          }
+          <div class="changelog-version-badges">
+            <span class="changelog-badge changelog-badge--version">v${
+              release.version
+            }</span>
+            ${
+              release.isLatest
+                ? '<span class="changelog-badge changelog-badge--latest">Latest</span>'
+                : ""
+            }
+          </div>
           <span class="changelog-release__date">${release.date || ""}</span>
         </div>
         <h4 class="changelog-release__title">${release.title}</h4>
