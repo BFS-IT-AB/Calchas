@@ -4579,28 +4579,40 @@ body.mobile-app #legacy-content {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 6px;
+  align-items: center;
 }
 
 .changelog-badge--version {
+  display: inline-flex;
+  align-items: center;
   background: rgba(92, 107, 192, 0.2);
   color: #8c9eff;
   padding: 6px 12px;
   border-radius: 6px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
+  line-height: 1;
+  height: 27px;
+  box-sizing: border-box;
 }
 
 .changelog-badge--latest {
+  display: inline-flex;
+  align-items: center;
   background: rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.7);
   padding: 6px 12px;
   border-radius: 6px;
   font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  height: 27px;
+  box-sizing: border-box;
 }
 
 .changelog-title {
   margin: 0 0 8px 0;
+  padding: 18px 22px 0;
   font-size: 16px;
   font-weight: 600;
   color: #ffffff;
@@ -4718,9 +4730,18 @@ body.mobile-app #legacy-content {
 }
 
 .changelog-release__date {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
   margin-left: auto;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 500;
+  line-height: 1;
+  height: 27px;
+  box-sizing: border-box;
 }
 
 .changelog-release__title {
