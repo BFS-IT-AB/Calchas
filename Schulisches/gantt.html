@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CALCHAS Wetter-App - Projekt Timeline</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+            color: #2d3436;
+            padding: 30px 40px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        /* Header Section */
+        .header {
+            padding: 40px 50px 30px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .title-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title-section h1 {
+            font-size: 2.2em;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .title-section h1 .premium {
+            color: #c9a227;
+            font-style: italic;
+        }
+
+        .title-section h1 .main-title {
+            color: #2d3436;
+        }
+
+        .subtitle {
+            color: #636e72;
+            font-size: 1em;
+            margin-top: 8px;
+            font-weight: 400;
+        }
+
+        /* Team Info Bar */
+        .team-bar {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 15px 30px;
+            background: linear-gradient(90deg, #f8f9fa, #fff, #f8f9fa);
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .team-member {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .member-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8em;
+            color: white;
+        }
+
+        .member-avatar.fw { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .member-avatar.mb { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+        .member-avatar.rk { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .member-avatar.yr { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+
+        .member-info {
+            text-align: left;
+        }
+
+        .member-name {
+            font-weight: 600;
+            font-size: 0.9em;
+            color: #2d3436;
+        }
+
+        .member-role {
+            font-size: 0.75em;
+            color: #636e72;
+        }
+
+        /* Timeline Header */
+        .timeline-header {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            background: #fafafa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .header-label {
+            padding: 20px 25px;
+            font-weight: 600;
+            color: #636e72;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-right: 1px solid #e9ecef;
+        }
+
+        .quarter-headers {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .quarter {
+            text-align: center;
+            padding: 10px;
+            border-right: 1px solid #e9ecef;
+        }
+
+        .quarter:last-child {
+            border-right: none;
+        }
+
+        .quarter-label {
+            font-weight: 700;
+            color: #2d3436;
+            font-size: 0.9em;
+        }
+
+        .month-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .month-group {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border-right: 1px solid #e9ecef;
+        }
+
+        .month-group:last-child {
+            border-right: none;
+        }
+
+        .month {
+            text-align: center;
+            padding: 8px 4px;
+            font-size: 0.75em;
+            color: #636e72;
+            border-right: 1px solid #f1f3f4;
+        }
+
+        .month:last-child {
+            border-right: none;
+        }
+
+        /* Milestone Header Row */
+        .milestone-header {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            background: linear-gradient(90deg, #2d3436, #636e72);
+            color: white;
+            padding: 12px 0;
+        }
+
+        .milestone-header .label {
+            padding: 0 25px;
+            display: flex;
+            align-items: center;
+        }
+
+        .milestone-track {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .milestone-marker {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform: translateX(-50%);
+        }
+
+        .milestone-diamond {
+            width: 16px;
+            height: 16px;
+            background: #c9a227;
+            transform: rotate(45deg);
+            margin-bottom: 6px;
+            box-shadow: 0 2px 8px rgba(201, 162, 39, 0.4);
+        }
+
+        .milestone-text {
+            font-size: 0.7em;
+            font-weight: 600;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .milestone-date {
+            font-size: 0.65em;
+            opacity: 0.8;
+        }
+
+        /* Gantt Body */
+        .gantt-body {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        /* Phase Row */
+        .phase-row {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .phase-label {
+            padding: 14px 25px;
+            font-weight: 700;
+            color: #2d3436;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-right: 1px solid #e9ecef;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .phase-icon {
+            font-size: 1.1em;
+        }
+
+        .phase-timeline {
+            position: relative;
+            height: 40px;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent calc(100% / 16 - 1px),
+                #f1f3f4 calc(100% / 16 - 1px),
+                #f1f3f4 calc(100% / 16)
+            );
+        }
+
+        .phase-bar {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 8px;
+            background: #2d3436;
+            border-radius: 4px;
+        }
+
+        /* Task Row */
+        .task-row {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            border-bottom: 1px solid #f1f3f4;
+            transition: background 0.2s;
+        }
+
+        .task-row:hover {
+            background: #f8f9fa;
+        }
+
+        .task-label {
+            padding: 12px 25px 12px 45px;
+            font-size: 0.85em;
+            color: #2d3436;
+            border-right: 1px solid #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .task-name {
+            flex: 1;
+        }
+
+        .task-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .task-assignee {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6em;
+            font-weight: 700;
+            color: white;
+        }
+
+        .task-duration {
+            font-size: 0.75em;
+            color: #636e72;
+            background: #f1f3f4;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .task-timeline {
+            position: relative;
+            height: 44px;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent calc(100% / 16 - 1px),
+                #f8f9fa calc(100% / 16 - 1px),
+                #f8f9fa calc(100% / 16)
+            );
+        }
+
+        /* Task Bars - Rounded pill style like the screenshot */
+        .task-bar {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 26px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 12px;
+            font-size: 0.7em;
+            font-weight: 500;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .task-bar:hover {
+            transform: translateY(-50%) scale(1.02);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .task-bar .bar-label {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Color schemes matching screenshot */
+        .bar-blue { background: linear-gradient(90deg, #3498db, #5dade2); }
+        .bar-green { background: linear-gradient(90deg, #27ae60, #58d68d); }
+        .bar-yellow { background: linear-gradient(90deg, #f4d03f, #f7dc6f); color: #2d3436; }
+        .bar-orange { background: linear-gradient(90deg, #e67e22, #f39c12); }
+        .bar-purple { background: linear-gradient(90deg, #9b59b6, #bb8fce); }
+        .bar-teal { background: linear-gradient(90deg, #1abc9c, #48c9b0); }
+        .bar-pink { background: linear-gradient(90deg, #e84393, #fd79a8); }
+        .bar-gray { background: linear-gradient(90deg, #636e72, #b2bec3); }
+
+        /* Critical Path Highlight */
+        .task-bar.critical {
+            box-shadow: 0 0 0 2px #e74c3c, 0 4px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        /* Dependency Arrow */
+        .dependency-connector {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+        }
+
+        .dependency-connector::before {
+            content: '→';
+            position: absolute;
+            left: -25px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #b2bec3;
+            font-size: 0.9em;
+        }
+
+        /* Legend */
+        .legend-section {
+            padding: 25px 50px;
+            background: #fafafa;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .legend-title {
+            font-weight: 600;
+            color: #2d3436;
+            font-size: 0.85em;
+        }
+
+        .legend-items {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8em;
+            color: #636e72;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 14px;
+            border-radius: 7px;
+        }
+
+        .legend-milestone {
+            width: 12px;
+            height: 12px;
+            background: #c9a227;
+            transform: rotate(45deg);
+        }
+
+        /* Project Info Footer */
+        .project-info-footer {
+            padding: 20px 50px;
+            background: #2d3436;
+            color: white;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+        }
+
+        .info-block h4 {
+            font-size: 0.7em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #b2bec3;
+            margin-bottom: 8px;
+        }
+
+        .info-block .value {
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        /* Holiday marker */
+        .holiday-zone {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(231, 76, 60, 0.05),
+                rgba(231, 76, 60, 0.05) 5px,
+                rgba(231, 76, 60, 0.1) 5px,
+                rgba(231, 76, 60, 0.1) 10px
+            );
+            border-left: 2px dashed rgba(231, 76, 60, 0.3);
+            border-right: 2px dashed rgba(231, 76, 60, 0.3);
+        }
+
+        /* Scrollbar */
+        .gantt-body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .gantt-body::-webkit-scrollbar-track {
+            background: #f1f3f4;
+        }
+
+        .gantt-body::-webkit-scrollbar-thumb {
+            background: #b2bec3;
+            border-radius: 4px;
+        }
+
+        .gantt-body::-webkit-scrollbar-thumb:hover {
+            background: #636e72;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: fixed;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 16px 20px;
+            max-width: 320px;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .tooltip h4 {
+            color: #2d3436;
+            margin-bottom: 12px;
+            font-size: 1em;
+            font-weight: 600;
+        }
+
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 6px 0;
+            font-size: 0.85em;
+        }
+
+        .tooltip-label {
+            color: #636e72;
+        }
+
+        .tooltip-value {
+            color: #2d3436;
+            font-weight: 500;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+                background: white;
+            }
+            .container {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="title-section">
+                <h1><span class="premium">CALCHAS</span> <span class="main-title">WETTER-APP TIMELINE - 4 DEVELOPERS</span></h1>
+                <p class="subtitle">Open Day 2026 | ES2AB Berufsfachschule für IT-Berufe Aschaffenburg | PWA mit Multi-API-Strategie</p>
+            </div>
+
+            <div class="team-bar">
+                <div class="team-member">
+                    <div class="member-avatar fw">FW</div>
+                    <div class="member-info">
+                        <div class="member-name">Felix Winkel</div>
+                        <div class="member-role">Lead Dev, Architekt ⭐</div>
+                    </div>
+                </div>
+                <div class="team-member">
+                    <div class="member-avatar mb">MB</div>
+                    <div class="member-info">
+                        <div class="member-name">Maximilian Bexa</div>
+                        <div class="member-role">Frontend, UI/UX</div>
+                    </div>
+                </div>
+                <div class="team-member">
+                    <div class="member-avatar rk">RK</div>
+                    <div class="member-info">
+                        <div class="member-name">Robin Kupka</div>
+                        <div class="member-role">QA, DevOps</div>
+                    </div>
+                </div>
+                <div class="team-member">
+                    <div class="member-avatar yr">YR</div>
+                    <div class="member-info">
+                        <div class="member-name">Yannick Raabe</div>
+                        <div class="member-role">Feature Dev</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline Header -->
+        <div class="timeline-header">
+            <div class="header-label"></div>
+            <div class="quarter-headers">
+                <div class="quarter"><span class="quarter-label">Q4 2025</span></div>
+                <div class="quarter"><span class="quarter-label">Q4 2025</span></div>
+                <div class="quarter"><span class="quarter-label">Q1 2026</span></div>
+                <div class="quarter"><span class="quarter-label">Q1 2026</span></div>
+            </div>
+        </div>
+
+        <div class="timeline-header" style="border-bottom: none;">
+            <div class="header-label"></div>
+            <div class="month-row">
+                <div class="month-group">
+                    <div class="month">Okt</div>
+                    <div class="month">Nov</div>
+                    <div class="month">Nov</div>
+                    <div class="month">Nov</div>
+                </div>
+                <div class="month-group">
+                    <div class="month">Nov</div>
+                    <div class="month">Dez</div>
+                    <div class="month">Dez</div>
+                    <div class="month">Dez</div>
+                </div>
+                <div class="month-group">
+                    <div class="month">Dez</div>
+                    <div class="month">Jan</div>
+                    <div class="month">Jan</div>
+                    <div class="month">Jan</div>
+                </div>
+                <div class="month-group">
+                    <div class="month">Jan</div>
+                    <div class="month">Jan</div>
+                    <div class="month">Feb</div>
+                    <div class="month">Feb</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Milestone Header -->
+        <div class="milestone-header">
+            <div class="label"></div>
+            <div class="milestone-track" id="milestone-track">
+                <!-- Milestones will be rendered here -->
+            </div>
+        </div>
+
+        <!-- Gantt Body -->
+        <div class="gantt-body" id="gantt-body">
+            <!-- Content rendered by JavaScript -->
+        </div>
+
+        <!-- Legend -->
+        <div class="legend-section">
+            <div>
+                <span class="legend-title">LEGENDE:</span>
+            </div>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-color bar-blue"></div>
+                    <span>FW - Felix Winkel</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color bar-green"></div>
+                    <span>MB - Maximilian Bexa</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color bar-orange"></div>
+                    <span>RK - Robin Kupka</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color bar-purple"></div>
+                    <span>YR - Yannick Raabe</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-milestone"></div>
+                    <span>Meilenstein</span>
+                </div>
+                <div class="legend-item">
+                    <div style="width: 30px; height: 14px; border: 2px solid #e74c3c; border-radius: 7px;"></div>
+                    <span>Kritischer Pfad</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Info Footer -->
+        <div class="project-info-footer">
+            <div class="info-block">
+                <h4>Projektstart</h4>
+                <div class="value">27. Okt 2025 (KW 44)</div>
+            </div>
+            <div class="info-block">
+                <h4>Projektende</h4>
+                <div class="value">02. Feb 2026 (KW 06)</div>
+            </div>
+            <div class="info-block">
+                <h4>Gesamtdauer</h4>
+                <div class="value">15 Wochen</div>
+            </div>
+            <div class="info-block">
+                <h4>Arbeitspakete</h4>
+                <div class="value" id="task-count">32</div>
+            </div>
+            <div class="info-block">
+                <h4>Urlaub / Sperrzeit</h4>
+                <div class="value">KW 01/2026 🎄</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Calchas Wetter-App Projektdaten basierend auf inhalt.txt
+        // Zeitraum: KW 44/2025 (27.10.) bis KW 06/2026 (02.02.)
+        // 16 Wochen Projektlaufzeit (mit KW 01 als Urlaub)
+
+        const projectData = {
+            projectStart: new Date(2025, 9, 27), // 27. Oktober 2025
+            projectEnd: new Date(2026, 1, 2),    // 02. Februar 2026
+            totalWeeks: 16,
+            holidayWeek: 10, // KW 01/2026 = Woche 10 im Projekt
+
+            milestones: [
+                { name: "Kick-off", date: "27. Okt", week: 1 },
+                { name: "API Ready", date: "09. Nov", week: 3 },
+                { name: "UI Complete", date: "16. Nov", week: 4 },
+                { name: "Feature Freeze", date: "14. Dez", week: 8 },
+                { name: "Code Freeze", date: "19. Jan", week: 13 },
+                { name: "Final Release", date: "02. Feb", week: 16 }
+            ],
+
+            phases: [
+                {
+                    id: "P1",
+                    name: "FOUNDATION & INFRASTRUCTURE",
+                    icon: "🏗️",
+                    startWeek: 1,
+                    endWeek: 1,
+                    tasks: [
+                        { id: "1.1", name: "Setup VS Code Workspace & Prettier", assignee: "FW", startWeek: 1, duration: 0.5, color: "bar-blue", critical: true },
+                        { id: "1.2", name: "Git-Repository mit Branch Protection", assignee: "FW", startWeek: 1, duration: 0.3, color: "bar-blue", critical: true },
+                        { id: "1.3", name: "Husky Pre-Commit Hooks", assignee: "FW", startWeek: 1, duration: 0.3, color: "bar-blue", critical: false },
+                        { id: "1.4", name: "PWA-Grundgerüst (Manifest, HTML5)", assignee: "FW", startWeek: 1, duration: 0.5, color: "bar-blue", critical: true },
+                        { id: "1.5", name: "Service Worker Basis", assignee: "FW", startWeek: 1, duration: 0.5, color: "bar-blue", critical: true },
+                        { id: "1.6", name: "WeatherDataService Architektur", assignee: "FW", startWeek: 1, duration: 0.5, color: "bar-blue", critical: true },
+                        { id: "1.7", name: "OpenWeatherMap API + .env", assignee: "FW", startWeek: 1, duration: 0.5, color: "bar-blue", critical: true },
+                        { id: "1.8", name: "Jest Testing Framework", assignee: "FW", startWeek: 1, duration: 0.3, color: "bar-blue", critical: false }
+                    ]
+                },
+                {
+                    id: "P2",
+                    name: "CORE DEVELOPMENT - DATA & MAP",
+                    icon: "🗺️",
+                    startWeek: 2,
+                    endWeek: 2,
+                    tasks: [
+                        { id: "2.1", name: "Meteostat API Integration", assignee: "FW", startWeek: 2, duration: 0.5, color: "bar-blue", critical: false },
+                        { id: "2.2", name: "VisualCrossing API (14-Tage)", assignee: "FW", startWeek: 2, duration: 0.5, color: "bar-blue", critical: false },
+                        { id: "2.3", name: "Fallback-Logik (Daisy-Chain)", assignee: "FW", startWeek: 2, duration: 0.7, color: "bar-blue", critical: true },
+                        { id: "2.4", name: "LocalStorage Caching (TTL 30min)", assignee: "FW", startWeek: 2, duration: 0.4, color: "bar-blue", critical: false },
+                        { id: "2.5", name: "Leaflet.js Karten-Integration", assignee: "FW", startWeek: 2, duration: 0.8, color: "bar-blue", critical: true },
+                        { id: "2.6", name: "UI: 7-Tage-Vorhersage (CSS Grid)", assignee: "MB", startWeek: 2, duration: 0.7, color: "bar-green", critical: false },
+                        { id: "2.7", name: "Swipe-Navigation Mobile", assignee: "MB", startWeek: 2, duration: 0.5, color: "bar-green", critical: false },
+                        { id: "2.8", name: "Icon-Set & Wetter-Code Mapping", assignee: "MB", startWeek: 2, duration: 0.4, color: "bar-green", critical: false },
+                        { id: "2.9", name: "GitHub Actions CI-Pipeline", assignee: "RK", startWeek: 2, duration: 0.6, color: "bar-orange", critical: false }
+                    ]
+                },
+                {
+                    id: "P3",
+                    name: "FEATURE REFINEMENT & GEOLOCATION",
+                    icon: "📍",
+                    startWeek: 3,
+                    endWeek: 3,
+                    tasks: [
+                        { id: "3.1", name: "Browser Geolocation API", assignee: "YR", startWeek: 3, duration: 0.6, color: "bar-purple", critical: false },
+                        { id: "3.2", name: "Search-to-Map Funktion", assignee: "FW", startWeek: 3, duration: 0.5, color: "bar-blue", critical: false },
+                        { id: "3.3", name: "Light Mode Umsetzung", assignee: "MB", startWeek: 3, duration: 0.5, color: "bar-green", critical: false },
+                        { id: "3.4", name: "Regen-Anzeige Bugfix", assignee: "MB", startWeek: 3, duration: 0.3, color: "bar-green", critical: false }
+                    ]
+                },
+                {
+                    id: "P4",
+                    name: "EXTENDED FEATURES (KW 47-51)",
+                    icon: "⚡",
+                    startWeek: 4,
+                    endWeek: 8,
+                    tasks: [
+                        { id: "4.1", name: "Radar-Preloading Logik", assignee: "RK", startWeek: 4, duration: 1.5, color: "bar-orange", critical: false },
+                        { id: "4.2", name: "i18n (DE/EN)", assignee: "MB", startWeek: 4.5, duration: 2, color: "bar-green", critical: false },
+                        { id: "4.3", name: "Air Quality Index Integration", assignee: "FW", startWeek: 5, duration: 1.5, color: "bar-blue", critical: false },
+                        { id: "4.4", name: "Error-Reporting Setup", assignee: "RK", startWeek: 6, duration: 1, color: "bar-orange", critical: false },
+                        { id: "4.5", name: "Dark Mode Optimierung", assignee: "MB", startWeek: 6.5, duration: 1, color: "bar-green", critical: false },
+                        { id: "4.6", name: "Performance Optimierung", assignee: "FW", startWeek: 7, duration: 1, color: "bar-blue", critical: false }
+                    ]
+                },
+                {
+                    id: "P5",
+                    name: "MOBILE OPTIMIZATION",
+                    icon: "📱",
+                    startWeek: 9,
+                    endWeek: 9,
+                    tasks: [
+                        { id: "5.1", name: "Mobile UI Fixes", assignee: "MB", startWeek: 9, duration: 1, color: "bar-green", critical: true },
+                        { id: "5.2", name: "Touch Gesture Support", assignee: "YR", startWeek: 9, duration: 0.7, color: "bar-purple", critical: false },
+                        { id: "5.3", name: "Responsive Breakpoints", assignee: "MB", startWeek: 9, duration: 0.5, color: "bar-green", critical: false }
+                    ]
+                },
+                {
+                    id: "P6",
+                    name: "🎄 WEIHNACHTSPAUSE",
+                    icon: "🎄",
+                    startWeek: 10,
+                    endWeek: 10,
+                    tasks: [
+                        { id: "6.1", name: "Arbeitsfreie Zeit (KW 01/2026)", assignee: "ALL", startWeek: 10, duration: 1, color: "bar-gray", critical: false, holiday: true }
+                    ]
+                },
+                {
+                    id: "P7",
+                    name: "CRISIS RECOVERY & REFACTORING",
+                    icon: "🔧",
+                    startWeek: 11,
+                    endWeek: 12,
+                    tasks: [
+                        { id: "7.1", name: "API-Header Bugfixing", assignee: "FW", startWeek: 11, duration: 1, color: "bar-blue", critical: true },
+                        { id: "7.2", name: "State-Management Refactoring", assignee: "FW", startWeek: 11.5, duration: 1.5, color: "bar-blue", critical: true },
+                        { id: "7.3", name: "PWA-Caching Stabilisierung", assignee: "FW", startWeek: 12, duration: 1, color: "bar-blue", critical: true }
+                    ]
+                },
+                {
+                    id: "P8",
+                    name: "QA & POLISH",
+                    icon: "✨",
+                    startWeek: 13,
+                    endWeek: 14,
+                    tasks: [
+                        { id: "8.1", name: "Lighthouse Audit (Score > 90)", assignee: "FW", startWeek: 13, duration: 1, color: "bar-blue", critical: true },
+                        { id: "8.2", name: "Accessibility Audit (WCAG)", assignee: "MB", startWeek: 13, duration: 1, color: "bar-green", critical: false },
+                        { id: "8.3", name: "Cross-Browser Testing", assignee: "RK", startWeek: 13.5, duration: 1, color: "bar-orange", critical: false },
+                        { id: "8.4", name: "Technische Dokumentation", assignee: "ALL", startWeek: 14, duration: 1, color: "bar-gray", critical: false }
+                    ]
+                },
+                {
+                    id: "P9",
+                    name: "LAUNCH & RELEASE",
+                    icon: "🚀",
+                    startWeek: 15,
+                    endWeek: 16,
+                    tasks: [
+                        { id: "9.1", name: "Production Build erstellen", assignee: "FW", startWeek: 15, duration: 0.5, color: "bar-blue", critical: true },
+                        { id: "9.2", name: "GitHub Pages Deployment", assignee: "RK", startWeek: 15.3, duration: 0.5, color: "bar-orange", critical: true },
+                        { id: "9.3", name: "Final Testing", assignee: "RK", startWeek: 15.5, duration: 0.5, color: "bar-orange", critical: true },
+                        { id: "9.4", name: "Open Day Präsentation", assignee: "ALL", startWeek: 16, duration: 0.3, color: "bar-yellow", critical: true, milestone: true }
+                    ]
+                }
+            ]
+        };
+
+        function init() {
+            renderMilestones();
+            renderGanttBody();
+        }
+
+        function renderMilestones() {
+            const track = document.getElementById('milestone-track');
+            let html = '';
+
+            projectData.milestones.forEach(ms => {
+                const leftPercent = ((ms.week - 0.5) / projectData.totalWeeks) * 100;
+                html += `
+                    <div class="milestone-marker" style="left: ${leftPercent}%;">
+                        <div class="milestone-diamond"></div>
+                        <div class="milestone-text">${ms.name}</div>
+                        <div class="milestone-date">(${ms.date})</div>
+                    </div>
+                `;
+            });
+
+            track.innerHTML = html;
+        }
+
+        function renderGanttBody() {
+            const body = document.getElementById('gantt-body');
+            let html = '';
+
+            projectData.phases.forEach(phase => {
+                // Phase row
+                html += `
+                    <div class="phase-row">
+                        <div class="phase-label">
+                            <span class="phase-icon">${phase.icon}</span>
+                            ${phase.name}
+                        </div>
+                        <div class="phase-timeline">
+                            ${renderPhaseBar(phase)}
+                            ${phase.id === 'P6' ? renderHolidayZone() : ''}
+                        </div>
+                    </div>
+                `;
+
+                // Task rows
+                phase.tasks.forEach(task => {
+                    html += `
+                        <div class="task-row">
+                            <div class="task-label">
+                                <span class="task-name">${task.name}</span>
+                                <div class="task-meta">
+                                    <span class="task-duration">${formatDuration(task.duration)}</span>
+                                    <div class="task-assignee ${task.assignee.toLowerCase()}" style="background: ${getAssigneeColor(task.assignee)};">
+                                        ${task.assignee}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="task-timeline">
+                                ${renderTaskBar(task)}
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+
+            body.innerHTML = html;
+            updateTaskCount();
+            attachTooltipEvents();
+        }
+
+        function renderPhaseBar(phase) {
+            const left = ((phase.startWeek - 1) / projectData.totalWeeks) * 100;
+            const width = ((phase.endWeek - phase.startWeek + 1) / projectData.totalWeeks) * 100;
+            return `<div class="phase-bar" style="left: ${left}%; width: ${width}%;"></div>`;
+        }
+
+        function renderTaskBar(task) {
+            const left = ((task.startWeek - 1) / projectData.totalWeeks) * 100;
+            const width = (task.duration / projectData.totalWeeks) * 100;
+            const criticalClass = task.critical ? 'critical' : '';
+
+            return `
+                <div class="task-bar ${task.color} ${criticalClass}"
+                     style="left: ${left}%; width: ${Math.max(width, 3)}%;"
+                     data-task='${JSON.stringify(task)}'
+                     onmouseenter="showTooltip(event, this)"
+                     onmouseleave="hideTooltip()">
+                    <span class="bar-label">${task.name}</span>
+                </div>
+            `;
+        }
+
+        function renderHolidayZone() {
+            const left = ((10 - 1) / projectData.totalWeeks) * 100;
+            const width = (1 / projectData.totalWeeks) * 100;
+            return `<div class="holiday-zone" style="left: ${left}%; width: ${width}%;"></div>`;
+        }
+
+        function getAssigneeColor(assignee) {
+            const colors = {
+                'FW': 'linear-gradient(135deg, #3498db, #2980b9)',
+                'MB': 'linear-gradient(135deg, #27ae60, #2ecc71)',
+                'RK': 'linear-gradient(135deg, #e67e22, #f39c12)',
+                'YR': 'linear-gradient(135deg, #9b59b6, #8e44ad)',
+                'ALL': 'linear-gradient(135deg, #636e72, #b2bec3)'
+            };
+            return colors[assignee] || colors['ALL'];
+        }
+
+        function formatDuration(weeks) {
+            if (weeks < 1) {
+                return `${Math.round(weeks * 5)}d`;
+            }
+            return `${weeks}w`;
+        }
+
+        function getDateFromWeek(week) {
+            const date = new Date(projectData.projectStart);
+            date.setDate(date.getDate() + (week - 1) * 7);
+            return date;
+        }
+
+        function formatDate(date) {
+            return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        function updateTaskCount() {
+            let count = 0;
+            projectData.phases.forEach(phase => {
+                count += phase.tasks.length;
+            });
+            document.getElementById('task-count').textContent = count;
+        }
+
+        function showTooltip(event, element) {
+            const tooltip = document.getElementById('tooltip');
+            const taskData = JSON.parse(element.getAttribute('data-task'));
+
+            if (!taskData) return;
+
+            const startDate = getDateFromWeek(taskData.startWeek);
+            const endDate = getDateFromWeek(taskData.startWeek + taskData.duration);
+
+            let html = `
+                <h4>${taskData.name}</h4>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Zugewiesen:</span>
+                    <span class="tooltip-value">${getFullName(taskData.assignee)}</span>
+                </div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Start:</span>
+                    <span class="tooltip-value">${formatDate(startDate)}</span>
+                </div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Ende:</span>
+                    <span class="tooltip-value">${formatDate(endDate)}</span>
+                </div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Dauer:</span>
+                    <span class="tooltip-value">${formatDuration(taskData.duration)}</span>
+                </div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Kritischer Pfad:</span>
+                    <span class="tooltip-value" style="color: ${taskData.critical ? '#e74c3c' : '#27ae60'};">
+                        ${taskData.critical ? '⚠️ Ja' : '✅ Nein'}
+                    </span>
+                </div>
+            `;
+
+            tooltip.innerHTML = html;
+            tooltip.style.display = 'block';
+
+            let left = event.clientX + 15;
+            let top = event.clientY + 15;
+
+            const tooltipRect = tooltip.getBoundingClientRect();
+
+            if (left + tooltipRect.width > window.innerWidth) {
+                left = event.clientX - tooltipRect.width - 15;
+            }
+
+            if (top + tooltipRect.height > window.innerHeight) {
+                top = event.clientY - tooltipRect.height - 15;
+            }
+
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').style.display = 'none';
+        }
+
+        function getFullName(abbr) {
+            const names = {
+                'FW': 'Felix Winkel',
+                'MB': 'Maximilian Bexa',
+                'RK': 'Robin Kupka',
+                'YR': 'Yannick Raabe',
+                'ALL': 'Gesamtes Team'
+            };
+            return names[abbr] || abbr;
+        }
+
+        function attachTooltipEvents() {
+            document.addEventListener('mousemove', function(e) {
+                const tooltip = document.getElementById('tooltip');
+                if (tooltip.style.display === 'block') {
+                    let left = e.clientX + 15;
+                    let top = e.clientY + 15;
+
+                    const tooltipRect = tooltip.getBoundingClientRect();
+
+                    if (left + tooltipRect.width > window.innerWidth) {
+                        left = e.clientX - tooltipRect.width - 15;
+                    }
+
+                    if (top + tooltipRect.height > window.innerHeight) {
+                        top = e.clientY - tooltipRect.height - 15;
+                    }
+
+                    tooltip.style.left = left + 'px';
+                    tooltip.style.top = top + 'px';
+                }
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
