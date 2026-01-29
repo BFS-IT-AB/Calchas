@@ -527,89 +527,148 @@
     return metricMapping[idOrMetric] || idOrMetric;
   }
 
-  // Store source element for FLIP animations
-  let lastSourceElement = null;
-
+  /**
+   * Open a bottom sheet modal - EXACT SAME as Health-page HealthSafetyView.js
+   * Uses requestAnimationFrame to trigger class add (identical to line 827-828 of HealthSafetyView.js)
+   * @param {string} idOrMetric - Sheet ID or metric name
+   * @param {Element} sourceElement - Optional source element for future use
+   */
   function openSheet(idOrMetric, sourceElement) {
-    console.log(
-      `[ModalController.openSheet] Called with idOrMetric="${idOrMetric}"`,
-    );
-
     const overlay = document.getElementById("bottom-sheet-overlay");
     const resolvedId = resolveSheetId(idOrMetric);
     const sheet = resolvedId && document.getElementById(resolvedId);
 
     if (!overlay || !sheet) {
-      console.error(`[ModalController.openSheet] Missing overlay or sheet!`);
+      console.error(
+        `[ModalController] Missing overlay or sheet for: ${idOrMetric}`,
+      );
       return;
     }
 
-    // Render Sheet content vor dem Öffnen
+    // Render sheet content before opening
     renderSheetContent(resolvedId);
 
-    // Store source element for FLIP close animation
-    // If no explicit source, Transitions will auto-detect from last clicked element
-    lastSourceElement = sourceElement || null;
+    // Ensure Health-style drag handle exists at top of sheet
+    ensureDragHandle(sheet);
 
-    // Make overlay visible
+    // Show overlay - prepare for animation
     overlay.removeAttribute("hidden");
     overlay.setAttribute("aria-hidden", "false");
-    overlay.classList.add("is-open");
 
-    // Use FLIP animation if Transitions available
-    // Transitions module auto-detects source if not provided
-    if (global.Transitions) {
-      console.log(`[ModalController.openSheet] Using FLIP animation`);
-      global.Transitions.animateOpen(sourceElement, sheet).then(() => {
-        activeSheetId = resolvedId;
-      });
-    } else {
-      // Fallback: standard animation
+    // Lock body scroll
+    document.body.classList.add("modal-open");
+
+    // EXACT SAME AS HEALTH: Use requestAnimationFrame to trigger visible class
+    // This ensures the browser has painted the initial state before animating
+    // (Mirrors HealthSafetyView.js lines 827-828)
+    requestAnimationFrame(() => {
+      overlay.classList.add("is-open");
       sheet.classList.add("bottom-sheet--visible");
-      activeSheetId = resolvedId;
+    });
+
+    activeSheetId = resolvedId;
+  }
+
+  /**
+   * Ensure sheet has Health-style drag handle
+   */
+  function ensureDragHandle(sheet) {
+    if (!sheet.querySelector(".bottom-sheet__handle")) {
+      const handle = document.createElement("div");
+      handle.className = "bottom-sheet__handle";
+      handle.setAttribute("aria-hidden", "true");
+      sheet.insertBefore(handle, sheet.firstChild);
     }
   }
 
+  /**
+   * Close the currently active bottom sheet - EXACT SAME timing as Health-page
+   * Uses 300ms delay (identical to line 795 of HealthSafetyView.js)
+   */
   function closeSheet() {
     const overlay = document.getElementById("bottom-sheet-overlay");
     if (!overlay) return;
 
     const activeSheet = activeSheetId && document.getElementById(activeSheetId);
 
-    // Use FLIP animation if available and not already animating
-    if (global.Transitions && !global.Transitions.isAnimating()) {
-      console.log(`[ModalController.closeSheet] Using FLIP animation`);
-      global.Transitions.animateClose(activeSheet).then(() => {
-        finalizeClose(overlay, activeSheet);
-      });
-    } else {
-      // Fallback: standard close
-      if (activeSheet) {
-        activeSheet.classList.remove("bottom-sheet--visible");
-      }
-      finalizeClose(overlay, activeSheet);
+    // Remove visible classes to trigger CSS slide-down
+    overlay.classList.remove("is-open");
+    if (activeSheet) {
+      activeSheet.classList.remove("bottom-sheet--visible");
     }
+
+    // EXACT SAME AS HEALTH: 300ms delay before removal
+    // (Mirrors HealthSafetyView.js line 795: setTimeout(() => overlay.remove(), 300))
+    setTimeout(() => {
+      finalizeClose(overlay, activeSheet);
+    }, 300);
   }
 
+  /**
+   * Complete cleanup after modal closes - fixes "Persistent Darkness" bug
+   * Ensures screen returns to 100% brightness with no leftover overlays
+   */
   function finalizeClose(overlay, sheet) {
+    // Reset sheet state
     if (sheet) {
       sheet.classList.remove("bottom-sheet--visible");
-      sheet.style.cssText = ""; // Reset any inline styles from animation
+      sheet.style.cssText = "";
     }
-    overlay.classList.remove("is-open");
+
+    // Reset overlay state (keep element, just hide it)
     overlay.setAttribute("aria-hidden", "true");
     activeSheetId = null;
-    lastSourceElement = null;
 
-    if (global.Transitions) {
-      global.Transitions.reset(); // Full reset to clean up all state
+    // ===========================================
+    // HARD RESET: Guarantee no persistent dimming
+    // ===========================================
+
+    // 1. Remove ALL body classes that could cause dimming
+    document.body.classList.remove(
+      "modal-open",
+      "bg-dimmed",
+      "scrim-active",
+      "modal-active",
+    );
+    document.documentElement.classList.remove(
+      "modal-open",
+      "bg-dimmed",
+      "scrim-active",
+      "modal-active",
+    );
+
+    // 2. Force remove any leftover scrim/phantom elements from old systems
+    document
+      .querySelectorAll(
+        "#modal-scrim, .flip-phantom, .flip-scrim, .health-modal-overlay",
+      )
+      .forEach((el) => {
+        // Don't remove if it has --visible class (still animating)
+        if (!el.classList.contains("health-modal-overlay--visible")) {
+          el.remove();
+        }
+      });
+
+    // 3. Reset any inline filter/transform styles on app container
+    const appContainer =
+      document.getElementById("app-container") ||
+      document.getElementById("app") ||
+      document.querySelector("main");
+    if (appContainer) {
+      appContainer.style.filter = "";
+      appContainer.style.transform = "";
+      appContainer.style.transition = "";
     }
+
+    // 4. Reset body overflow
+    document.body.style.overflow = "";
   }
 
   function initModalController() {
     const overlay = document.getElementById("bottom-sheet-overlay");
     if (!overlay) return;
 
+    // Click on backdrop closes modal
     overlay.addEventListener("click", (event) => {
       if (event.target === overlay) {
         closeSheet();
@@ -621,7 +680,6 @@
     });
 
     // Global click listener for data-attribute triggers
-    // Transitions.js auto-detects the clicked element, so we just pass it along
     document.addEventListener("click", (event) => {
       const trigger =
         event.target.closest("[data-bottom-sheet]") ||
@@ -633,10 +691,10 @@
         trigger.getAttribute("data-bottom-sheet-target");
       if (!targetIdAttr) return;
 
-      // Pass trigger as sourceElement for FLIP animation
       openSheet(targetIdAttr, trigger);
     });
 
+    // ESC key closes modal
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         closeSheet();

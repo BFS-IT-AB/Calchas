@@ -1,7 +1,22 @@
 /**
- * Transitions.js - FLIP Animation System v8.0 "Snapshot & Cross-Morph"
- * Canvas-based pixel snapshots for perfect transitions without DOM artifacts.
- * @version 8.0.0
+ * Transitions.js - FLIP Animation System v10.0 "Swift Morph"
+ *
+ * ⚠️ DEPRECATED - NOT IN USE ⚠️
+ * This file is kept as a backup reference only.
+ * The app now uses stable Health-style CSS animations via ModalController.js.
+ * FLIP animations were too buggy for the current DOM structure.
+ *
+ * To re-enable: Uncomment Transitions calls in ModalController.js
+ *
+ * Fixes that were implemented:
+ * - Singleton scrim pattern (no stacking overlays)
+ * - 250ms Swift easing for snappy feel
+ * - Fade-Over trick at 30% to hide text stretching
+ * - Locked content width prevents text distortion
+ * - Memory leak protection with destroy()
+ *
+ * @version 10.0.0
+ * @deprecated Use CSS transitions in style.css instead
  */
 (function (global) {
   "use strict";
@@ -10,54 +25,123 @@
   // Configuration
   // ===========================================
   const CONFIG = {
-    duration: 250,
-    easing: "cubic-bezier(0.2, 0, 0, 1)",
-    scrimEasing: "cubic-bezier(0.3, 0, 0, 1)", // Android 15 scrim easing
-    backgroundScale: 0.92,
-    backgroundBorderRadius: 24,
-    crossfadeAt: 0.5, // Crossfade at 50%
+    duration: 250, // Snappy 250ms
+    easing: "cubic-bezier(0.05, 0.7, 0.1, 1.0)", // Android 15 "Swift" feel
+    scrimOpacity: 0.6,
     phantomZIndex: 10001,
     scrimZIndex: 9999,
-    scrimOpacity: 0.4,
-  };
-
-  let state = {
-    isAnimating: false,
-    phantomA: null, // Card snapshot
-    phantomB: null, // Modal background
-    scrim: null,
-    sourceRect: null,
-    sourceElement: null,
-    lastClickedElement: null,
-    appContainer: null,
+    scrimId: "modal-scrim", // Singleton ID
+    fadeOverPoint: 0.3, // Start cross-fade at 30%
   };
 
   // ===========================================
-  // Inject CSS for transitions
+  // State - track all resources for cleanup
+  // ===========================================
+  let state = {
+    isAnimating: false,
+    phantom: null,
+    sourceRect: null,
+    sourceElement: null,
+    lastClickedElement: null,
+    // Memory leak tracking
+    timeouts: [],
+    rafs: [],
+  };
+
+  // ===========================================
+  // Memory-safe setTimeout/rAF wrappers
+  // ===========================================
+  function safeTimeout(fn, delay) {
+    const id = setTimeout(() => {
+      state.timeouts = state.timeouts.filter((t) => t !== id);
+      fn();
+    }, delay);
+    state.timeouts.push(id);
+    return id;
+  }
+
+  function safeRaf(fn) {
+    const id = requestAnimationFrame(() => {
+      state.rafs = state.rafs.filter((r) => r !== id);
+      fn();
+    });
+    state.rafs.push(id);
+    return id;
+  }
+
+  function clearAllTimers() {
+    state.timeouts.forEach((id) => clearTimeout(id));
+    state.rafs.forEach((id) => cancelAnimationFrame(id));
+    state.timeouts = [];
+    state.rafs = [];
+  }
+
+  // ===========================================
+  // Inject CSS
   // ===========================================
   (function injectStyles() {
     if (document.getElementById("flip-transition-styles")) return;
     const style = document.createElement("style");
     style.id = "flip-transition-styles";
     style.textContent = `
-      .flip-scrim {
+      html {
+        scrollbar-gutter: stable;
+      }
+
+      body.modal-open {
+        overflow: hidden;
+      }
+
+      /* Single dimming class - toggled, not stacked */
+      body.bg-dimmed #app-container,
+      body.bg-dimmed #app,
+      body.bg-dimmed main {
+        filter: brightness(0.7);
+        transition: filter ${CONFIG.duration}ms ${CONFIG.easing};
+      }
+
+      /* Singleton scrim */
+      #${CONFIG.scrimId} {
         position: fixed;
         inset: 0;
         background: rgba(0, 0, 0, 0);
         pointer-events: none;
-        will-change: background-color;
+        z-index: ${CONFIG.scrimZIndex};
+        transition: background-color ${CONFIG.duration}ms ${CONFIG.easing};
       }
-      .flip-phantom-snapshot {
+
+      #${CONFIG.scrimId}.scrim--visible {
+        background: rgba(0, 0, 0, ${CONFIG.scrimOpacity});
+      }
+
+      .flip-phantom {
         position: fixed;
         pointer-events: none;
-        background-size: 100% 100%;
-        background-repeat: no-repeat;
-        background-position: center;
+        overflow: hidden;
         will-change: transform, opacity, border-radius;
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
-        image-rendering: -webkit-optimize-contrast;
-        image-rendering: crisp-edges;
+      }
+
+      .flip-phantom__content {
+        position: absolute;
+        left: 0;
+        top: 0;
+        pointer-events: none;
+        /* Width locked via JS to prevent text reflow */
+      }
+
+      .flip-phantom__fade {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        transition: opacity ${CONFIG.duration * 0.5}ms ease-out;
+        background: var(--modal-bg, rgba(30, 35, 50, 0.98));
+        border-radius: inherit;
+      }
+
+      .flip-phantom__fade.fade--active {
+        opacity: 1;
       }
     `;
     document.head.appendChild(style);
@@ -80,63 +164,54 @@
   );
 
   // ===========================================
-  // App Container (Android 15 depth effect)
+  // SINGLETON Scrim - only ONE ever exists
   // ===========================================
-  function getAppContainer() {
-    if (!state.appContainer) {
-      state.appContainer =
-        document.getElementById("app-container") ||
-        document.getElementById("app") ||
-        document.querySelector("main") ||
-        document.body;
+  function getOrCreateScrim() {
+    let scrim = document.getElementById(CONFIG.scrimId);
+    if (!scrim) {
+      scrim = document.createElement("div");
+      scrim.id = CONFIG.scrimId;
+      document.body.appendChild(scrim);
     }
-    return state.appContainer;
-  }
-
-  function applyBackgroundEffect(active) {
-    const container = getAppContainer();
-    if (container && container !== document.body) {
-      if (active) {
-        container.style.transition = `transform ${CONFIG.duration}ms ${CONFIG.scrimEasing}, border-radius ${CONFIG.duration}ms ${CONFIG.scrimEasing}`;
-        container.style.transformOrigin = "center top";
-        container.style.transform = `scale(${CONFIG.backgroundScale})`;
-        container.style.borderRadius = `${CONFIG.backgroundBorderRadius}px`;
-        container.style.overflow = "hidden";
-      } else {
-        container.style.transition = `transform ${CONFIG.duration}ms ${CONFIG.scrimEasing}, border-radius ${CONFIG.duration}ms ${CONFIG.scrimEasing}`;
-        container.style.transform = "";
-        container.style.borderRadius = "";
-        setTimeout(() => {
-          container.style.transition = "";
-          container.style.transformOrigin = "";
-          container.style.overflow = "";
-        }, CONFIG.duration);
-      }
-    }
-  }
-
-  // ===========================================
-  // Scrim (Dark Overlay)
-  // ===========================================
-  function createScrim() {
-    const scrim = document.createElement("div");
-    scrim.className = "flip-scrim";
-    scrim.style.zIndex = CONFIG.scrimZIndex;
-    document.body.appendChild(scrim);
     return scrim;
   }
 
-  function animateScrim(scrim, show) {
-    scrim.style.transition = `background-color ${CONFIG.duration}ms ${CONFIG.scrimEasing}`;
-    scrim.style.backgroundColor = show
-      ? `rgba(0, 0, 0, ${CONFIG.scrimOpacity})`
-      : "rgba(0, 0, 0, 0)";
+  function showScrim() {
+    const scrim = getOrCreateScrim();
+    // Force reflow before adding class
+    void scrim.offsetHeight;
+    scrim.classList.add("scrim--visible");
+  }
+
+  function hideScrim() {
+    const scrim = document.getElementById(CONFIG.scrimId);
+    if (scrim) {
+      scrim.classList.remove("scrim--visible");
+    }
   }
 
   function removeScrim() {
-    if (state.scrim) {
-      state.scrim.remove();
-      state.scrim = null;
+    const scrim = document.getElementById(CONFIG.scrimId);
+    if (scrim) {
+      scrim.classList.remove("scrim--visible");
+      // Remove after fade completes
+      safeTimeout(() => {
+        const s = document.getElementById(CONFIG.scrimId);
+        if (s && !s.classList.contains("scrim--visible")) {
+          s.remove();
+        }
+      }, CONFIG.duration);
+    }
+  }
+
+  // ===========================================
+  // Background Dimming (class toggle, not inline)
+  // ===========================================
+  function dimBackground(active) {
+    if (active) {
+      document.body.classList.add("bg-dimmed");
+    } else {
+      document.body.classList.remove("bg-dimmed");
     }
   }
 
@@ -151,14 +226,14 @@
   }
 
   function showLeafletMaps() {
-    setTimeout(() => {
+    safeTimeout(() => {
       document
         .querySelectorAll(".leaflet-container[data-transition-hidden]")
         .forEach((m) => {
           delete m.dataset.transitionHidden;
           m.style.visibility = "";
         });
-      setTimeout(() => {
+      safeTimeout(() => {
         document.querySelectorAll(".leaflet-container").forEach((m) => {
           if (m._leaflet_id && global.L) {
             try {
@@ -178,163 +253,77 @@
   }
 
   // ===========================================
-  // Canvas Snapshot Generator
+  // Create Phantom with LOCKED width
   // ===========================================
-  async function captureSnapshot(element) {
-    const rect = element.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
+  function createPhantom(sourceElement, sourceRect) {
+    const computed = getComputedStyle(sourceElement);
+    const borderRadius = parseInt(computed.borderRadius) || 16;
 
-    // Try html2canvas if available (higher quality)
-    if (global.html2canvas) {
-      try {
-        const canvas = await global.html2canvas(element, {
-          scale: dpr,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: null,
-          logging: false,
-        });
-        return canvas.toDataURL("image/png");
-      } catch (e) {
-        console.warn("[Snapshot] html2canvas failed, using fallback", e);
-      }
-    }
-
-    // Native fallback: Use foreignObject in SVG
-    return await captureSvgSnapshot(element, rect, dpr);
-  }
-
-  async function captureSvgSnapshot(element, rect, dpr) {
-    return new Promise((resolve) => {
-      // Clone element for snapshot
-      const clone = element.cloneNode(true);
-
-      // Sanitize clone
-      clone.removeAttribute("id");
-      clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
-      clone
-        .querySelectorAll("script, iframe, video, audio, canvas")
-        .forEach((el) => el.remove());
-
-      // Replace leaflet maps with placeholder
-      clone.querySelectorAll(".leaflet-container").forEach((el) => {
-        el.innerHTML = "";
-        el.style.background =
-          "linear-gradient(135deg, #2d3748 0%, #1a202c 100%)";
-      });
-
-      // Get computed styles
-      const computed = getComputedStyle(element);
-
-      // Create a wrapper with exact styles
-      const wrapper = document.createElement("div");
-      wrapper.style.cssText = `
-        position: absolute;
-        left: -9999px;
-        top: -9999px;
-        width: ${rect.width}px;
-        height: ${rect.height}px;
-        background: ${computed.backgroundColor};
-        border-radius: ${computed.borderRadius};
-        overflow: hidden;
-      `;
-
-      clone.style.cssText = `
-        width: ${rect.width}px !important;
-        height: ${rect.height}px !important;
-        margin: 0 !important;
-        position: relative !important;
-      `;
-
-      wrapper.appendChild(clone);
-      document.body.appendChild(wrapper);
-
-      // Serialize to SVG foreignObject
-      const data = new XMLSerializer().serializeToString(wrapper);
-      const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="${rect.width * dpr}" height="${rect.height * dpr}">
-          <foreignObject width="100%" height="100%" style="transform: scale(${dpr}); transform-origin: 0 0;">
-            ${data}
-          </foreignObject>
-        </svg>
-      `;
-
-      // Convert to image
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0);
-
-        document.body.removeChild(wrapper);
-        resolve(canvas.toDataURL("image/png"));
-      };
-
-      img.onerror = () => {
-        document.body.removeChild(wrapper);
-        // Final fallback: solid color
-        resolve(null);
-      };
-
-      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-
-      // Timeout fallback
-      setTimeout(() => {
-        if (wrapper.parentNode) {
-          document.body.removeChild(wrapper);
-        }
-        resolve(null);
-      }, 100);
-    });
-  }
-
-  // ===========================================
-  // Create Snapshot Phantom (Pixel-Perfect)
-  // ===========================================
-  function createSnapshotPhantom(dataUrl, rect, borderRadius, zIndex) {
+    // Create phantom container with overflow:hidden
     const phantom = document.createElement("div");
-    phantom.className = "flip-phantom-snapshot";
-
-    const bg = dataUrl
-      ? `url("${dataUrl}")`
-      : "linear-gradient(135deg, rgba(30, 40, 50, 0.95) 0%, rgba(20, 30, 40, 0.95) 100%)";
-
+    phantom.className = "flip-phantom";
     phantom.style.cssText = `
-      z-index: ${zIndex};
-      left: ${rect.left}px;
-      top: ${rect.top}px;
-      width: ${rect.width}px;
-      height: ${rect.height}px;
+      z-index: ${CONFIG.phantomZIndex};
+      left: ${sourceRect.left}px;
+      top: ${sourceRect.top}px;
+      width: ${sourceRect.width}px;
+      height: ${sourceRect.height}px;
       border-radius: ${borderRadius}px;
-      background-image: ${bg};
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-      transform-origin: top left;
+      background: ${computed.backgroundColor || "rgba(30, 40, 50, 0.95)"};
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      overflow: hidden;
     `;
 
-    return phantom;
-  }
+    // Clone content with LOCKED WIDTH to prevent text wrapping/stretching
+    const clone = sourceElement.cloneNode(true);
+    clone.className = "flip-phantom__content";
 
-  // ===========================================
-  // Create Modal Background Phantom
-  // ===========================================
-  function createModalPhantom(rect, backgroundColor, zIndex) {
-    const phantom = document.createElement("div");
-    phantom.className = "flip-phantom-snapshot";
-    phantom.style.cssText = `
-      z-index: ${zIndex};
-      left: ${rect.left}px;
-      top: ${rect.top}px;
-      width: ${rect.width}px;
-      height: ${rect.height}px;
-      border-radius: 24px 24px 0 0;
-      background: ${backgroundColor || "rgba(30, 40, 50, 0.98)"};
-      box-shadow: 0 -4px 32px rgba(0,0,0,0.5);
-      opacity: 0;
-      transform-origin: top left;
+    // Sanitize
+    clone.removeAttribute("id");
+    clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+    clone
+      .querySelectorAll("script, iframe, video, audio")
+      .forEach((el) => el.remove());
+
+    // CRITICAL: Lock width to exact source width
+    // This prevents "Berlin" text distortion
+    clone.style.cssText = `
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: ${sourceRect.width}px !important;
+      height: ${sourceRect.height}px !important;
+      min-width: ${sourceRect.width}px !important;
+      max-width: ${sourceRect.width}px !important;
+      margin: 0 !important;
+      padding: ${computed.padding} !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      pointer-events: none !important;
+      transition: none !important;
+      overflow: hidden !important;
     `;
-    return phantom;
+
+    // Disable ALL transitions on children
+    clone.querySelectorAll("*").forEach((el) => {
+      el.style.transition = "none";
+      el.style.animation = "none";
+    });
+
+    // Replace leaflet maps with placeholder
+    clone.querySelectorAll(".leaflet-container").forEach((el) => {
+      el.innerHTML = "";
+      el.style.background = "linear-gradient(135deg, #2d3748 0%, #1a202c 100%)";
+    });
+
+    phantom.appendChild(clone);
+
+    // Add fade overlay for the "Fade-Over" trick
+    const fadeOverlay = document.createElement("div");
+    fadeOverlay.className = "flip-phantom__fade";
+    phantom.appendChild(fadeOverlay);
+
+    return { phantom, borderRadius, fadeOverlay };
   }
 
   // ===========================================
@@ -348,51 +337,39 @@
   }
 
   // ===========================================
-  // Calculate Transform for Animation
-  // ===========================================
-  function calculateTransform(fromRect, toRect) {
-    const scaleX = toRect.width / fromRect.width;
-    const scaleY = toRect.height / fromRect.height;
-    const translateX = toRect.left - fromRect.left;
-    const translateY = toRect.top - fromRect.top;
-    return { scaleX, scaleY, translateX, translateY };
-  }
-
-  // ===========================================
-  // FLIP Open Animation (Snapshot & Cross-Morph)
+  // FLIP Open Animation with Fade-Over trick
   // ===========================================
   function animateOpen(source, target) {
     const resolvedSource = resolveSource(source);
 
     if (state.isAnimating) {
-      console.warn("[SCM] Already animating");
+      console.warn("[Swift] Already animating");
       target?.classList.add("bottom-sheet--visible");
       return Promise.resolve();
     }
 
     if (!target) {
-      console.warn("[SCM] No target");
+      console.warn("[Swift] No target");
       return Promise.resolve();
     }
 
     if (!resolvedSource) {
-      console.log("[SCM] No source, fallback");
+      console.log("[Swift] No source, fallback");
       target.classList.add("bottom-sheet--visible");
+      showScrim();
+      document.body.classList.add("modal-open");
       return Promise.resolve();
     }
 
-    return new Promise(async (resolve) => {
+    return new Promise((resolve) => {
       state.isAnimating = true;
       state.sourceElement = resolvedSource;
 
       // ===========================================
-      // PHASE 1: MEASURE SOURCE (FIRST)
+      // PHASE 1: MEASURE SOURCE (First)
       // ===========================================
-      console.log("[SCM] FIRST");
-
       const firstRect = resolvedSource.getBoundingClientRect();
       if (firstRect.width === 0 || firstRect.height === 0) {
-        console.warn("[SCM] Zero source rect");
         state.isAnimating = false;
         target.classList.add("bottom-sheet--visible");
         return resolve();
@@ -405,25 +382,14 @@
         height: firstRect.height,
       };
 
-      const computed = getComputedStyle(resolvedSource);
-      const sourceBorderRadius = parseInt(computed.borderRadius) || 16;
-
       // ===========================================
-      // PHASE 2: CAPTURE SNAPSHOT (BEFORE HIDING)
-      // ===========================================
-      console.log("[SCM] SNAPSHOT");
-
-      // Capture the snapshot while element is still visible
-      const snapshotDataUrl = await captureSnapshot(resolvedSource);
-
-      // ===========================================
-      // FRAME 0: ATOMIC HIDE SOURCE (after snapshot)
+      // PHASE 2: HIDE SOURCE
       // ===========================================
       resolvedSource.style.opacity = "0";
       resolvedSource.style.pointerEvents = "none";
 
       // ===========================================
-      // PHASE 3: MEASURE TARGET (LAST) - HIDDEN
+      // PHASE 3: MEASURE TARGET (Last)
       // ===========================================
       target.style.cssText =
         "opacity:0 !important; visibility:hidden !important; display:block !important; pointer-events:none !important;";
@@ -431,132 +397,89 @@
       void target.offsetHeight;
 
       const lastRect = target.getBoundingClientRect();
-      const targetComputed = getComputedStyle(target);
-      console.log("[SCM] LAST:", lastRect.width, "x", lastRect.height);
 
-      // Hide leaflet maps
+      // Hide maps during animation
       hideLeafletMaps();
 
       // ===========================================
-      // PHASE 4: CREATE DUAL-LAYER PHANTOMS
+      // PHASE 4: CREATE SCRIM + PHANTOM
       // ===========================================
-      console.log("[SCM] CREATE PHANTOMS");
+      showScrim();
 
-      // Create scrim (dark overlay)
-      state.scrim = createScrim();
-
-      // Phantom A: Card snapshot (starts visible)
-      const phantomA = createSnapshotPhantom(
-        snapshotDataUrl,
+      const { phantom, borderRadius, fadeOverlay } = createPhantom(
+        resolvedSource,
         firstRect,
-        sourceBorderRadius,
-        CONFIG.phantomZIndex + 1,
       );
-      document.body.appendChild(phantomA);
-      state.phantomA = phantomA;
+      document.body.appendChild(phantom);
+      state.phantom = phantom;
 
-      // Phantom B: Modal background (starts invisible at card position)
-      const phantomB = createModalPhantom(
-        firstRect,
-        targetComputed.backgroundColor,
-        CONFIG.phantomZIndex,
-      );
-      document.body.appendChild(phantomB);
-      state.phantomB = phantomB;
+      // Lock body scroll
+      document.body.classList.add("modal-open");
 
-      // Apply Android 15 depth effect to background
-      applyBackgroundEffect(true);
+      // Dim background
+      dimBackground(true);
 
-      // Calculate transform
-      const transform = calculateTransform(firstRect, lastRect);
+      // Calculate FLIP transform
+      const scaleX = lastRect.width / firstRect.width;
+      const scaleY = lastRect.height / firstRect.height;
+      const translateX = lastRect.left - firstRect.left;
+      const translateY = lastRect.top - firstRect.top;
 
       // ===========================================
-      // PHASE 5: DOUBLE RAF FOR SYNC
+      // PHASE 5: ANIMATE with Fade-Over
       // ===========================================
-      requestAnimationFrame(() => {
-        console.log("[SCM] INVERT");
+      safeRaf(() => {
+        safeRaf(() => {
+          // Apply transform
+          phantom.style.transition = `
+            transform ${CONFIG.duration}ms ${CONFIG.easing},
+            border-radius ${CONFIG.duration}ms ${CONFIG.easing}
+          `;
+          phantom.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX}, ${scaleY})`;
+          phantom.style.borderRadius = "24px 24px 0 0";
 
-        requestAnimationFrame(() => {
-          // ===========================================
-          // PHASE 6: ANIMATE BOTH PHANTOMS
-          // ===========================================
-          console.log("[SCM] PLAY");
-
-          // Animate scrim
-          animateScrim(state.scrim, true);
-
-          // Set transitions
-          const transitionStr = `transform ${CONFIG.duration}ms ${CONFIG.easing}, border-radius ${CONFIG.duration}ms ${CONFIG.easing}, opacity ${CONFIG.duration}ms ${CONFIG.easing}`;
-          phantomA.style.transition = transitionStr;
-          phantomB.style.transition = transitionStr;
-
-          // Animate Phantom A (card snapshot) - scale to modal size
-          phantomA.style.transform = `translate(${transform.translateX}px, ${transform.translateY}px) scale(${transform.scaleX}, ${transform.scaleY})`;
-          phantomA.style.borderRadius = "24px 24px 0 0";
-
-          // Animate Phantom B (modal bg) - same transform, fade in
-          phantomB.style.transform = `translate(${transform.translateX}px, ${transform.translateY}px) scale(${transform.scaleX}, ${transform.scaleY})`;
-          phantomB.style.width = `${firstRect.width}px`;
-          phantomB.style.height = `${firstRect.height}px`;
+          // FADE-OVER TRICK: At 30%, start fading in overlay to hide text stretch
+          safeTimeout(() => {
+            fadeOverlay.classList.add("fade--active");
+          }, CONFIG.duration * CONFIG.fadeOverPoint);
 
           // ===========================================
-          // PHASE 7: CROSSFADE AT 50%
+          // PHASE 6: SWAP at 100%
           // ===========================================
-          setTimeout(() => {
-            console.log("[SCM] CROSSFADE");
-            phantomA.style.opacity = "0";
-            phantomB.style.opacity = "1";
-          }, CONFIG.duration * CONFIG.crossfadeAt);
+          safeTimeout(() => {
+            // Remove phantom
+            if (state.phantom) {
+              state.phantom.remove();
+              state.phantom = null;
+            }
 
-          // ===========================================
-          // PHASE 8: HARD SWAP AT 100%
-          // ===========================================
-          const onEnd = (e) => {
-            if (e && e.target !== phantomA) return;
-            phantomA.removeEventListener("transitionend", onEnd);
+            // Show real modal
+            target.style.cssText =
+              "visibility:visible; opacity:1; pointer-events:auto;";
 
-            console.log("[SCM] HARD SWAP");
+            // Remove dim effect
+            dimBackground(false);
 
-            // Reveal real modal in same frame as phantom removal
-            requestAnimationFrame(() => {
-              // Remove phantoms
-              cleanupPhantoms();
-              removeScrim();
-
-              // Instant reveal
-              target.style.cssText =
-                "visibility:visible; opacity:1; pointer-events:auto;";
-
-              // Reset background
-              applyBackgroundEffect(false);
-              showLeafletMaps();
-              state.isAnimating = false;
-              resolve();
-            });
-          };
-
-          phantomA.addEventListener("transitionend", onEnd);
-
-          // Fallback timeout
-          setTimeout(() => {
-            if (state.phantomA === phantomA) onEnd(null);
-          }, CONFIG.duration + 100);
+            showLeafletMaps();
+            state.isAnimating = false;
+            resolve();
+          }, CONFIG.duration + 20);
         });
       });
     });
   }
 
   // ===========================================
-  // FLIP Close Animation (Reverse Cross-Morph)
+  // FLIP Close Animation
   // ===========================================
   function animateClose(target) {
     if (state.isAnimating) {
-      console.warn("[SCM] Already animating close");
+      console.warn("[Swift] Already animating close");
       return Promise.resolve();
     }
 
     if (!target || !state.sourceRect) {
-      console.log("[SCM] Fallback close");
+      console.log("[Swift] Fallback close");
       if (target) {
         target.classList.remove("bottom-sheet--visible");
         target.style.cssText = "";
@@ -566,82 +489,82 @@
       return Promise.resolve();
     }
 
-    return new Promise(async (resolve) => {
+    return new Promise((resolve) => {
       state.isAnimating = true;
       hideLeafletMaps();
 
       const curRect = target.getBoundingClientRect();
       const computed = getComputedStyle(target);
 
-      // Create scrim
-      state.scrim = createScrim();
-      state.scrim.style.backgroundColor = `rgba(0, 0, 0, ${CONFIG.scrimOpacity})`;
-
-      // Apply background effect
-      applyBackgroundEffect(true);
-
-      // Create phantom at modal position (simple colored box for close)
+      // Create phantom at modal position
       const phantom = document.createElement("div");
-      phantom.className = "flip-phantom-snapshot";
+      phantom.className = "flip-phantom";
       phantom.style.cssText = `
         z-index: ${CONFIG.phantomZIndex};
         left: ${curRect.left}px;
         top: ${curRect.top}px;
         width: ${curRect.width}px;
         height: ${curRect.height}px;
-        background: ${computed.backgroundColor || "rgba(30, 40, 50, 0.98)"};
+        background: ${computed.backgroundColor || "rgba(30, 40, 50, 0.95)"};
         border-radius: 24px 24px 0 0;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-        transform-origin: top left;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        overflow: hidden;
       `;
 
-      document.body.appendChild(phantom);
-      state.phantomA = phantom;
+      // Add fade layer (starts visible for reverse)
+      const fadeLayer = document.createElement("div");
+      fadeLayer.className = "flip-phantom__fade fade--active";
+      phantom.appendChild(fadeLayer);
 
-      // Hide modal IMMEDIATELY
+      document.body.appendChild(phantom);
+      state.phantom = phantom;
+
+      // Hide modal immediately
       target.style.cssText =
         "opacity:0 !important; visibility:hidden !important;";
 
       // Calculate reverse transform
-      const transform = calculateTransform(curRect, state.sourceRect);
+      const scaleX = state.sourceRect.width / curRect.width;
+      const scaleY = state.sourceRect.height / curRect.height;
+      const translateX = state.sourceRect.left - curRect.left;
+      const translateY = state.sourceRect.top - curRect.top;
 
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          phantom.style.transition = `transform ${CONFIG.duration}ms ${CONFIG.easing}, border-radius ${CONFIG.duration}ms ${CONFIG.easing}, opacity ${CONFIG.duration}ms ${CONFIG.easing}`;
+      safeRaf(() => {
+        safeRaf(() => {
+          // Hide scrim
+          hideScrim();
 
-          // Animate scrim out
-          animateScrim(state.scrim, false);
-
-          // Animate back to source
-          phantom.style.transform = `translate(${transform.translateX}px, ${transform.translateY}px) scale(${transform.scaleX}, ${transform.scaleY})`;
+          // Animate phantom back
+          phantom.style.transition = `
+            transform ${CONFIG.duration}ms ${CONFIG.easing},
+            border-radius ${CONFIG.duration}ms ${CONFIG.easing},
+            opacity ${CONFIG.duration}ms ${CONFIG.easing}
+          `;
+          phantom.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX}, ${scaleY})`;
           phantom.style.borderRadius = "16px";
-          phantom.style.opacity = "0";
 
-          const onEnd = (e) => {
-            if (e && e.target !== phantom) return;
-            phantom.removeEventListener("transitionend", onEnd);
+          // Fade out phantom at end
+          safeTimeout(() => {
+            phantom.style.opacity = "0";
+          }, CONFIG.duration * 0.5);
 
-            requestAnimationFrame(() => {
-              target.classList.remove("bottom-sheet--visible");
-              target.style.cssText = "";
+          // ===========================================
+          // COMPLETE: Cleanup
+          // ===========================================
+          safeTimeout(() => {
+            target.classList.remove("bottom-sheet--visible");
+            target.style.cssText = "";
 
-              restoreSource();
-              applyBackgroundEffect(false);
+            restoreSource();
+            cleanup();
 
-              console.log("[SCM] DONE close");
-              cleanupPhantoms();
-              removeScrim();
-              showLeafletMaps();
-              state.isAnimating = false;
-              resolve();
-            });
-          };
+            // Unlock body scroll
+            document.body.classList.remove("modal-open");
 
-          phantom.addEventListener("transitionend", onEnd);
-
-          setTimeout(() => {
-            if (state.phantomA === phantom) onEnd(null);
-          }, CONFIG.duration + 100);
+            showLeafletMaps();
+            state.isAnimating = false;
+            resolve();
+          }, CONFIG.duration + 20);
         });
       });
     });
@@ -659,33 +582,69 @@
   }
 
   // ===========================================
-  // Cleanup
+  // Cleanup phantom only
   // ===========================================
-  function cleanupPhantoms() {
-    if (state.phantomA) {
-      state.phantomA.remove();
-      state.phantomA = null;
-    }
-    if (state.phantomB) {
-      state.phantomB.remove();
-      state.phantomB = null;
-    }
-  }
-
   function cleanup() {
-    cleanupPhantoms();
-    removeScrim();
-    state.isAnimating = false;
+    if (state.phantom) {
+      state.phantom.remove();
+      state.phantom = null;
+    }
   }
 
+  // ===========================================
+  // Full reset - MUST clean scrim
+  // ===========================================
   function reset() {
+    clearAllTimers();
     cleanup();
     restoreSource();
-    applyBackgroundEffect(false);
+    hideScrim();
+    removeScrim();
+    dimBackground(false);
     showLeafletMaps();
+    document.body.classList.remove("modal-open");
     state.sourceRect = null;
     state.sourceElement = null;
     state.lastClickedElement = null;
+    state.isAnimating = false;
+  }
+
+  // ===========================================
+  // DESTROY - for memory leak prevention
+  // ===========================================
+  function destroy() {
+    console.log("[Swift] Destroying Transitions module");
+
+    // Clear all timers
+    clearAllTimers();
+
+    // Remove phantom
+    cleanup();
+
+    // Remove scrim completely
+    const scrim = document.getElementById(CONFIG.scrimId);
+    if (scrim) scrim.remove();
+
+    // Remove injected styles
+    const styles = document.getElementById("flip-transition-styles");
+    if (styles) styles.remove();
+
+    // Remove all body classes
+    document.body.classList.remove("modal-open", "bg-dimmed");
+
+    // Restore source
+    restoreSource();
+
+    // Reset state
+    state = {
+      isAnimating: false,
+      phantom: null,
+      sourceRect: null,
+      sourceElement: null,
+      lastClickedElement: null,
+      timeouts: [],
+      rafs: [],
+    };
   }
 
   // ===========================================
@@ -697,6 +656,7 @@
     isAnimating: () => state.isAnimating,
     cleanup,
     reset,
+    destroy,
     registerSource: (el) => {
       state.lastClickedElement = el;
     },
