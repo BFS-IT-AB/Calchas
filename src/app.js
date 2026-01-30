@@ -553,7 +553,17 @@ async function initAppShell(appState) {
     }
   }
 
-  if (window.ModalController && window.ModalController.initModalController) {
+  // Initialize MasterUIController (centralized modal/card controller)
+  if (window.MasterUIController && window.MasterUIController.init) {
+    try {
+      window.MasterUIController.init();
+    } catch (e) {
+      console.warn("MasterUIController Initialisierung fehlgeschlagen", e);
+    }
+  } else if (
+    window.ModalController &&
+    window.ModalController.initModalController
+  ) {
     try {
       window.ModalController.initModalController();
     } catch (e) {

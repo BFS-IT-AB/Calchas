@@ -1,5 +1,19 @@
+/**
+ * ModalController.js - Sheet Content Renderer
+ *
+ * ⚠️ REFACTORED - Modal control moved to MasterUIController.js
+ * This file now only handles content rendering for sheets.
+ * MasterUIController.js is the new singleton for ALL modal/card interactions.
+ *
+ * This module provides:
+ * - renderSheetContent() - Renders content for settings sheets
+ * - Legacy API compatibility (openSheet, closeSheet delegate to MasterUIController)
+ *
+ * @module ui/modals/ModalController
+ * @version 2.0.0 - Refactored for MasterUIController integration
+ */
 (function (global) {
-  let activeSheetId = null;
+  "use strict";
 
   // Mapping von Sheet-IDs zu Render-Funktionen
   function renderSheetContent(sheetId) {
@@ -706,10 +720,67 @@
     openSheet(metricIdOrSheetId, sourceElement);
   }
 
-  global.ModalController = {
-    openSheet,
-    open,
-    closeSheet,
-    initModalController,
+  // ===========================================
+  // LEGACY EXPORT - Delegates to MasterUIController when available
+  // ===========================================
+
+  // Create a proxy object that delegates to MasterUIController
+  const LegacyModalController = {
+    // Content rendering (kept in this module)
+    renderSheetContent,
+
+    // Modal control - delegate to MasterUIController if available
+    openSheet: function (idOrMetric, sourceElement) {
+      if (global.MasterUIController && global.MasterUIController.openModal) {
+        return global.MasterUIController.openModal(idOrMetric, sourceElement);
+      }
+      return openSheet(idOrMetric, sourceElement);
+    },
+
+    open: function (metricIdOrSheetId, sourceElement) {
+      if (global.MasterUIController && global.MasterUIController.openModal) {
+        return global.MasterUIController.openModal(
+          metricIdOrSheetId,
+          sourceElement,
+        );
+      }
+      return open(metricIdOrSheetId, sourceElement);
+    },
+
+    closeSheet: function () {
+      if (
+        global.MasterUIController &&
+        global.MasterUIController.closeActiveModal
+      ) {
+        return global.MasterUIController.closeActiveModal();
+      }
+      return closeSheet();
+    },
+
+    closeAll: function () {
+      if (global.MasterUIController && global.MasterUIController.closeAll) {
+        return global.MasterUIController.closeAll();
+      }
+      return closeSheet();
+    },
+
+    initModalController: function () {
+      // If MasterUIController is available, it handles initialization
+      if (global.MasterUIController && global.MasterUIController._initialized) {
+        console.log("[ModalController] Delegating to MasterUIController");
+        return;
+      }
+      return initModalController();
+    },
+  };
+
+  // Export - will be overwritten by MasterUIController if loaded after
+  if (!global.ModalController || !global.MasterUIController) {
+    global.ModalController = LegacyModalController;
+  }
+
+  // Always export the render function for MasterUIController to use
+  global.ModalContentRenderer = {
+    renderSheetContent,
   };
 })(window);

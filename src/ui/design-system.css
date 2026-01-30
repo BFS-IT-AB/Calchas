@@ -1,0 +1,875 @@
+/**
+ * Design System - Master UI CSS Variables & Base Styles
+ *
+ * SINGLE SOURCE OF TRUTH for ALL UI components.
+ * Extracted from Health-page components (src/ui/health/health.css)
+ *
+ * This file defines:
+ * - Global CSS Variables
+ * - Standard Card styles (.standard-card)
+ * - Standard Modal styles (.standard-modal)
+ * - Scrim/Overlay styles
+ * - Animation classes (.is-visible, .is-active)
+ * - Interaction states (hover, active, focus)
+ *
+ * @version 1.0.0
+ */
+
+/* ============================================
+   MASTER CSS VARIABLES
+   Source of Truth - All values from health.css
+   ============================================ */
+
+:root {
+  /* ===========================================
+     GLASSMORPHISM FOUNDATION
+     =========================================== */
+
+  /* Glass backgrounds */
+  --ui-glass-bg: rgba(255, 255, 255, 0.04);
+  --ui-glass-bg-hover: rgba(255, 255, 255, 0.07);
+  --ui-glass-bg-active: rgba(255, 255, 255, 0.03);
+
+  /* Glass borders */
+  --ui-glass-border: rgba(255, 255, 255, 0.08);
+  --ui-glass-border-hover: rgba(255, 255, 255, 0.12);
+
+  /* Glass effects */
+  --ui-glass-blur: blur(16px);
+  --ui-glass-blur-heavy: blur(20px);
+  --ui-glass-blur-scrim: blur(12px);
+
+  /* Glass shadows */
+  --ui-shadow-card:
+    0 4px 24px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
+  --ui-shadow-card-hover:
+    0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 4px rgba(0, 0, 0, 0.1);
+  --ui-shadow-modal: 0 25px 60px rgba(0, 0, 0, 0.4);
+
+  /* ===========================================
+     BORDER RADIUS
+     =========================================== */
+  --ui-radius-sm: 6px;
+  --ui-radius-md: 10px;
+  --ui-radius-lg: 12px;
+  --ui-radius-xl: 14px;
+  --ui-radius-modal: 12px 12px 0 0;
+  --ui-radius-pill: 999px;
+
+  /* ===========================================
+     SPACING
+     =========================================== */
+  --ui-spacing-xs: 4px;
+  --ui-spacing-sm: 6px;
+  --ui-spacing-md: 12px;
+  --ui-spacing-lg: 18px;
+  --ui-spacing-xl: 24px;
+
+  /* ===========================================
+     TRANSITIONS - EXACT from health.css
+     =========================================== */
+  --ui-transition-fast: 150ms ease;
+  --ui-transition-normal: 250ms ease;
+  --ui-transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Individual timing values (for JS usage) */
+  --ui-duration-fast: 150ms;
+  --ui-duration-normal: 250ms;
+  --ui-duration-slow: 400ms;
+  --ui-easing-default: ease;
+  --ui-easing-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ===========================================
+     COLORS - TEXT
+     =========================================== */
+  --ui-text-primary: rgba(255, 255, 255, 0.92);
+  --ui-text-secondary: rgba(255, 255, 255, 0.6);
+  --ui-text-muted: rgba(255, 255, 255, 0.4);
+
+  /* ===========================================
+     COLORS - ACCENT (from health.css)
+     =========================================== */
+  --ui-accent-green: #4ade80;
+  --ui-accent-lime: #a3e635;
+  --ui-accent-amber: #fbbf24;
+  --ui-accent-orange: #fb923c;
+  --ui-accent-red: #ef4444;
+  --ui-accent-blue: #3b82f6;
+  --ui-accent-purple: #a855f7;
+
+  /* ===========================================
+     MODAL SPECIFIC
+     =========================================== */
+  --ui-modal-bg: rgba(22, 22, 24, 0.96);
+  --ui-modal-border: rgba(255, 255, 255, 0.1);
+  --ui-modal-max-width: 520px;
+  --ui-modal-max-height: 80vh;
+
+  /* Scrim */
+  --ui-scrim-bg: rgba(0, 0, 0, 0.6);
+
+  /* ===========================================
+     INTERACTION - Hover lift & Press scale
+     =========================================== */
+  --ui-hover-lift: translateY(-2px);
+  --ui-active-press: translateY(0);
+  --ui-press-scale: scale(0.98);
+
+  /* ===========================================
+     Z-INDEX LAYERS
+     =========================================== */
+  --ui-z-base: 1;
+  --ui-z-dropdown: 100;
+  --ui-z-sticky: 500;
+  --ui-z-overlay: 1000;
+  --ui-z-scrim: 99998;
+  --ui-z-modal: 99999;
+
+  /* ===========================================
+     LEGACY ALIASES (backwards compatibility)
+     =========================================== */
+  --health-glass-bg: var(--ui-glass-bg);
+  --health-glass-bg-hover: var(--ui-glass-bg-hover);
+  --health-glass-border: var(--ui-glass-border);
+  --health-glass-border-hover: var(--ui-glass-border-hover);
+  --health-glass-blur: var(--ui-glass-blur);
+  --health-glass-shadow: var(--ui-shadow-card);
+  --health-radius-sm: var(--ui-radius-sm);
+  --health-radius-md: var(--ui-radius-md);
+  --health-radius-lg: var(--ui-radius-lg);
+  --health-radius-xl: var(--ui-radius-xl);
+  --health-transition-fast: var(--ui-transition-fast);
+  --health-transition-normal: var(--ui-transition-normal);
+  --health-transition-slow: var(--ui-transition-slow);
+  --health-text-primary: var(--ui-text-primary);
+  --health-text-secondary: var(--ui-text-secondary);
+  --health-text-muted: var(--ui-text-muted);
+  --health-spacing-xs: var(--ui-spacing-xs);
+  --health-spacing-sm: var(--ui-spacing-sm);
+  --health-spacing-md: var(--ui-spacing-md);
+  --health-spacing-lg: var(--ui-spacing-lg);
+  --health-spacing-xl: var(--ui-spacing-xl);
+  --health-accent-green: var(--ui-accent-green);
+  --health-accent-lime: var(--ui-accent-lime);
+  --health-accent-amber: var(--ui-accent-amber);
+  --health-accent-orange: var(--ui-accent-orange);
+  --health-accent-red: var(--ui-accent-red);
+  --health-accent-blue: var(--ui-accent-blue);
+  --health-accent-purple: var(--ui-accent-purple);
+}
+
+/* ============================================
+   STANDARD CARD - Base Component
+   Unified card style for ALL card types
+   ============================================ */
+
+.standard-card {
+  /* Glass background */
+  background: var(--ui-glass-bg);
+  backdrop-filter: var(--ui-glass-blur);
+  -webkit-backdrop-filter: var(--ui-glass-blur);
+
+  /* Border */
+  border: 1px solid var(--ui-glass-border);
+  border-radius: var(--ui-radius-lg);
+
+  /* Shadow */
+  box-shadow: var(--ui-shadow-card);
+
+  /* Padding */
+  padding: var(--ui-spacing-md);
+
+  /* Transitions - EXACT from health.css */
+  transition:
+    transform var(--ui-transition-normal),
+    opacity var(--ui-transition-normal),
+    border-color var(--ui-transition-fast),
+    box-shadow var(--ui-transition-fast);
+
+  /* Interactive properties */
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+
+  /* Initial state */
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Hover state - EXACT 2px lift from health.css */
+.standard-card:hover {
+  border-color: var(--ui-glass-border-hover);
+  box-shadow: var(--ui-shadow-card-hover);
+  transform: var(--ui-hover-lift);
+}
+
+/* Active/Pressed state - EXACT from health.css */
+.standard-card:active,
+.standard-card.is-active {
+  transform: var(--ui-active-press);
+  transition: transform var(--ui-transition-fast);
+}
+
+/* Focus state for accessibility */
+.standard-card:focus-visible {
+  outline: 2px solid var(--ui-accent-blue);
+  outline-offset: 2px;
+}
+
+/* Non-interactive card variant */
+.standard-card--static {
+  cursor: default;
+}
+
+.standard-card--static:hover {
+  transform: none;
+  box-shadow: var(--ui-shadow-card);
+}
+
+/* ============================================
+   STANDARD MODAL - Base Component
+   Unified modal/sheet style
+   ============================================ */
+
+.standard-modal {
+  position: relative;
+  width: 100%;
+  max-width: var(--ui-modal-max-width);
+  max-height: var(--ui-modal-max-height);
+
+  /* Glass background - EXACT from health.css */
+  background: var(--ui-modal-bg);
+  backdrop-filter: var(--ui-glass-blur-heavy);
+  -webkit-backdrop-filter: var(--ui-glass-blur-heavy);
+
+  /* Border */
+  border: 0.5px solid var(--ui-modal-border);
+  border-radius: var(--ui-radius-modal);
+
+  /* Shadow */
+  box-shadow: var(--ui-shadow-modal);
+
+  /* Overflow */
+  overflow: hidden;
+
+  /* Initial state - off-screen */
+  transform: translateY(100%);
+  transition: transform var(--ui-transition-slow);
+}
+
+/* Visible state */
+.standard-modal.is-visible,
+.standard-modal.standard-modal--visible,
+.standard-modal.bottom-sheet--visible {
+  transform: translateY(0);
+}
+
+/* Drag handle - EXACT from health.css */
+.standard-modal__handle {
+  width: 36px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  margin: 12px auto 0;
+  flex-shrink: 0;
+}
+
+/* Header */
+.standard-modal__header {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-spacing-sm);
+  padding: var(--ui-spacing-md);
+  border-bottom: 0.5px solid var(--ui-glass-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.standard-modal__icon {
+  font-size: 20px;
+}
+
+.standard-modal__title {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ui-text-primary);
+  margin: 0;
+}
+
+/* Close button */
+.standard-modal__close {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ui-text-primary);
+  cursor: pointer;
+  transition: all var(--ui-transition-fast);
+}
+
+.standard-modal__close:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.standard-modal__close:active {
+  transform: scale(0.95);
+}
+
+/* Body */
+.standard-modal__body {
+  padding: var(--ui-spacing-lg) var(--ui-spacing-md);
+  padding-bottom: 100px; /* Safe area for mobile */
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(var(--ui-modal-max-height) - 60px);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ============================================
+   MASTER SCRIM - Global Overlay
+   Single scrim element managed by MasterUIController
+   ============================================ */
+
+.master-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--ui-z-scrim);
+
+  /* Background */
+  background: var(--ui-scrim-bg);
+  backdrop-filter: var(--ui-glass-blur-scrim);
+  -webkit-backdrop-filter: var(--ui-glass-blur-scrim);
+
+  /* Initial state - invisible */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+
+  /* Transition */
+  transition:
+    opacity var(--ui-transition-normal),
+    visibility var(--ui-transition-normal);
+
+  /* Flex for centering modal at bottom */
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+/* Visible state */
+.master-scrim.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* ============================================
+   BODY STATES
+   ============================================ */
+
+html {
+  scrollbar-gutter: stable;
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+/* Hard reset for leftover dimming */
+body:not(.modal-open):not(.bg-dimmed) #app-container,
+body:not(.modal-open):not(.bg-dimmed) #app,
+body:not(.modal-open):not(.bg-dimmed) main {
+  filter: none !important;
+  transform: none !important;
+}
+
+/* ============================================
+   ANIMATION CLASSES
+   Used by MasterUIController for state management
+   ============================================ */
+
+/* Fade in animation */
+.animate-fade-in {
+  animation: fadeIn var(--ui-duration-normal) var(--ui-easing-default) forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Slide up animation */
+.animate-slide-up {
+  animation: slideUp var(--ui-duration-slow) var(--ui-easing-smooth) forwards;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Scale in animation */
+.animate-scale-in {
+  animation: scaleIn var(--ui-duration-normal) var(--ui-easing-smooth) forwards;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================
+   LEGACY CLASS MAPPINGS
+   Maps old classes to new standard classes
+   ============================================ */
+
+/* Bottom sheet overlay (legacy) */
+/* EXACT from health.css lines 1401-1420 */
+.bottom-sheet-overlay,
+.health-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--ui-scrim-bg);
+  backdrop-filter: var(--ui-glass-blur-scrim);
+  -webkit-backdrop-filter: var(--ui-glass-blur-scrim);
+  z-index: var(--ui-z-scrim);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  /* EXACT from health.css line 1414-1416: 250ms ease for opacity AND visibility */
+  transition:
+    opacity var(--ui-transition-normal),
+    visibility var(--ui-transition-normal);
+  pointer-events: none;
+}
+
+.bottom-sheet-overlay.is-open,
+.health-modal-overlay--visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Bottom sheet (legacy) */
+/* PIXEL-PERFECT from health.css lines 1425-1437 */
+.bottom-sheet,
+.health-modal-sheet {
+  width: 100%;
+  max-width: var(--ui-modal-max-width); /* 520px */
+  max-height: 80vh; /* EXACT from health.css line 1427 */
+  /* EXACT from health.css line 1428 */
+  background: rgba(22, 22, 24, 0.96) !important;
+  /* EXACT from health.css line 1429 */
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  /* EXACT from health.css line 1430 */
+  border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
+  /* EXACT from health.css line 1433 */
+  border-radius: var(--ui-radius-lg) var(--ui-radius-lg) 0 0 !important;
+  /* NO padding on sheet - padding goes on __body */
+  padding: 0 !important;
+  overflow: hidden;
+  /* EXACT from health.css line 1435 */
+  transform: translateY(100%);
+  /* EXACT from health.css line 1436 */
+  transition: transform var(--ui-transition-slow) !important;
+  /* NO box-shadow - Health modal doesn't have one */
+  box-shadow: none !important;
+  /* Flex layout for structure */
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.bottom-sheet--visible,
+.health-modal-overlay--visible .health-modal-sheet {
+  transform: translateY(0);
+}
+
+/* Bottom sheet components - PIXEL-PERFECT from Health modal \"Outfit für heute\" */
+/* Structure: .bottom-sheet > .bottom-sheet__handle (optional) > .bottom-sheet__header > .bottom-sheet__body */
+
+/* Drag handle - pill shape at top of modal (optional) */
+.bottom-sheet__handle,
+.standard-modal__handle {
+  width: 36px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-radius: 2px !important;
+  margin: 12px auto 0 !important;
+  flex-shrink: 0;
+}
+
+/* Header - PIXEL-PERFECT from Health modal (HealthSafetyView.js line 1313-1320) */
+/* Structure: .bottom-sheet__header > .bottom-sheet__icon + .bottom-sheet__title + .bottom-sheet__close */
+.bottom-sheet__header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important; /* var(--ui-spacing-sm) */
+  padding: 16px 18px !important; /* Generous padding */
+  background: transparent !important;
+  border: none !important;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+/* Icon before title */
+.bottom-sheet__icon {
+  font-size: 20px !important;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* Title - PIXEL-PERFECT from Health modal */
+.bottom-sheet__title {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 1;
+  line-height: 1.2 !important;
+}
+
+/* Subtitle under title (when wrapped in div) */
+.bottom-sheet__subtitle {
+  font-size: 12px !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  margin: 2px 0 0 0 !important;
+  line-height: 1.3 !important;
+}
+
+/* Close button - PIXEL-PERFECT (circular X button, perfectly centered) */
+.bottom-sheet__close {
+  margin-left: auto !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+  border-radius: 50% !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  /* Perfect centering */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  cursor: pointer;
+  transition:
+    background var(--ui-transition-fast),
+    transform var(--ui-transition-fast);
+  flex-shrink: 0;
+  padding: 0 !important;
+  box-sizing: border-box;
+}
+
+.bottom-sheet__close:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.bottom-sheet__close:active {
+  transform: scale(0.95);
+}
+
+/* Close button icon */
+.bottom-sheet__close .material-symbols-outlined,
+.bottom-sheet__close span {
+  font-size: 18px !important;
+  line-height: 1 !important;
+}
+
+/* Body container - content area with padding */
+/* ALL content goes inside .bottom-sheet__body */
+.bottom-sheet__body {
+  padding: 0 18px 18px 18px !important; /* Match header horizontal padding */
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  box-sizing: border-box;
+}
+
+/* ============================================
+   DETAIL CARDS - PIXEL-PERFECT from health.css
+   Used inside modals for content sections
+   ============================================ */
+
+/* Detail card - EXACT from health.css lines 1443-1455 */
+.detail-card {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: var(--ui-radius-md) !important; /* 10px */
+  padding: 12px !important; /* var(--ui-spacing-md) */
+  margin-bottom: 12px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+}
+
+.detail-card:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Detail card title - EXACT from health.css */
+.detail-card h3,
+.detail-card__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 var(--ui-spacing-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Detail card hero section */
+.detail-card__hero {
+  text-align: center;
+  padding: var(--ui-spacing-sm) 0;
+}
+
+.detail-card__value {
+  font-size: 28px;
+  font-weight: 700;
+  display: block;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.detail-card__label {
+  font-size: 12px;
+  display: block;
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Detail card row layout */
+.detail-card__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--ui-spacing-xs) 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Detail card warning */
+.detail-card__warning {
+  padding: var(--ui-spacing-sm);
+  background: rgba(251, 191, 36, 0.15);
+  border-radius: var(--ui-radius-sm);
+  font-size: 12px;
+  color: var(--ui-accent-amber);
+  margin-top: var(--ui-spacing-sm);
+}
+
+/* Detail card list */
+.detail-card__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.detail-card__list li {
+  padding: var(--ui-spacing-xs) 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ============================================
+   CARD TYPE ALIASES
+   Maps specific card types to standard-card
+   ============================================ */
+
+.weather-card,
+.metric-card,
+.info-card,
+.health-card,
+.quick-check-card,
+.bio-card,
+.card,
+.insight-card {
+  /* Inherit all standard-card properties */
+  background: var(--ui-glass-bg);
+  backdrop-filter: var(--ui-glass-blur);
+  -webkit-backdrop-filter: var(--ui-glass-blur);
+  border: 1px solid var(--ui-glass-border);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-card);
+  transition:
+    transform var(--ui-transition-normal),
+    opacity var(--ui-transition-normal),
+    border-color var(--ui-transition-fast),
+    box-shadow var(--ui-transition-fast);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+.weather-card:hover,
+.metric-card:hover,
+.info-card:hover,
+.health-card:hover,
+.quick-check-card:hover,
+.bio-card:hover,
+.card:hover,
+.insight-card:hover {
+  border-color: var(--ui-glass-border-hover);
+  box-shadow: var(--ui-shadow-card-hover);
+  transform: var(--ui-hover-lift);
+}
+
+.weather-card:active,
+.metric-card:active,
+.info-card:active,
+.health-card:active,
+.quick-check-card:active,
+.bio-card:active,
+.card:active,
+.insight-card:active {
+  transform: var(--ui-active-press);
+  transition: transform var(--ui-transition-fast);
+}
+
+/* ============================================
+   LIGHT THEME OVERRIDES
+   ============================================ */
+
+[data-theme="light"] {
+  --ui-glass-bg: rgba(255, 255, 255, 0.8);
+  --ui-glass-bg-hover: rgba(255, 255, 255, 0.9);
+  --ui-glass-border: rgba(0, 0, 0, 0.08);
+  --ui-glass-border-hover: rgba(0, 0, 0, 0.12);
+  --ui-shadow-card: 0 4px 24px rgba(0, 0, 0, 0.08);
+  --ui-shadow-card-hover: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --ui-text-primary: rgba(0, 0, 0, 0.92);
+  --ui-text-secondary: rgba(0, 0, 0, 0.6);
+  --ui-text-muted: rgba(0, 0, 0, 0.4);
+  --ui-modal-bg: rgba(255, 255, 255, 0.96);
+  --ui-modal-border: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .bottom-sheet__handle,
+[data-theme="light"] .standard-modal__handle {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .bottom-sheet__header,
+[data-theme="light"] .standard-modal__header {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+  background: transparent;
+}
+
+/* Light theme modal styling - FORCED with !important */
+[data-theme="light"] .bottom-sheet,
+[data-theme="light"] .health-modal-sheet {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border: 0.5px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="light"] .bottom-sheet__handle,
+[data-theme="light"] .standard-modal__handle {
+  background: rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme="light"] .bottom-sheet__title {
+  color: rgba(0, 0, 0, 0.92) !important;
+}
+
+[data-theme="light"] .bottom-sheet__subtitle {
+  color: rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="light"] .bottom-sheet__close,
+[data-theme="light"] .standard-modal__close {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: rgba(0, 0, 0, 0.8) !important;
+}
+
+[data-theme="light"] .bottom-sheet__close:hover {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="light"] .detail-card {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border: 0.5px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .detail-card h3,
+[data-theme="light"] .detail-card__title {
+  color: rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="light"] .detail-card__value {
+  color: rgba(0, 0, 0, 0.92) !important;
+}
+
+[data-theme="light"] .detail-card__label,
+[data-theme="light"] .detail-card__row {
+  color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .standard-card,
+  .standard-modal,
+  .bottom-sheet,
+  .health-modal-sheet,
+  .master-scrim,
+  .bottom-sheet-overlay,
+  .health-modal-overlay {
+    transition: none;
+  }
+
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scale-in {
+    animation: none;
+  }
+}
+
+/* ============================================
+   APP-BAR LOCATION BUTTON EXCEPTION
+   This button should NOT have card styles
+   ============================================ */
+
+.app-bar__location[data-bottom-sheet-target] {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-radius: 50px !important;
+  box-shadow: none !important;
+}
+
+.app-bar__location[data-bottom-sheet-target]:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: none !important;
+  box-shadow: none !important;
+  transform: scale(1.02) !important;
+}
+
+.app-bar__location[data-bottom-sheet-target]:active {
+  transform: scale(0.98) !important;
+}

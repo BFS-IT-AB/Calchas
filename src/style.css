@@ -45,337 +45,25 @@
 }
 
 /* =====================================================================
-   ZERO-DIFFERENCE UNIFIED CARD & MODAL SYSTEM
+   UNIFIED CARD & MODAL SYSTEM
    ═══════════════════════════════════════════════════════════════════
 
-   COPIED VERBATIM FROM: src/ui/health/health.css
+   ⚠️ MOVED TO: src/ui/design-system.css
 
-   These are the EXACT LITERAL VALUES from the Health-page.
-   NO interpolation. NO guessing. NO CSS variables for core styles.
+   The Master UI Design System is now the single source of truth for:
+   - CSS Variables (--ui-glass-bg, --ui-transition-*, etc.)
+   - Standard Card styles (.standard-card)
+   - Standard Modal styles (.standard-modal)
+   - Scrim/Overlay management
+   - Animation classes (.is-visible, .is-active)
 
-   ===================================================================== */
+   The design-system.css file is loaded before style.css and provides
+   all the base glassmorphism and interaction styles from the Health-page.
 
-/* ===========================================
-   EXACT HEALTH-PAGE CSS VARIABLES (VERBATIM COPY)
-   From health.css lines 11-51
-   =========================================== */
+   Legacy class aliases are maintained for backwards compatibility:
+   .weather-card, .metric-card, .health-card → inherit from .standard-card
+   .bottom-sheet, .health-modal-sheet → inherit from .standard-modal
 
-:root {
-  /* Glass effect variables - EXACT from health.css */
-  --health-glass-bg: rgba(255, 255, 255, 0.04);
-  --health-glass-bg-hover: rgba(255, 255, 255, 0.07);
-  --health-glass-border: rgba(255, 255, 255, 0.08);
-  --health-glass-border-hover: rgba(255, 255, 255, 0.12);
-  --health-glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
-  --health-glass-blur: blur(16px);
-
-  /* Border radius - EXACT from health.css */
-  --health-radius-sm: 6px;
-  --health-radius-md: 10px;
-  --health-radius-lg: 12px;
-  --health-radius-xl: 14px;
-
-  /* Transitions - EXACT from health.css */
-  --health-transition-fast: 150ms ease;
-  --health-transition-normal: 250ms ease;
-  --health-transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
-
-  /* Text colors - EXACT from health.css */
-  --health-text-primary: rgba(255, 255, 255, 0.92);
-  --health-text-secondary: rgba(255, 255, 255, 0.6);
-  --health-text-muted: rgba(255, 255, 255, 0.4);
-}
-
-/* ===========================================
-   UNIFIED CARD BASE - EXACT COPY FROM health.css .health-card (lines 120-158)
-   Applied to ALL card types for ZERO DIFFERENCE
-   =========================================== */
-
-.weather-card,
-.metric-card,
-.info-card,
-.health-card,
-.quick-check-card,
-.bio-card,
-.card,
-.insight-card,
-[data-bottom-sheet],
-[data-bottom-sheet-target] {
-  /* EXACT from health.css .health-card */
-  background: rgba(255, 255, 255, 0.04) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 12px !important;
-  box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.12),
-    0 1px 2px rgba(0, 0, 0, 0.08) !important;
-
-  /* EXACT transition from health.css .health-card */
-  transition:
-    transform 250ms ease,
-    opacity 250ms ease,
-    border-color 150ms ease,
-    box-shadow 150ms ease !important;
-
-  /* EXACT from health.css interactive elements */
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;
-  user-select: none;
-}
-
-/* ===========================================
-   UNIFIED HOVER - EXACT COPY FROM health.css (lines 153-158 + 1869-1875)
-   =========================================== */
-
-.weather-card:hover,
-.metric-card:hover,
-.info-card:hover,
-.health-card:hover,
-.quick-check-card:hover,
-.bio-card:hover,
-.card:hover,
-.insight-card:hover,
-[data-bottom-sheet]:hover,
-[data-bottom-sheet-target]:hover {
-  /* EXACT from health.css .health-card:hover */
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.18),
-    0 2px 4px rgba(0, 0, 0, 0.1) !important;
-
-  /* EXACT from health.css .js-open-details:hover */
-  transform: translateY(-2px) !important;
-}
-
-/* ===========================================
-   UNIFIED ACTIVE/PRESSED - EXACT COPY FROM health.css (lines 1878-1880)
-   =========================================== */
-
-.weather-card:active,
-.metric-card:active,
-.info-card:active,
-.health-card:active,
-.quick-check-card:active,
-.bio-card:active,
-.card:active,
-.insight-card:active,
-[data-bottom-sheet]:active,
-[data-bottom-sheet-target]:active {
-  /* EXACT from health.css .js-open-details:active */
-  transform: translateY(0) !important;
-  transition: transform 150ms ease !important;
-}
-
-/* ===========================================
-   APP-BAR LOCATION BUTTON EXCEPTION
-   Der Button in der App-Bar soll NICHT die Card-Styles bekommen
-   =========================================== */
-
-.app-bar__location[data-bottom-sheet-target] {
-  background: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border: none !important;
-  border-radius: 50px !important;
-  box-shadow: none !important;
-}
-
-.app-bar__location[data-bottom-sheet-target]:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border: none !important;
-  box-shadow: none !important;
-  transform: scale(1.02) !important;
-}
-
-.app-bar__location[data-bottom-sheet-target]:active {
-  transform: scale(0.98) !important;
-}
-
-/* ===========================================
-   UNIFIED MODAL OVERLAY - EXACT COPY FROM health.css (lines 1401-1419)
-   =========================================== */
-
-.bottom-sheet-overlay,
-.health-modal-overlay {
-  position: fixed;
-  inset: 0;
-  /* EXACT from health.css .health-modal-overlay */
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  z-index: 99999;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  opacity: 0;
-  visibility: hidden;
-  /* EXACT transition from health.css */
-  transition:
-    opacity 250ms ease,
-    visibility 250ms ease;
-  pointer-events: none;
-}
-
-/* EXACT from health.css .health-modal-overlay--visible (lines 1420-1424) */
-.bottom-sheet-overlay.is-open,
-.health-modal-overlay--visible {
-  opacity: 1 !important;
-  visibility: visible !important;
-  pointer-events: auto !important;
-}
-
-/* ===========================================
-   UNIFIED MODAL SHEET - EXACT COPY FROM health.css (lines 1426-1440)
-   =========================================== */
-
-.bottom-sheet,
-.health-modal-sheet {
-  width: 100%;
-  max-width: 520px;
-  max-height: 80vh;
-  /* EXACT from health.css .health-modal-sheet */
-  background: rgba(22, 22, 24, 0.96) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 12px 12px 0 0 !important;
-  overflow: hidden;
-  /* EXACT transform/transition from health.css */
-  transform: translateY(100%);
-  transition: transform 400ms cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-/* EXACT from health.css .health-modal-overlay--visible .health-modal-sheet (lines 1439-1441) */
-.bottom-sheet--visible,
-.health-modal-overlay--visible .health-modal-sheet {
-  transform: translateY(0) !important;
-}
-
-/* ===========================================
-   MODAL COMPONENTS - EXACT COPY FROM health.css
-   =========================================== */
-
-/* Drag handle */
-.bottom-sheet__handle {
-  width: 36px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 2px;
-  margin: 12px auto 0;
-  flex-shrink: 0;
-}
-
-/* Header - EXACT from health.css .health-modal-sheet .bottom-sheet__header (lines 1913-1919) */
-.bottom-sheet__header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 12px;
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.bottom-sheet__icon {
-  font-size: 20px;
-}
-
-.bottom-sheet__title {
-  font-size: 16px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.92);
-  margin: 0;
-  flex: 1;
-}
-
-/* Close button */
-.bottom-sheet__close {
-  margin-left: auto;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.92);
-  cursor: pointer;
-  transition: transform 150ms ease;
-}
-
-.bottom-sheet__close:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.bottom-sheet__close:active {
-  transform: scale(0.95);
-}
-
-/* ===========================================
-   BODY STATES - Modal open handling
-   =========================================== */
-
-html {
-  scrollbar-gutter: stable;
-}
-
-body.modal-open {
-  overflow: hidden !important;
-}
-
-/* Hard reset for leftover dimming */
-body:not(.modal-open):not(.bg-dimmed) #app-container,
-body:not(.modal-open):not(.bg-dimmed) #app,
-body:not(.modal-open):not(.bg-dimmed) main {
-  filter: none !important;
-  transform: none !important;
-}
-
-/* ===========================================
-   LIGHT THEME - Preserve readability
-   =========================================== */
-
-[data-theme="light"] .weather-card,
-[data-theme="light"] .metric-card,
-[data-theme="light"] .info-card,
-[data-theme="light"] .health-card,
-[data-theme="light"] .quick-check-card,
-[data-theme="light"] .bio-card,
-[data-theme="light"] .card,
-[data-theme="light"] .insight-card {
-  background: rgba(255, 255, 255, 0.8) !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
-}
-
-[data-theme="light"] .bottom-sheet,
-[data-theme="light"] .health-modal-sheet {
-  background: rgba(255, 255, 255, 0.96) !important;
-  border: 0.5px solid rgba(0, 0, 0, 0.1) !important;
-}
-
-[data-theme="light"] .bottom-sheet__handle {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-[data-theme="light"] .bottom-sheet__header {
-  border-bottom-color: rgba(0, 0, 0, 0.08);
-  background: rgba(0, 0, 0, 0.02);
-}
-
-[data-theme="light"] .bottom-sheet__title {
-  color: rgba(0, 0, 0, 0.92);
-}
-
-[data-theme="light"] .bottom-sheet__close {
-  background: rgba(0, 0, 0, 0.05);
-  color: rgba(0, 0, 0, 0.8);
-}
-
-/* =====================================================================
-   END OF ZERO-DIFFERENCE UNIFIED SYSTEM
    ===================================================================== */
 
 :root {
@@ -542,20 +230,8 @@ body.dark-mode a {
   --theme-border: rgba(255, 255, 255, 0.1);
 }
 
-/* Force opaque backgrounds in dark mode to avoid grey artifacts */
-/* Hinweis: Home-View bekommt dynamischen Hintergrund von FrogHeroPlayer.js */
-/* Die Inline-Styles von FrogHeroPlayer haben höhere Priorität */
-[data-theme="dark"] .bottom-sheet {
-  background: var(--page-bg, #1a2025);
-  color-scheme: dark;
-}
-
-/* Force opaque backgrounds in light mode for consistency */
-/* Die Inline-Styles von FrogHeroPlayer haben höhere Priorität */
-[data-theme="light"] .bottom-sheet {
-  background: #ffffff;
-  color-scheme: light;
-}
+/* NOTE: .bottom-sheet styles are now in design-system.css
+   Do NOT add background/padding/border overrides here */
 
 /* Light Mode */
 [data-theme="light"] {
@@ -721,12 +397,7 @@ body.dark-mode a {
   color: #3a3a5a;
 }
 
-[data-theme="light"] .bottom-sheet {
-  background: #ffffff;
-}
-
-[data-theme="light"] .bottom-sheet__title,
-[data-theme="light"] .bottom-sheet__header {
+[data-theme="light"] .bottom-sheet__title {
   color: #1a1a2e;
 }
 
@@ -1060,12 +731,8 @@ body.dark-mode a {
   background: transparent;
 }
 
-/* Detail Modal Cards - Light Mode */
-[data-theme="light"] .detail-card {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
+/* NOTE: Light theme .detail-card styles are now in design-system.css
+   Only content-specific overrides below */
 
 [data-theme="light"] .detail-card h3 {
   color: rgba(26, 26, 46, 0.7);
@@ -5944,6 +5611,7 @@ body.mobile-app #legacy-content {
 /* ===========================================================
    BOTTOM-SHEET OVERLAY - EXACT VALUES FROM health.css
    Source: .health-modal-overlay (lines 1401-1441)
+   NOW USES design-system.css VALUES - DO NOT OVERRIDE
    =========================================================== */
 .bottom-sheet-overlay {
   position: fixed;
@@ -5956,16 +5624,20 @@ body.mobile-app #legacy-content {
   -webkit-backdrop-filter: blur(0px);
   z-index: 1000;
   pointer-events: none;
-  /* EXACT from health.css line 1408: transition: opacity 300ms ease, backdrop-filter 300ms ease */
+  /* EXACT from health.css: 250ms ease (not 300ms!) */
   transition:
-    background 300ms ease,
-    backdrop-filter 300ms ease;
+    opacity 250ms ease,
+    visibility 250ms ease,
+    background 250ms ease,
+    backdrop-filter 250ms ease;
 }
 
 /* Visible overlay - EXACT from health.css .health-modal-overlay--visible (lines 1413-1420) */
 .bottom-sheet-overlay.is-open {
   display: flex !important;
   pointer-events: auto !important;
+  opacity: 1 !important;
+  visibility: visible !important;
   /* EXACT from health.css line 1415: background: rgba(0, 0, 0, 0.6) */
   background: rgba(0, 0, 0, 0.6) !important;
   /* EXACT from health.css line 1416: backdrop-filter: blur(12px) */
@@ -5974,114 +5646,59 @@ body.mobile-app #legacy-content {
 }
 
 /* ===========================================================
-   BOTTOM-SHEET MODAL - EXACT VALUES FROM health.css
-   Source: .health-modal-sheet (lines 1422-1441)
+   BOTTOM-SHEET MODAL - PIXEL-PERFECT from health.css
+   Source: .health-modal-sheet (lines 1425-1437)
    =========================================================== */
 .bottom-sheet {
   width: 100%;
   max-width: 520px;
-  max-height: 85vh;
-  /* EXACT from health.css line 1429: background: rgba(22, 22, 24, 0.96) */
+  max-height: 80vh; /* EXACT from health.css line 1427 */
+  /* EXACT from health.css line 1428 */
   background: rgba(22, 22, 24, 0.96) !important;
-  /* EXACT from health.css line 1430: backdrop-filter: blur(20px) */
+  /* EXACT from health.css line 1429 */
   backdrop-filter: blur(20px) !important;
   -webkit-backdrop-filter: blur(20px) !important;
-  /* EXACT from health.css line 1431: border-radius: 12px 12px 0 0 */
+  /* EXACT from health.css line 1430 */
+  border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
+  /* EXACT from health.css line 1433 */
   border-radius: 12px 12px 0 0 !important;
-  display: none;
-  padding: 20px;
+  /* NO padding on sheet itself - padding goes on __body */
+  padding: 0 !important;
   overflow: hidden;
-  overflow-y: auto;
   z-index: 1001;
+  /* EXACT from health.css line 1435 */
   transform: translateY(100%);
-  opacity: 0;
-  /* EXACT from health.css line 1432: border-top: 0.5px solid rgba(255, 255, 255, 0.1) */
-  border: none !important;
-  border-top: 0.5px solid rgba(255, 255, 255, 0.1) !important;
-  /* EXACT from health.css line 1433: box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.3) */
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.3) !important;
-  /* EXACT from health.css line 1434: transition: transform 400ms cubic-bezier(0.4, 0, 0.2, 1) */
-  transition:
-    transform 400ms cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 250ms ease !important;
+  /* EXACT from health.css line 1436 */
+  transition: transform 400ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+  /* NO box-shadow - Health modal doesn't have one */
+  box-shadow: none !important;
+  /* Ensure proper flex layout */
+  display: none;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
-/* Light theme - literal values */
+/* Light theme - EXACT match Health modal */
 [data-theme="light"] .bottom-sheet {
   background: rgba(255, 255, 255, 0.96) !important;
-  border-top: 0.5px solid rgba(0, 0, 0, 0.1) !important;
+  border: 0.5px solid rgba(0, 0, 0, 0.1) !important;
 }
 
+/* EXACT from health.css line 1439-1440: .health-modal-overlay--visible .health-modal-sheet */
 .bottom-sheet--visible {
-  display: flex;
-  flex-direction: column;
-  transform: translateY(0);
-  opacity: 1;
+  /* JS sets display:flex before adding this class (double-RAF pattern) */
+  transform: translateY(0) !important;
 }
 
-/* Health-style drag handle at top of modal */
-.bottom-sheet__handle {
-  width: 36px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 2px;
-  margin: 0 auto 16px;
-  flex-shrink: 0;
-}
-
-/* Health-style header styling */
-.bottom-sheet__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 16px;
-  margin-bottom: 16px;
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
-}
-
-.bottom-sheet__title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--theme-text-primary);
-  margin: 0;
-}
-
-.bottom-sheet__icon {
-  font-size: 20px;
-  margin-right: 10px;
-}
+/* ===========================================================
+   BOTTOM-SHEET COMPONENTS
+   NOTE: Base styles are in design-system.css
+   Only add OVERRIDES here if absolutely necessary
+   =========================================================== */
 
 /* Full-height sheet for location picker */
 .bottom-sheet--full {
   max-height: 85vh;
-  padding: var(--space-m);
-}
-
-.bottom-sheet__close {
-  margin-left: auto;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-primary);
-  cursor: pointer;
-  transition:
-    background 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.bottom-sheet__close:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.1) rotate(90deg);
-}
-
-.bottom-sheet__close:active {
-  transform: scale(0.95) rotate(90deg);
-  transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Location Search Styles */
@@ -6284,70 +5901,25 @@ body.mobile-app #legacy-content {
   color: var(--color-text-muted-2);
 }
 
-.bottom-sheet__header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  flex-shrink: 0;
-  animation: slideDownFade 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.1s both;
-  position: relative;
+/* ===========================================================
+   BOTTOM-SHEET BODY CONTENT STYLES
+   NOTE: Base component styles (.bottom-sheet__header, __title,
+   __close, etc.) are now in design-system.css
+   These are CONTENT-SPECIFIC overrides for detail cards
+   =========================================================== */
+
+/* Body scrollbar styling */
+.bottom-sheet__body::-webkit-scrollbar {
+  width: 4px;
 }
 
-.bottom-sheet__header::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.15),
-    transparent
-  );
+.bottom-sheet__body::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.bottom-sheet__header > div {
-  flex: 1;
-  min-width: 0;
-}
-
-.bottom-sheet__icon {
-  font-size: 1.5rem;
-  flex-shrink: 0;
-}
-
-.bottom-sheet__title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin: 0 0 2px;
-  letter-spacing: 0.01em;
-  color: #ffffff;
-}
-
-.bottom-sheet__subtitle {
-  font-size: 0.85rem;
-  color: rgba(200, 210, 240, 0.65);
-  margin: 0;
-  line-height: 1.35;
-}
-
-.bottom-sheet__body {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px 16px 80px 16px;
-  animation: slideUpFade 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.15s both;
-  box-sizing: border-box;
-  width: 100%;
+.bottom-sheet__body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
 }
 
 /* Section separators in modals - refined spacing */
@@ -6357,22 +5929,11 @@ body.mobile-app #legacy-content {
   min-height: fit-content;
   width: 100%;
   box-sizing: border-box;
-  padding: 18px 16px;
-  margin: 0;
-  border: 0.5px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.025);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 0 0 var(--ui-spacing-md, 12px) 0;
 }
 
-/* Nested cards need subtle shadow for depth */
-.bottom-sheet__body .detail-card .detail-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 0.5px solid rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-  margin: 10px 0;
-  padding: 14px;
+.bottom-sheet__body .detail-card:last-child {
+  margin-bottom: 0;
 }
 
 /* Charts wrapper in modals */
@@ -6389,42 +5950,6 @@ body.mobile-app #legacy-content {
   overflow: visible;
   text-overflow: unset;
   white-space: normal;
-}
-
-@keyframes slideUpFade {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideDownFade {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Scrollbar styling for bottom sheet */
-.bottom-sheet__body::-webkit-scrollbar {
-  width: 4px;
-}
-
-.bottom-sheet__body::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.bottom-sheet__body::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
 }
 
 .bottom-sheet__cta {
@@ -18311,6 +17836,7 @@ body.view-unified-bg .app-view__content {
 }
 
 /* KRITISCH: Wenn Overlay offen ist, MUSS es sichtbar sein und Klicks fangen */
+/* Uses 250ms ease transition (from design-system.css / health.css) */
 .bottom-sheet-overlay.is-open {
   display: flex !important;
   pointer-events: auto !important;
@@ -18320,13 +17846,11 @@ body.view-unified-bg .app-view__content {
 }
 
 /* KRITISCH: Wenn Sheet sichtbar ist, MUSS es sichtbar sein */
+/* Modal uses ONLY transform transition at 400ms cubic-bezier(0.4, 0, 0.2, 1) */
+/* JS sets display:flex BEFORE adding visible class (double-RAF pattern) */
 .bottom-sheet-overlay.is-open .bottom-sheet--visible,
 .bottom-sheet.bottom-sheet--visible {
-  display: flex !important;
-  flex-direction: column !important;
   transform: translateY(0) !important;
-  opacity: 1 !important;
-  visibility: visible !important;
 }
 
 /* Toast stack should pass through clicks */
