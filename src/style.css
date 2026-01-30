@@ -5654,7 +5654,7 @@ body.mobile-app #legacy-content {
   max-width: 520px;
   max-height: 80vh; /* EXACT from health.css line 1427 */
   /* EXACT from health.css line 1428 */
-  background: rgba(22, 22, 24, 0.96) !important;
+  background: var(--health-glass-bg) !important;
   /* EXACT from health.css line 1429 */
   backdrop-filter: blur(20px) !important;
   -webkit-backdrop-filter: blur(20px) !important;
