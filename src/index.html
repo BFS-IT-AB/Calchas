@@ -39,6 +39,7 @@
     <link rel="stylesheet" href="ui/day-detail/day-detail.css" />
     <link rel="stylesheet" href="ui/history/history.css" />
     <link rel="stylesheet" href="ui/health/health.css" />
+    <link rel="stylesheet" href="ui/dev-dashboard/dev-dashboard.css" />
     <link rel="stylesheet" href="mobile.css" media="(max-width: 768px)" />
     <title>Calchas - Aktuelle Wetterdaten</title>
   </head>
@@ -233,6 +234,20 @@
           </div>
           <div class="app-view__content">
             <div id="settings-home-container"></div>
+          </div>
+        </section>
+
+        <section
+          data-view="dev-dashboard"
+          id="dev-dashboard-section"
+          class="app-view app-view--no-header"
+          aria-label="Developer Dashboard"
+          hidden
+        >
+          <div class="app-view__content app-view__content--full">
+            <div id="dev-dashboard-container">
+              <!-- Dev Dashboard Content will be loaded here -->
+            </div>
           </div>
         </section>
       </main>
@@ -2008,6 +2023,9 @@
     <script src="ui/settings/BackgroundSettingsSheet.js"></script>
     <script src="ui/settings/AboutSheet.js"></script>
     <script src="ui/settings/PrivacyApiInfoSheet.js"></script>
+    <!-- Dev Dashboard -->
+    <script src="ui/dev-dashboard/dev-dashboard.js"></script>
+    <script src="ui/dev-dashboard/DevDashboardView.js"></script>
     <script src="ui/shared/BottomNav.js"></script>
     <!-- Map & Radar Controllers -->
     <script src="ui/map/GlobalMapLayerManager.js"></script>

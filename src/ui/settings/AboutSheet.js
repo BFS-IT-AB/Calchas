@@ -240,7 +240,26 @@
         showPrivacyModal();
         break;
       case "devdashboard":
-        window.location.href = "../dev-dashboard/dev-dashboard.html";
+        // Close the About modal first (try both: MasterUIController and direct DOM removal)
+        let closed = false;
+        if (window.MasterUIController?.closeActiveModal) {
+          window.MasterUIController.closeActiveModal(true);
+          closed = true;
+        }
+        // Fallback: Remove About modal directly if still present
+        setTimeout(
+          () => {
+            const aboutModal = document.querySelector(".about-modal");
+            if (aboutModal) {
+              aboutModal.remove();
+            }
+            if (window.BottomNav) {
+              window.BottomNav.addDevDashboardIcon();
+              window.BottomNav.setActive("dev-dashboard");
+            }
+          },
+          closed ? 100 : 0,
+        );
         break;
     }
   }

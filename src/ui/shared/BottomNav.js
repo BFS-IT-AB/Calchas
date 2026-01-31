@@ -1,6 +1,7 @@
 (function (global) {
   let currentView = "home";
   let globalListenerBound = false;
+  let devDashboardIconActive = false;
 
   function createRipple(event, button) {
     const circle = document.createElement("span");
@@ -23,6 +24,44 @@
 
     // Remove ripple after animation
     setTimeout(() => circle.remove(), 600);
+  }
+
+  function addDevDashboardIcon() {
+    if (devDashboardIconActive) return;
+
+    const bottomNav = document.getElementById("bottom-nav");
+    if (!bottomNav) return;
+
+    // Create dev dashboard button
+    const devButton = document.createElement("button");
+    devButton.className = "bottom-nav__button bottom-nav__button--dev";
+    devButton.type = "button";
+    devButton.setAttribute("data-nav-target", "dev-dashboard");
+    devButton.innerHTML = `
+      <span class="bottom-nav__icon material-symbols-outlined" aria-hidden="true">code</span>
+      <span class="bottom-nav__label">Dev</span>
+    `;
+
+    bottomNav.appendChild(devButton);
+    devDashboardIconActive = true;
+
+    console.log("[BottomNav] Dev Dashboard icon added");
+  }
+
+  function removeDevDashboardIcon() {
+    if (!devDashboardIconActive) return;
+
+    const bottomNav = document.getElementById("bottom-nav");
+    if (!bottomNav) return;
+
+    const devButton = bottomNav.querySelector(
+      '[data-nav-target="dev-dashboard"]',
+    );
+    if (devButton) {
+      devButton.remove();
+      devDashboardIconActive = false;
+      console.log("[BottomNav] Dev Dashboard icon removed");
+    }
   }
 
   function setActive(viewId) {
@@ -61,7 +100,7 @@
     }
 
     // Toggle unified background class for non-home views
-    const unifiedBgViews = ["settings", "history", "health"];
+    const unifiedBgViews = ["settings", "history", "health", "dev-dashboard"];
     if (unifiedBgViews.includes(viewId)) {
       document.body.classList.add("view-unified-bg");
     } else {
@@ -94,6 +133,19 @@
           console.warn("[BottomNav] History render failed:", err);
         });
       });
+    }
+
+    // Trigger Dev Dashboard render when switching to dev-dashboard tab
+    if (viewId === "dev-dashboard" && global.DevDashboardView) {
+      console.log("[BottomNav] Dev Dashboard aktiviert → Render");
+      requestAnimationFrame(() => {
+        global.DevDashboardView.render();
+      });
+    }
+
+    // Remove dev dashboard icon when leaving dev-dashboard view
+    if (viewId !== "dev-dashboard" && devDashboardIconActive) {
+      removeDevDashboardIcon();
     }
   }
 
@@ -131,5 +183,10 @@
     setActive(currentView);
   }
 
-  global.BottomNav = { initBottomNav, setActive };
+  global.BottomNav = {
+    initBottomNav,
+    setActive,
+    addDevDashboardIcon,
+    removeDevDashboardIcon,
+  };
 })(window);

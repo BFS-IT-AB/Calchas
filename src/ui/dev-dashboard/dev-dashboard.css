@@ -7,48 +7,29 @@
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   min-height: 100vh;
   color: #e4e4e7;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Header */
-.dev-dashboard-header {
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 1rem 2rem;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.header-content {
+#dev-dashboard-container {
   max-width: 1400px;
   margin: 0 auto;
+  padding: 2rem 2rem 8rem 2rem; /* Extra bottom padding for bottom-nav */
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* View header inside the container (not the old separate header) */
+.dev-dashboard-view-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 2rem;
+  margin-bottom: 0.5rem;
 }
 
-.back-button {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #e4e4e7;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.back-button:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: translateX(-2px);
-}
-
-.dev-dashboard-header h1 {
+.dev-dashboard-view-header h2 {
   font-size: 1.5rem;
   margin: 0;
   font-weight: 700;
@@ -56,6 +37,8 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  /* Fallback für Browser ohne Gradient-Support */
+  color: #60a5fa;
 }
 
 .status-indicator {
@@ -85,14 +68,7 @@
 }
 
 /* Main Container */
-.dev-dashboard-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
+/* Removed - now using #dev-dashboard-container above */
 
 /* Dashboard Cards */
 .dashboard-card {
@@ -111,17 +87,26 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
+/* Touch devices: remove hover transform */
+@media (hover: none) {
+  .dashboard-card:hover {
+    transform: none;
+  }
+}
+
 .dashboard-card h2 {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   margin: 0 0 1rem 0;
   color: #60a5fa;
   font-weight: 600;
+  line-height: 1.3;
 }
 
 .card-description {
   color: #d1d5db;
   line-height: 1.6;
   margin-bottom: 1rem;
+  font-size: 0.95rem;
 }
 
 /* Info Card */
@@ -148,7 +133,7 @@
 /* Features Grid */
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1.5rem;
   margin-top: 1.5rem;
 }
@@ -159,6 +144,9 @@
   border-radius: 12px;
   padding: 1.5rem;
   transition: all 0.3s ease;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
 }
 
 .feature-item:hover {
@@ -198,9 +186,10 @@
   font-size: 0.9rem;
   color: #d1d5db;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .feature-list li:last-child {
@@ -221,12 +210,14 @@
 }
 
 .status-badge {
-  display: inline-block;
-  padding: 0.2rem 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .status-badge.completed {
@@ -244,7 +235,7 @@
 /* Quick Actions */
 .actions-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 1rem;
   margin-top: 1rem;
 }
@@ -263,6 +254,8 @@
   align-items: center;
   gap: 0.5rem;
   transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .action-button:hover {
@@ -272,6 +265,10 @@
   box-shadow: 0 4px 12px rgba(96, 165, 250, 0.2);
 }
 
+.action-button:active {
+  transform: translateY(0);
+}
+
 .action-button span:first-child {
   font-size: 1.5rem;
 }
@@ -279,7 +276,7 @@
 /* Status Grid */
 .status-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
   margin-top: 1rem;
 }
@@ -309,20 +306,29 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .dev-dashboard-container {
-    padding: 1rem;
+  #dev-dashboard-container {
+    padding: 1rem 1rem 8rem 1rem; /* Extra bottom padding for mobile */
   }
 
   .features-grid {
     grid-template-columns: 1fr;
   }
 
-  .header-content {
+  .dev-dashboard-view-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 0.5rem;
   }
 
-  .dev-dashboard-header h1 {
+  .dev-dashboard-view-header h2 {
     font-size: 1.2rem;
+  }
+
+  .dashboard-card {
+    padding: 1.5rem;
+  }
+
+  .actions-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

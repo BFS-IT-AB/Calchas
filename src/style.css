@@ -8669,6 +8669,26 @@ body.dark-mode .source-compare-card {
   max-width: 70px;
 }
 
+/* Dev Dashboard Button - Special styling */
+.bottom-nav__button--dev {
+  animation: slideInFromRight 0.3s ease-out;
+}
+
+.bottom-nav__button--dev .bottom-nav__icon {
+  color: #a78bfa;
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 /* Glow animation for nav */
 @keyframes navGlow {
   0%,
