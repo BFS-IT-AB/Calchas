@@ -1531,11 +1531,16 @@
     const contextInfo = config.getContextInfo(day, normals);
     const healthTip = config.getHealthTip(day);
 
-    // Primärwert basierend auf Metrik
+    // Primärwert basierend auf Metrik (mit sicheren Berechnungen)
     const getPrimaryValue = () => {
       switch (metric) {
         case "temperature":
-          return `${day.temp_avg?.toFixed(1) ?? ((day.temp_min + day.temp_max) / 2).toFixed(1)}°C`;
+          const tempAvg =
+            day.temp_avg ??
+            (day.temp_min != null && day.temp_max != null
+              ? (day.temp_min + day.temp_max) / 2
+              : null);
+          return tempAvg != null ? `${tempAvg.toFixed(1)}°C` : "–°C";
         case "precipitation":
           return `${day.precip?.toFixed(1) ?? "0"} mm`;
         case "wind":
@@ -1553,11 +1558,24 @@
     const getMetricSpecificCards = () => {
       switch (metric) {
         case "temperature":
+          const tempAvgCalc =
+            day.temp_avg ??
+            (day.temp_min != null && day.temp_max != null
+              ? (day.temp_min + day.temp_max) / 2
+              : null);
+          const tempSpan =
+            day.temp_max != null && day.temp_min != null
+              ? (day.temp_max - day.temp_min).toFixed(1)
+              : "–";
+          const anomaly =
+            tempAvgCalc != null && normals?.avgTemp != null
+              ? (tempAvgCalc - normals.avgTemp).toFixed(1)
+              : null;
           return `
             <div class="detail-card">
               <h4 class="detail-card__title">Temperaturverlauf</h4>
               <div class="detail-card__hero">
-                <span class="detail-card__value">${day.temp_avg?.toFixed(1) ?? "–"}°C</span>
+                <span class="detail-card__value">${tempAvgCalc?.toFixed(1) ?? "–"}°C</span>
                 <span class="detail-card__label">Tagesdurchschnitt</span>
               </div>
               <div class="detail-card__row">
@@ -1569,13 +1587,23 @@
                 <span>${day.temp_min?.toFixed(1) ?? "–"}°C</span>
               </div>
               <div class="detail-card__row">
-                <span>📊 Spanne</span>
-                <span>${((day.temp_max ?? 0) - (day.temp_min ?? 0)).toFixed(1)}°C</span>
+                <span>📊 Tagesspanne</span>
+                <span>${tempSpan}°C</span>
               </div>
               <div class="detail-card__row">
-                <span>🌡️ Klimamittel</span>
+                <span>🌡️ Klimanormal</span>
                 <span>${normals.avgTemp.toFixed(1)}°C</span>
               </div>
+              ${
+                anomaly !== null
+                  ? `
+              <div class="detail-card__row">
+                <span>📈 Abweichung</span>
+                <span style="color: ${parseFloat(anomaly) > 0 ? "#fca5a5" : parseFloat(anomaly) < 0 ? "#93c5fd" : "inherit"}">${anomaly > 0 ? "+" : ""}${anomaly}°C</span>
+              </div>
+              `
+                  : ""
+              }
             </div>
             ${
               day.temp_min !== null && day.temp_min < 0
@@ -1606,26 +1634,36 @@
         case "precipitation":
           const precipIntensity =
             (day.precip ?? 0) > 0
-              ? `${((day.precip ?? 0) / 24).toFixed(2)} mm/h im Schnitt`
-              : "Keine Niederschläge";
+              ? `${((day.precip ?? 0) / 24).toFixed(2)} mm/h Ø`
+              : "Kein Niederschlag";
+          const precipPercent = normals?.precip
+            ? (((day.precip ?? 0) / normals.precip) * 100).toFixed(1)
+            : "–";
+          const precipPerDay = normals?.precip
+            ? (normals.precip / 30).toFixed(1)
+            : "–";
           return `
             <div class="detail-card">
               <h4 class="detail-card__title">Niederschlagsanalyse</h4>
               <div class="detail-card__hero">
                 <span class="detail-card__value">${day.precip?.toFixed(1) ?? "0"} mm</span>
-                <span class="detail-card__label">Tagessumme</span>
+                <span class="detail-card__label">Tagesniederschlag</span>
               </div>
               <div class="detail-card__row">
                 <span>⏱️ Intensität</span>
                 <span>${precipIntensity}</span>
               </div>
               <div class="detail-card__row">
-                <span>💧 Monatsmittel</span>
-                <span>${normals.precip.toFixed(1)} mm/Monat</span>
+                <span>📅 Monatstag Ø</span>
+                <span>${precipPerDay} mm/Tag</span>
               </div>
               <div class="detail-card__row">
-                <span>📊 Prozent vom Monat</span>
-                <span>${(((day.precip ?? 0) / normals.precip) * 100).toFixed(0)}%</span>
+                <span>💧 Monatssumme</span>
+                <span>${normals.precip.toFixed(0)} mm/Monat</span>
+              </div>
+              <div class="detail-card__row">
+                <span>📊 Anteil</span>
+                <span>${precipPercent}% des Monats</span>
               </div>
             </div>
             ${
@@ -1644,20 +1682,25 @@
 
         case "wind":
           const beaufort = getBeaufortScale(day.wind_speed ?? 0);
+          const windPower = (day.wind_speed ?? 0) ** 3 / 100; // Vereinfachte Windenergie-Formel
           return `
             <div class="detail-card">
               <h4 class="detail-card__title">Windanalyse</h4>
               <div class="detail-card__hero">
                 <span class="detail-card__value">${day.wind_speed?.toFixed(0) ?? "–"} km/h</span>
-                <span class="detail-card__label">Windspitze</span>
+                <span class="detail-card__label">Windgeschwindigkeit</span>
               </div>
               <div class="detail-card__row">
                 <span>🌬️ Beaufort-Skala</span>
-                <span>${beaufort.scale} - ${beaufort.description}</span>
+                <span>Bft ${beaufort.scale} - ${beaufort.description}</span>
               </div>
               <div class="detail-card__row">
                 <span>🎯 Auswirkung</span>
                 <span>${beaufort.effect}</span>
+              </div>
+              <div class="detail-card__row">
+                <span>⚡ Windenergie</span>
+                <span>${windPower.toFixed(0)} W/m²</span>
               </div>
             </div>
             ${
@@ -1666,19 +1709,35 @@
               <div class="detail-card detail-card--warning">
                 <div class="detail-card__warning">
                   <span class="material-symbols-outlined">storm</span>
-                  <span>Sturmtag: Windspitzen ≥ 62 km/h</span>
+                  <span>Sturmwarnung: Windspitzen ≥ 62 km/h (Beaufort 8+)</span>
                 </div>
               </div>
             `
-                : ""
+                : (day.wind_speed ?? 0) >= 39
+                  ? `
+              <div class="detail-card detail-card--info">
+                <div class="detail-card__row">
+                  <span class="material-symbols-outlined">info</span>
+                  <span>Starker Wind: Vorsicht im Freien empfohlen</span>
+                </div>
+              </div>
+            `
+                  : ""
             }
           `;
 
         case "humidity":
+          const tempForComfort =
+            day.temp_avg ??
+            (day.temp_min != null && day.temp_max != null
+              ? (day.temp_min + day.temp_max) / 2
+              : 15);
           const comfortLevel = getComfortLevel(
             day.humidity ?? 50,
-            day.temp_avg ?? 15,
+            tempForComfort,
           );
+          const isOptimal =
+            (day.humidity ?? 50) >= 40 && (day.humidity ?? 50) <= 60;
           return `
             <div class="detail-card">
               <h4 class="detail-card__title">Feuchtigkeitsanalyse</h4>
@@ -1688,7 +1747,7 @@
               </div>
               <div class="detail-card__row">
                 <span>😊 Komfortlevel</span>
-                <span>${comfortLevel.label}</span>
+                <span>${comfortLevel.label}${isOptimal ? " ✓" : ""}</span>
               </div>
               <div class="detail-card__row">
                 <span>🌡️ Gefühlte Temp.</span>
@@ -1698,6 +1757,10 @@
                 <span>💧 Taupunkt</span>
                 <span>${comfortLevel.dewPoint.toFixed(1)}°C</span>
               </div>
+              <div class="detail-card__row">
+                <span>📊 Optimal</span>
+                <span>40-60% (Wohn-/Arbeitsräume)</span>
+              </div>
             </div>
             ${
               (day.humidity ?? 50) >= 85
@@ -1705,11 +1768,20 @@
               <div class="detail-card detail-card--info">
                 <div class="detail-card__row">
                   <span class="material-symbols-outlined">info</span>
-                  <span>Hohe Luftfeuchtigkeit kann Schimmelbildung begünstigen</span>
+                  <span>Hohe Luftfeuchtigkeit – Schimmelrisiko, gut lüften</span>
                 </div>
               </div>
             `
-                : ""
+                : (day.humidity ?? 50) < 30
+                  ? `
+              <div class="detail-card detail-card--info">
+                <div class="detail-card__row">
+                  <span class="material-symbols-outlined">info</span>
+                  <span>Niedrige Luftfeuchtigkeit – Atemwege können gereizt werden</span>
+                </div>
+              </div>
+            `
+                  : ""
             }
           `;
 
@@ -1719,6 +1791,10 @@
             maxDaylight > 0
               ? (((day.sunshine ?? 0) / maxDaylight) * 100).toFixed(0)
               : 0;
+          const cloudCover = maxDaylight > 0 ? 100 - parseInt(sunPercent) : 100;
+          const monthAvgSun = normals?.sunshine
+            ? (normals.sunshine / 30).toFixed(1)
+            : "–";
           return `
             <div class="detail-card">
               <h4 class="detail-card__title">Sonnenscheinanalyse</h4>
@@ -1727,16 +1803,20 @@
                 <span class="detail-card__label">Sonnenstunden</span>
               </div>
               <div class="detail-card__row">
-                <span>☀️ Max. Tageslicht</span>
-                <span>~${maxDaylight.toFixed(1)} h</span>
+                <span>🌅 Tageslichtdauer</span>
+                <span>${maxDaylight.toFixed(1)} h</span>
               </div>
               <div class="detail-card__row">
-                <span>📊 Sonnenanteil</span>
-                <span>${sunPercent}%</span>
+                <span>☀️ Sonnenschein</span>
+                <span>${sunPercent}% des Tageslichts</span>
               </div>
               <div class="detail-card__row">
-                <span>🌤️ Monatsmittel</span>
-                <span>${(normals.sunshine / 30).toFixed(1)} h/Tag</span>
+                <span>☁️ Bewölkung</span>
+                <span>~${cloudCover}%</span>
+              </div>
+              <div class="detail-card__row">
+                <span>📅 Monatsmittel</span>
+                <span>${monthAvgSun} h/Tag</span>
               </div>
             </div>
             ${
@@ -1759,7 +1839,7 @@
     };
 
     return `
-      <div class="history-modal__content history-modal__content--day-detail history-modal__content--${metric}" style="--modal-gradient: ${config.gradient}">
+      <div class="history-modal__content history-modal__content--day-detail history-modal__content--${metric}">
         <div class="swipe-handle"></div>
         <button class="history-modal__close" data-action="close" aria-label="Schließen">
           <span class="material-symbols-outlined">close</span>
@@ -1935,7 +2015,7 @@
     const diffClass = diff > 0 ? "positive" : diff < 0 ? "negative" : "neutral";
 
     return `
-      <div class="history-modal__content history-modal__content--comparison" style="--modal-gradient: ${config.gradient}">
+      <div class="history-modal__content history-modal__content--comparison">
         <div class="swipe-handle"></div>
         <button class="history-modal__close" data-action="close" aria-label="Schließen">
           <span class="material-symbols-outlined">close</span>
@@ -2228,7 +2308,7 @@
     const condition = config.getConditionBadge(day);
 
     return `
-      <div class="history-modal__content history-modal__content--calendar history-modal__content--calendar-${metric}" style="--modal-gradient: ${config.gradient}">
+      <div class="history-modal__content history-modal__content--calendar history-modal__content--calendar-${metric}">
         <div class="swipe-handle"></div>
         <button class="history-modal__close" data-action="close" aria-label="Schließen">
           <span class="material-symbols-outlined">close</span>
@@ -2931,30 +3011,195 @@
         </button>
         <header class="history-modal__header">
           <h3>Begriffserklärungen</h3>
+          <p class="history-modal__subtitle">Tippen Sie auf einen Begriff für Details</p>
         </header>
         <div class="history-modal__body">
-          <dl class="info-definitions">
-            <dt>Durchschnittstemperatur</dt>
-            <dd>Mittelwert aller Tages-Durchschnitte im gewählten Zeitraum.</dd>
+          <div class="info-accordion">
 
-            <dt>Klimamittel</dt>
-            <dd>Langjähriger Durchschnitt (30 Jahre) für den Standort.</dd>
+            <!-- Temperatur-Begriffe -->
+            <div class="info-accordion__item">
+              <button class="info-accordion__header" data-accordion-toggle>
+                <span class="info-accordion__icon material-symbols-outlined">device_thermostat</span>
+                <span class="info-accordion__title">Temperatur-Begriffe</span>
+                <span class="info-accordion__chevron material-symbols-outlined">expand_more</span>
+              </button>
+              <div class="info-accordion__content">
+                <dl class="info-accordion__list">
+                  <dt>Durchschnittstemperatur</dt>
+                  <dd>Mittelwert aller Tages-Durchschnitte im gewählten Zeitraum.</dd>
 
-            <dt>Frosttage</dt>
-            <dd>Tage, an denen die Tiefsttemperatur unter 0°C lag.</dd>
+                  <dt>Klimamittel</dt>
+                  <dd>Langjähriger Durchschnitt (30 Jahre) für den Standort. Dient als Referenzwert zur Einordnung aktueller Temperaturen.</dd>
 
-            <dt>Eistage</dt>
-            <dd>Tage, an denen die Höchsttemperatur unter 0°C blieb.</dd>
+                  <dt>Frosttage</dt>
+                  <dd>Tage, an denen die Tiefsttemperatur unter 0°C lag. Wichtig für Landwirtschaft und Straßenzustand.</dd>
 
-            <dt>Hitzewelle</dt>
-            <dd>Mindestens 3 aufeinanderfolgende Tage mit Temperaturen über 30°C.</dd>
+                  <dt>Eistage</dt>
+                  <dd>Tage, an denen die Höchsttemperatur unter 0°C blieb. An diesen Tagen bleibt es den ganzen Tag gefroren.</dd>
 
-            <dt>Niederschlag</dt>
-            <dd>Gemessene Wassermenge in Millimetern (1mm = 1 Liter/m²).</dd>
+                  <dt>Hitzewelle</dt>
+                  <dd>Mindestens 3 aufeinanderfolgende Tage mit Temperaturen über 30°C. Kann gesundheitliche Belastungen verursachen.</dd>
+                </dl>
+              </div>
+            </div>
 
-            <dt>Sturmtag</dt>
-            <dd>Tag mit Windböen über 62 km/h (Beaufort 8+).</dd>
-          </dl>
+            <!-- Niederschlag -->
+            <div class="info-accordion__item">
+              <button class="info-accordion__header" data-accordion-toggle>
+                <span class="info-accordion__icon material-symbols-outlined">water_drop</span>
+                <span class="info-accordion__title">Niederschlag</span>
+                <span class="info-accordion__chevron material-symbols-outlined">expand_more</span>
+              </button>
+              <div class="info-accordion__content">
+                <dl class="info-accordion__list">
+                  <dt>Niederschlagsmenge</dt>
+                  <dd>Gemessene Wassermenge in Millimetern (mm). 1 mm entspricht 1 Liter Wasser pro Quadratmeter (1 L/m²).</dd>
+
+                  <dt>Regentag</dt>
+                  <dd>Tag mit mindestens 0,1 mm Niederschlag innerhalb von 24 Stunden.</dd>
+
+                  <dt>Starkregen</dt>
+                  <dd>Mehr als 10 mm Niederschlag in kurzer Zeit. Kann zu Überflutungen führen.</dd>
+
+                  <dt>Niederschlagsintensität</dt>
+                  <dd>Durchschnittliche Menge pro Stunde. Wichtig für Hochwasservorhersagen.</dd>
+                </dl>
+              </div>
+            </div>
+
+            <!-- Wind & Beaufort -->
+            <div class="info-accordion__item">
+              <button class="info-accordion__header" data-accordion-toggle>
+                <span class="info-accordion__icon material-symbols-outlined">air</span>
+                <span class="info-accordion__title">Wind & Beaufort-Skala</span>
+                <span class="info-accordion__chevron material-symbols-outlined">expand_more</span>
+              </button>
+              <div class="info-accordion__content">
+                <dl class="info-accordion__list">
+                  <dt>Windgeschwindigkeit</dt>
+                  <dd>Gemessen in Kilometer pro Stunde (km/h). Die Beaufort-Skala klassifiziert diese in 13 Stufen.</dd>
+
+                  <dt>Sturmtag</dt>
+                  <dd>Tag mit Windböen über 62 km/h (Beaufort 8+). Ab dieser Stärke spricht man von Sturmstärke.</dd>
+
+                  <dt>Böen</dt>
+                  <dd>Kurzzeitige, plötzliche Windspitzen. Können deutlich stärker sein als die durchschnittliche Windgeschwindigkeit.</dd>
+                </dl>
+
+                <div class="info-beaufort-compact">
+                  <h5>Beaufort-Skala</h5>
+                  <p class="info-beaufort-intro">Klassifizierung von Windgeschwindigkeiten (0-12)</p>
+                  <div class="beaufort-grid">
+                    <div class="beaufort-item beaufort-item--calm">
+                      <span class="beaufort-num">0-3</span>
+                      <span class="beaufort-label">Leicht</span>
+                      <span class="beaufort-speed">&lt;20 km/h</span>
+                    </div>
+                    <div class="beaufort-item beaufort-item--moderate">
+                      <span class="beaufort-num">4-5</span>
+                      <span class="beaufort-label">Mäßig</span>
+                      <span class="beaufort-speed">20-38 km/h</span>
+                    </div>
+                    <div class="beaufort-item beaufort-item--strong">
+                      <span class="beaufort-num">6-7</span>
+                      <span class="beaufort-label">Stark</span>
+                      <span class="beaufort-speed">39-61 km/h</span>
+                    </div>
+                    <div class="beaufort-item beaufort-item--storm">
+                      <span class="beaufort-num">8-9</span>
+                      <span class="beaufort-label">Sturm</span>
+                      <span class="beaufort-speed">62-88 km/h</span>
+                    </div>
+                    <div class="beaufort-item beaufort-item--hurricane">
+                      <span class="beaufort-num">10-12</span>
+                      <span class="beaufort-label">Orkan</span>
+                      <span class="beaufort-speed">&gt;89 km/h</span>
+                    </div>
+                  </div>
+                  <button class="beaufort-detail-toggle" data-action="toggle-beaufort-detail">
+                    <span class="material-symbols-outlined">table_chart</span>
+                    Detaillierte Tabelle anzeigen
+                  </button>
+                  <div class="beaufort-detail-table" style="display: none;">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Bft</th>
+                          <th>km/h</th>
+                          <th>Bezeichnung</th>
+                          <th>Auswirkungen</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr><td>0</td><td>&lt;1</td><td>Windstille</td><td>Rauch steigt senkrecht</td></tr>
+                        <tr><td>1</td><td>1-5</td><td>Leiser Zug</td><td>Rauch treibt ab</td></tr>
+                        <tr><td>2</td><td>6-11</td><td>Leichte Brise</td><td>Blätter rascheln</td></tr>
+                        <tr><td>3</td><td>12-19</td><td>Schwache Brise</td><td>Blätter bewegen sich</td></tr>
+                        <tr><td>4</td><td>20-28</td><td>Mäßige Brise</td><td>Zweige bewegen sich</td></tr>
+                        <tr><td>5</td><td>29-38</td><td>Frische Brise</td><td>Kleine Bäume schwanken</td></tr>
+                        <tr><td>6</td><td>39-49</td><td>Starker Wind</td><td>Große Äste bewegen sich</td></tr>
+                        <tr><td>7</td><td>50-61</td><td>Steifer Wind</td><td>Bäume bewegen sich</td></tr>
+                        <tr class="beaufort-warning"><td>8</td><td>62-74</td><td>Stürmisch</td><td>Zweige brechen</td></tr>
+                        <tr class="beaufort-warning"><td>9</td><td>75-88</td><td>Sturm</td><td>Dachziegel lösen sich</td></tr>
+                        <tr class="beaufort-danger"><td>10</td><td>89-102</td><td>Schwerer Sturm</td><td>Bäume entwurzelt</td></tr>
+                        <tr class="beaufort-danger"><td>11</td><td>103-117</td><td>Orkanartig</td><td>Schwere Verwüstungen</td></tr>
+                        <tr class="beaufort-danger"><td>12</td><td>&gt;117</td><td>Orkan</td><td>Schwerste Schäden</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Luftfeuchtigkeit -->
+            <div class="info-accordion__item">
+              <button class="info-accordion__header" data-accordion-toggle>
+                <span class="info-accordion__icon material-symbols-outlined">humidity_percentage</span>
+                <span class="info-accordion__title">Luftfeuchtigkeit</span>
+                <span class="info-accordion__chevron material-symbols-outlined">expand_more</span>
+              </button>
+              <div class="info-accordion__content">
+                <dl class="info-accordion__list">
+                  <dt>Relative Luftfeuchtigkeit</dt>
+                  <dd>Prozentuale Angabe der Wasserdampf-Sättigung der Luft. 100% bedeutet vollständige Sättigung (Nebel/Regen).</dd>
+
+                  <dt>Optimale Luftfeuchtigkeit</dt>
+                  <dd>40-60% gelten als angenehm für Wohn- und Arbeitsräume. Außerhalb dieses Bereichs kann es zu Unbehagen kommen.</dd>
+
+                  <dt>Taupunkt</dt>
+                  <dd>Temperatur, bei der Wasserdampf kondensiert. Wichtig für Nebelbildung und gefühlte Temperatur.</dd>
+
+                  <dt>Schwüle</dt>
+                  <dd>Kombination aus hoher Temperatur (>25°C) und hoher Luftfeuchtigkeit (>70%). Belastet den Kreislauf.</dd>
+                </dl>
+              </div>
+            </div>
+
+            <!-- Sonnenschein -->
+            <div class="info-accordion__item">
+              <button class="info-accordion__header" data-accordion-toggle>
+                <span class="info-accordion__icon material-symbols-outlined">wb_sunny</span>
+                <span class="info-accordion__title">Sonnenschein</span>
+                <span class="info-accordion__chevron material-symbols-outlined">expand_more</span>
+              </button>
+              <div class="info-accordion__content">
+                <dl class="info-accordion__list">
+                  <dt>Sonnenstunden</dt>
+                  <dd>Stunden mit direktem Sonnenschein pro Tag. Gemessen durch spezielle Sensoren.</dd>
+
+                  <dt>Sonnigster Tag</dt>
+                  <dd>Tag mit der höchsten Anzahl an Sonnenstunden im Zeitraum.</dd>
+
+                  <dt>Bewölkung</dt>
+                  <dd>Inverses Maß zum Sonnenschein. Hohe Bewölkung = wenige Sonnenstunden.</dd>
+
+                  <dt>UV-Index</dt>
+                  <dd>Bei viel Sonnenschein steigt die UV-Belastung. Sonnenschutz ab UV-Index 3 empfohlen.</dd>
+                </dl>
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
     `;

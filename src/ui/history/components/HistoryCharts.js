@@ -452,17 +452,37 @@
 
     /**
      * Inferiert die Metrik aus der Chart-ID
-     * Verbesserte Logik mit mehr Mustern
+     * KRITISCH: Für generische Charts (analyse-chart, comparison-chart)
+     * IMMER die aktuelle Metrik aus dem State lesen!
      */
     _inferMetricFromChartId(chartId) {
       const id = (chartId || "").toLowerCase();
 
-      // Temperatur-Patterns
-      if (
-        id.includes("temp") ||
-        id.includes("analyse-chart") ||
-        id.includes("comparison")
-      ) {
+      // PRIORITÄT 1: Für generische Charts (analyse-chart, comparison-chart)
+      // IMMER die aktuelle Metrik aus dem Controller-State lesen!
+      if (id.includes("analyse-chart") || id.includes("comparison-chart")) {
+        const controller = getHistoryController();
+        if (controller?.getState) {
+          const currentMetric = controller.getState("currentMetric");
+          if (currentMetric) {
+            console.log(
+              `[HistoryCharts] Using currentMetric from controller state: ${currentMetric}`,
+            );
+            return currentMetric;
+          }
+        }
+        // Fallback: Aus View-Instanz über Controller lesen
+        if (controller?._viewInstance?.currentMetric) {
+          console.log(
+            `[HistoryCharts] Using currentMetric from HistoryView instance: ${controller._viewInstance.currentMetric}`,
+          );
+          return controller._viewInstance.currentMetric;
+        }
+      }
+
+      // PRIORITÄT 2: Explizite Chart-ID Patterns
+      // Temperatur-Patterns (spezifische Chart-IDs)
+      if (id.includes("temp-chart") || id.includes("temperature-")) {
         return "temperature";
       }
       // Niederschlag-Patterns
@@ -490,12 +510,12 @@
         return "sunshine";
       }
 
-      // Versuche aus State zu lesen
+      // PRIORITÄT 3: Fallback auf State
       const controller = getHistoryController();
       if (controller?.getState) {
-        const state = controller.getState();
-        if (state?.currentMetric) {
-          return state.currentMetric;
+        const currentMetric = controller.getState("currentMetric");
+        if (currentMetric) {
+          return currentMetric;
         }
       }
 

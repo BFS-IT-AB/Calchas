@@ -1957,6 +1957,58 @@
             });
           }
           break;
+
+        case "info":
+          // Accordion toggle functionality
+          modalElement
+            .querySelectorAll("[data-accordion-toggle]")
+            .forEach((button) => {
+              button.addEventListener("click", () => {
+                // Find the parent accordion item
+                const targetItem = button.closest(".info-accordion__item");
+
+                if (targetItem) {
+                  const isOpen = targetItem.classList.contains("is-open");
+
+                  // Optional: Close other accordions (single-open mode)
+                  // modalElement.querySelectorAll(".info-accordion__item.is-open").forEach((item) => {
+                  //   if (item !== targetItem) item.classList.remove("is-open");
+                  // });
+
+                  // Toggle current accordion
+                  targetItem.classList.toggle("is-open", !isOpen);
+                }
+              });
+            });
+
+          // Beaufort detail table toggle
+          const beaufortToggle = modalElement.querySelector(
+            ".beaufort-detail-toggle",
+          );
+          if (beaufortToggle) {
+            beaufortToggle.addEventListener("click", () => {
+              const detailTable = modalElement.querySelector(
+                ".beaufort-detail-table",
+              );
+              if (detailTable) {
+                const isHidden =
+                  detailTable.style.display === "none" ||
+                  !detailTable.style.display;
+                detailTable.style.display = isHidden ? "block" : "none";
+
+                // Update toggle button text
+                const chevron = beaufortToggle.querySelector(
+                  ".material-symbols-outlined",
+                );
+                if (chevron) {
+                  chevron.textContent = isHidden
+                    ? "expand_less"
+                    : "expand_more";
+                }
+              }
+            });
+          }
+          break;
       }
     }
 
