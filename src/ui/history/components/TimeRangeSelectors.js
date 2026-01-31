@@ -310,6 +310,12 @@
     const currentYear = viewDate.getFullYear();
     const currentMonth = viewDate.getMonth();
 
+    // Aktuell ausgewählten Monat bestimmen
+    const selectedPeriodData = availableDataRange?.currentPeriodData;
+    const selectedStartDate = selectedPeriodData?.startDate
+      ? new Date(selectedPeriodData.startDate)
+      : null;
+
     const months = [
       "Januar",
       "Februar",
@@ -343,6 +349,13 @@
               const isCurrent =
                 index === currentMonth &&
                 currentYear === new Date().getFullYear();
+
+              // Prüfe ob dieser Monat aktuell ausgewählt ist
+              const isSelected =
+                selectedStartDate &&
+                index === selectedStartDate.getMonth() &&
+                currentYear === selectedStartDate.getFullYear();
+
               const monthStart = new Date(currentYear, index, 1);
               const monthEnd = new Date(
                 currentYear,
@@ -355,7 +368,7 @@
               );
 
               return `
-              <button class="month-grid__item ${isCurrent ? "month-grid__item--current" : ""}"
+              <button class="month-grid__item ${isCurrent ? "month-grid__item--current" : ""} ${isSelected ? "month-grid__item--selected" : ""}"
                       data-period-id="month-${currentYear}-${index + 1}"
                       data-period-type="${periodType}"
                       data-start-date="${monthStart.toISOString()}"

@@ -3046,6 +3046,7 @@
     periods = [],
     lockedGranularity = null,
     currentViewDate = null,
+    currentPeriodData = null,
   ) {
     const TRS = window.TimeRangeSystem;
     const Selectors = window.TimeRangeSelectors;
@@ -3075,6 +3076,7 @@
       startDate: "1940-01-01",
       endDate: new Date().toISOString().split("T")[0], // Heute
       currentViewDate: currentViewDate, // Navigation state
+      currentPeriodData: currentPeriodData, // Für Highlighting der aktuellen Auswahl
     };
 
     const selectorHTML = Selectors

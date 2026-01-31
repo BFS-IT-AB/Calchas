@@ -1181,34 +1181,28 @@
     /**
      * Load comparison data for two periods
      */
-    async loadComparisonData(periodA, periodB) {
+    async loadComparisonData(periodDataA, periodDataB) {
       const location = this.state.get("currentLocation");
 
       this.state.set("isLoading", true);
 
       try {
-        // Parse period strings (e.g., "januar2025" -> { year: 2025, month: 0 })
-        const parseA = this._parsePeriodString(periodA);
-        const parseB = this._parsePeriodString(periodB);
+        console.log("[HistoryController] Loading comparison data:", {
+          periodDataA,
+          periodDataB,
+        });
 
+        // Use periodData objects with startDate/endDate or fall back to old period strings
         const [dataA, dataB] = await Promise.all([
-          this.dataPipeline.loadHistoricalData(
-            parseA.year,
-            parseA.month,
-            location,
-          ),
-          this.dataPipeline.loadHistoricalData(
-            parseB.year,
-            parseB.month,
-            location,
-          ),
+          this._loadPeriodData(periodDataA, location),
+          this._loadPeriodData(periodDataB, location),
         ]);
 
         this.state.batch({
           comparisonDataA: dataA,
           comparisonDataB: dataB,
-          comparisonPeriodA: periodA,
-          comparisonPeriodB: periodB,
+          periodDataA: periodDataA,
+          periodDataB: periodDataB,
         });
 
         return { dataA, dataB };
@@ -1218,6 +1212,35 @@
       } finally {
         this.state.set("isLoading", false);
       }
+    }
+
+    async _loadPeriodData(periodData, location) {
+      // New format: periodData object with startDate/endDate
+      if (
+        periodData &&
+        typeof periodData === "object" &&
+        periodData.startDate
+      ) {
+        console.log("[HistoryController] Loading date range:", periodData);
+        return await this.dataPipeline.loadDateRange(
+          periodData.startDate,
+          periodData.endDate || periodData.startDate,
+          location,
+        );
+      }
+
+      // Legacy format: period string like "januar2025"
+      if (typeof periodData === "string") {
+        const parsed = this._parsePeriodString(periodData);
+        return await this.dataPipeline.loadHistoricalData(
+          parsed.year,
+          parsed.month,
+          location,
+        );
+      }
+
+      console.warn("[HistoryController] Invalid period data:", periodData);
+      return [];
     }
 
     _parsePeriodString(periodStr) {
@@ -1675,6 +1698,8 @@
               granularity,
               data.periods,
               lockedGranularity,
+              null, // currentViewDate (navigation)
+              data.currentPeriodData, // vollständige Period-Daten für Highlighting
             ) ||
             stats?.renderPeriodSelectorModal?.(
               data.periods,
@@ -1725,15 +1750,22 @@
           };
 
           console.log("[HistoryController] Calling onSelect with:", periodData);
-          await data.onSelect(periodId, periodData);
-          console.log("[HistoryController] onSelect completed, closing modal");
+          try {
+            await data.onSelect(periodId, periodData);
+            console.log(
+              "[HistoryController] onSelect completed, closing modal",
+            );
+            this.closeModal();
+          } catch (error) {
+            console.error("[HistoryController] onSelect failed:", error);
+            // Don't close modal on error
+          }
         } else {
           console.warn(
             "[HistoryController] No onSelect callback provided - not closing modal",
           );
           return; // Don't close modal if no callback
         }
-        this.closeModal();
       };
 
       // Standard period items
@@ -1968,6 +2000,7 @@
       const granularity = data.granularity || "month";
       const lockedGranularity = data.lockedGranularity || null;
       const currentViewDate = data.currentViewDate || null;
+      const currentPeriodData = data.currentPeriodData || null;
 
       // Render new content
       const newContent =
@@ -1978,6 +2011,7 @@
           data.periods,
           lockedGranularity,
           currentViewDate,
+          currentPeriodData,
         ) ||
         stats.renderPeriodSelectorModal?.(
           data.periods,
