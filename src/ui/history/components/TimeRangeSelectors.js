@@ -260,6 +260,8 @@
               weekEnd.setDate(weekEnd.getDate() + 6);
               weekEnd.setHours(23, 59, 59, 999);
 
+              const today = new Date();
+
               return `
               <div class="week-calendar__week"
                    data-period-id="week-${weekNumber}-${year}"
@@ -274,7 +276,9 @@
                       if (day === null)
                         return `<div class="week-calendar__day week-calendar__day--empty"></div>`;
                       const isToday =
-                        day === now.getDate() && month === now.getMonth();
+                        day === today.getDate() &&
+                        month === today.getMonth() &&
+                        year === today.getFullYear();
                       return `<div class="week-calendar__day ${isToday ? "week-calendar__day--today" : ""}">${day}</div>`;
                     })
                     .join("")}

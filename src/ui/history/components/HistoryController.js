@@ -1723,9 +1723,15 @@
             endDate: element.dataset.endDate,
             granularity: element.dataset.granularity,
           };
+
+          console.log("[HistoryController] Calling onSelect with:", periodData);
           await data.onSelect(periodId, periodData);
+          console.log("[HistoryController] onSelect completed, closing modal");
         } else {
-          console.warn("[HistoryController] No onSelect callback provided");
+          console.warn(
+            "[HistoryController] No onSelect callback provided - not closing modal",
+          );
+          return; // Don't close modal if no callback
         }
         this.closeModal();
       };
@@ -1851,7 +1857,8 @@
       );
 
       if (dayPrevBtn) {
-        dayPrevBtn.addEventListener("click", () => {
+        dayPrevBtn.addEventListener("click", (e) => {
+          e.stopPropagation(); // Prevent triggering parent handlers
           this._calendarViewState.currentMonth--;
           if (this._calendarViewState.currentMonth < 0) {
             this._calendarViewState.currentMonth = 11;
@@ -1862,7 +1869,8 @@
       }
 
       if (dayNextBtn) {
-        dayNextBtn.addEventListener("click", () => {
+        dayNextBtn.addEventListener("click", (e) => {
+          e.stopPropagation(); // Prevent triggering parent handlers
           this._calendarViewState.currentMonth++;
           if (this._calendarViewState.currentMonth > 11) {
             this._calendarViewState.currentMonth = 0;
@@ -1881,7 +1889,8 @@
       );
 
       if (weekPrevBtn) {
-        weekPrevBtn.addEventListener("click", () => {
+        weekPrevBtn.addEventListener("click", (e) => {
+          e.stopPropagation(); // Prevent triggering parent handlers
           this._calendarViewState.currentMonth--;
           if (this._calendarViewState.currentMonth < 0) {
             this._calendarViewState.currentMonth = 11;
@@ -1892,7 +1901,8 @@
       }
 
       if (weekNextBtn) {
-        weekNextBtn.addEventListener("click", () => {
+        weekNextBtn.addEventListener("click", (e) => {
+          e.stopPropagation(); // Prevent triggering parent handlers
           this._calendarViewState.currentMonth++;
           if (this._calendarViewState.currentMonth > 11) {
             this._calendarViewState.currentMonth = 0;
@@ -1911,14 +1921,16 @@
       );
 
       if (monthPrevBtn) {
-        monthPrevBtn.addEventListener("click", () => {
+        monthPrevBtn.addEventListener("click", (e) => {
+          e.stopPropagation(); // Prevent triggering parent handlers
           this._calendarViewState.currentYear--;
           this._reloadPeriodModalWithDate(modalElement, data);
         });
       }
 
       if (monthNextBtn) {
-        monthNextBtn.addEventListener("click", () => {
+        monthNextBtn.addEventListener("click", (e) => {
+          e.stopPropagation(); // Prevent triggering parent handlers
           this._calendarViewState.currentYear++;
           this._reloadPeriodModalWithDate(modalElement, data);
         });
