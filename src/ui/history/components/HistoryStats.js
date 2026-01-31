@@ -1967,8 +1967,12 @@
       unit: "°C",
       gradient:
         "linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(59, 130, 246, 0.08))",
-      getValue: (day) => day.temp_avg ?? (day.temp_min + day.temp_max) / 2,
-      format: (val) => `${val?.toFixed(1) ?? "–"}°C`,
+      getValue: (day) =>
+        day?.temp_avg ??
+        (day?.temp_min != null && day?.temp_max != null
+          ? (day.temp_min + day.temp_max) / 2
+          : null),
+      format: (val) => (val != null ? `${val.toFixed(1)}°C` : "Keine Daten"),
     },
     precipitation: {
       icon: "water_drop",
@@ -1976,8 +1980,35 @@
       unit: "mm",
       gradient:
         "linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(96, 165, 250, 0.08))",
-      getValue: (day) => day.precip ?? 0,
-      format: (val) => `${val?.toFixed(1) ?? "0"} mm`,
+      getValue: (day) => day?.precip ?? null,
+      format: (val) => (val != null ? `${val.toFixed(1)} mm` : "Keine Daten"),
+    },
+    wind: {
+      icon: "air",
+      title: "Wind-Vergleich",
+      unit: "km/h",
+      gradient:
+        "linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(74, 222, 128, 0.08))",
+      getValue: (day) => day?.wind_speed ?? null,
+      format: (val) => (val != null ? `${val.toFixed(0)} km/h` : "Keine Daten"),
+    },
+    humidity: {
+      icon: "humidity_percentage",
+      title: "Feuchtigkeits-Vergleich",
+      unit: "%",
+      gradient:
+        "linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(192, 132, 252, 0.08))",
+      getValue: (day) => day?.humidity ?? null,
+      format: (val) => (val != null ? `${val}%` : "Keine Daten"),
+    },
+    sunshine: {
+      icon: "wb_sunny",
+      title: "Sonnenschein-Vergleich",
+      unit: "h",
+      gradient:
+        "linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(252, 211, 77, 0.08))",
+      getValue: (day) => day?.sunshine ?? null,
+      format: (val) => (val != null ? `${val.toFixed(1)} h` : "Keine Daten"),
     },
   };
 
@@ -1999,19 +2030,26 @@
     const config =
       COMPARISON_MODAL_CONFIG[metric] || COMPARISON_MODAL_CONFIG.temperature;
 
-    const dateA = dayA ? new Date(dayA.date) : null;
-    const dateB = dayB ? new Date(dayB.date) : null;
+    const dateA = dayA?.date ? new Date(dayA.date) : null;
+    const dateB = dayB?.date ? new Date(dayB.date) : null;
     const dayNum = dateA?.getDate() || dateB?.getDate() || "–";
 
-    const valA = dayA ? config.getValue(dayA) : null;
-    const valB = dayB ? config.getValue(dayB) : null;
+    const valA = config.getValue(dayA);
+    const valB = config.getValue(dayB);
     const diff = valA !== null && valB !== null ? valB - valA : null;
 
-    const diffText =
-      diff !== null
-        ? (diff > 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1)) + config.unit
-        : "–";
+    // Bessere Diff-Formatierung
+    let diffText = "–";
+    if (diff !== null) {
+      const absVal = Math.abs(diff);
+      const formatted =
+        metric === "humidity" ? absVal.toFixed(0) : absVal.toFixed(1);
+      diffText = `${diff > 0 ? "+" : diff < 0 ? "−" : ""}${formatted}${config.unit}`;
+    }
     const diffClass = diff > 0 ? "positive" : diff < 0 ? "negative" : "neutral";
+
+    // Check ob überhaupt Daten vorhanden
+    const hasData = valA !== null || valB !== null;
 
     return `
       <div class="history-modal__content history-modal__content--comparison">
@@ -2030,38 +2068,38 @@
 
         <!-- Vergleichs-Cards -->
         <div class="comparison-modal__cards">
-          <div class="comparison-modal__card comparison-modal__card--a">
+          <div class="comparison-modal__card comparison-modal__card--a ${!dayA ? "comparison-modal__card--empty" : ""}">
             <span class="comparison-modal__card-label">${labelA}</span>
             <span class="comparison-modal__card-value">${config.format(valA)}</span>
             ${
-              dayA
+              dayA && valA !== null
                 ? `
               <div class="comparison-modal__card-details">
-                <span>🌡️ ${dayA.temp_min?.toFixed(1) ?? "–"}° / ${dayA.temp_max?.toFixed(1) ?? "–"}°</span>
-                <span>💧 ${dayA.precip?.toFixed(1) ?? "0"} mm</span>
+                <span><span class="material-symbols-outlined">device_thermostat</span> ${dayA.temp_min?.toFixed(1) ?? "–"}° / ${dayA.temp_max?.toFixed(1) ?? "–"}°</span>
+                <span><span class="material-symbols-outlined">water_drop</span> ${dayA.precip?.toFixed(1) ?? "0"} mm</span>
               </div>
             `
-                : '<span class="comparison-modal__no-data">Keine Daten</span>'
+                : '<span class="comparison-modal__no-data"><span class="material-symbols-outlined">calendar_month</span>Keine Daten</span>'
             }
           </div>
 
-          <div class="comparison-modal__diff comparison-modal__diff--${diffClass}">
-            <span class="material-symbols-outlined">${diff > 0 ? "arrow_upward" : diff < 0 ? "arrow_downward" : "remove"}</span>
+          <div class="comparison-modal__diff comparison-modal__diff--${diffClass} ${diff === null ? "comparison-modal__diff--unavailable" : ""}">
+            <span class="material-symbols-outlined">${diff !== null ? (diff > 0 ? "arrow_upward" : diff < 0 ? "arrow_downward" : "remove") : "horizontal_rule"}</span>
             <span>${diffText}</span>
           </div>
 
-          <div class="comparison-modal__card comparison-modal__card--b">
+          <div class="comparison-modal__card comparison-modal__card--b ${!dayB ? "comparison-modal__card--empty" : ""}">
             <span class="comparison-modal__card-label">${labelB}</span>
             <span class="comparison-modal__card-value">${config.format(valB)}</span>
             ${
-              dayB
+              dayB && valB !== null
                 ? `
               <div class="comparison-modal__card-details">
-                <span>🌡️ ${dayB.temp_min?.toFixed(1) ?? "–"}° / ${dayB.temp_max?.toFixed(1) ?? "–"}°</span>
-                <span>💧 ${dayB.precip?.toFixed(1) ?? "0"} mm</span>
+                <span><span class="material-symbols-outlined">device_thermostat</span> ${dayB.temp_min?.toFixed(1) ?? "–"}° / ${dayB.temp_max?.toFixed(1) ?? "–"}°</span>
+                <span><span class="material-symbols-outlined">water_drop</span> ${dayB.precip?.toFixed(1) ?? "0"} mm</span>
               </div>
             `
-                : '<span class="comparison-modal__no-data">Keine Daten</span>'
+                : '<span class="comparison-modal__no-data"><span class="material-symbols-outlined">calendar_month</span>Keine Daten</span>'
             }
           </div>
         </div>
@@ -2117,7 +2155,7 @@
    */
   function getComparisonInsight(diff, metric, labelA, labelB) {
     if (diff === null)
-      return "Nicht genügend Daten für einen Vergleich verfügbar.";
+      return "Für diesen Tag liegen nicht beide Datensätze vor. Ein direkter Vergleich ist daher nicht möglich.";
 
     const yearA = labelA.match(/\d{4}/)?.[0] || "A";
     const yearB = labelB.match(/\d{4}/)?.[0] || "B";
@@ -2999,6 +3037,164 @@
   }
 
   /**
+   * Advanced period selector with granularity support
+   */
+  function renderAdvancedPeriodModal(
+    periodType,
+    currentPeriod,
+    selectedGranularity = "month",
+    periods = [],
+  ) {
+    const TRS = window.TimeRangeSystem;
+    if (!TRS) {
+      // Fallback auf alte Implementierung
+      return renderPeriodSelectorModal(periods, currentPeriod, periodType);
+    }
+
+    const granularityConfig = TRS.GRANULARITY_CONFIG[selectedGranularity];
+    const presets = TRS.generateTimeRangePresets();
+
+    // Generiere Perioden basierend auf Granularität
+    const generatedPeriods = generatePeriodsForGranularity(
+      selectedGranularity,
+      periodType,
+    );
+
+    return `
+      <div class="history-modal__content history-modal__content--period history-modal__content--advanced">
+        <div class="swipe-handle"></div>
+        <button class="history-modal__close" data-action="close" aria-label="Schließen">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+
+        <header class="history-modal__header">
+          <div class="period-modal__title-group">
+            <span class="material-symbols-outlined">${granularityConfig?.icon || "calendar_month"}</span>
+            <div>
+              <h3>Zeitraum ${periodType} wählen</h3>
+              <p class="history-modal__subtitle">${granularityConfig?.label || "Zeitraum"} vergleichen</p>
+            </div>
+          </div>
+        </header>
+
+        <!-- Granularitäts-Switcher -->
+        <div class="granularity-selector">
+          <div class="granularity-tabs">
+            ${Object.keys(TRS.GRANULARITY_CONFIG)
+              .map((key) => {
+                const config = TRS.GRANULARITY_CONFIG[key];
+                return `
+                    <button class="granularity-tab ${key === selectedGranularity ? "granularity-tab--active" : ""}"
+                            data-granularity="${key}"
+                            data-period-type="${periodType}">
+                      <span class="material-symbols-outlined">${config.icon}</span>
+                      <span class="granularity-tab__label">${config.label}</span>
+                    </button>
+                  `;
+              })
+              .join("")}
+          </div>
+        </div>
+
+        <!-- Schnellauswahl -->
+        <div class="period-presets">
+          <h4 class="period-section-title">Schnellauswahl</h4>
+          <div class="period-preset-grid">
+            ${presets
+              .filter((p) => p.granularity === selectedGranularity)
+              .slice(0, 4)
+              .map(
+                (preset) => `
+              <button class="period-preset-btn"
+                      data-preset-id="${preset.id}"
+                      data-period-type="${periodType}"
+                      data-start-date="${preset.startDate.toISOString()}"
+                      data-end-date="${preset.endDate.toISOString()}">
+                <span class="material-symbols-outlined">bolt</span>
+                <span>${preset.label}</span>
+              </button>
+            `,
+              )
+              .join("")}
+          </div>
+        </div>
+
+        <!-- Periodenliste -->
+        <div class="history-modal__body">
+          <h4 class="period-section-title">Verfügbare Zeiträume</h4>
+          <div class="period-list period-list--advanced" id="period-list-container">
+            ${generatedPeriods
+              .map((p) => {
+                const isActive = p.id === currentPeriod;
+                return `
+                  <button class="period-item period-item--enhanced ${isActive ? "period-item--active" : ""}"
+                          data-period-id="${p.id}"
+                          data-period-type="${periodType}"
+                          data-granularity="${selectedGranularity}"
+                          data-start-date="${p.startDate}"
+                          data-end-date="${p.endDate}">
+                    <div class="period-item__indicator"></div>
+                    <div class="period-item__content">
+                      <span class="period-item__name">${p.label}</span>
+                      ${p.subtitle ? `<span class="period-item__subtitle">${p.subtitle}</span>` : ""}
+                      ${p.dataPoints ? `<span class="period-item__meta">${p.dataPoints} ${granularityConfig.label}</span>` : ""}
+                    </div>
+                    ${isActive ? '<span class="material-symbols-outlined period-item__check">check_circle</span>' : ""}
+                  </button>
+                `;
+              })
+              .join("")}
+          </div>
+        </div>
+
+        <!-- Custom Range -->
+        <div class="period-custom-section">
+          <button class="period-custom-btn" data-action="custom-range" data-period-type="${periodType}">
+            <span class="material-symbols-outlined">edit_calendar</span>
+            <span>Benutzerdefinierter Zeitraum</span>
+            <span class="material-symbols-outlined">arrow_forward</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Helper: Generate periods for a specific granularity
+   */
+  function generatePeriodsForGranularity(granularity, periodType) {
+    const TRS = window.TimeRangeSystem;
+    if (!TRS) return [];
+
+    const now = new Date();
+    const periods = [];
+    const config = TRS.GRANULARITY_CONFIG[granularity];
+
+    if (!config) return [];
+
+    // Generiere letzte N Perioden basierend auf Granularität
+    const count = Math.min(config.maxDataPoints, 12); // Max 12 Einträge
+
+    for (let i = 0; i < count; i++) {
+      const date =
+        i === 0 ? now : config.getPrevious(new Date(periods[i - 1].startDate));
+      const endDate = config.getNext(date);
+
+      periods.push({
+        id: `${granularity}-${periodType}-${i}`,
+        label: config.formatFull(date),
+        subtitle: TRS.generateTimeRangeLabel(date, endDate, granularity),
+        startDate: date.toISOString(),
+        endDate: endDate.toISOString(),
+        granularity: granularity,
+        dataPoints: 1,
+      });
+    }
+
+    return periods;
+  }
+
+  /**
    * Render info/glossary modal
    */
   function renderInfoModal() {
@@ -3597,6 +3793,8 @@
     renderExtremeDetailModalEnhanced,
     renderLocationModal,
     renderPeriodSelectorModal,
+    renderAdvancedPeriodModal,
+    generatePeriodsForGranularity,
     renderInfoModal,
     renderCustomDateModal,
 

@@ -1467,9 +1467,42 @@
    * Generate comparison chart config (two periods)
    * ENHANCED: Click-Handler für Vergleichs-Modals hinzugefügt
    */
-  function getComparisonChartConfig(dataA, dataB, labelA, labelB) {
-    const maxLen = Math.max(dataA.length, dataB.length);
-    const labels = Array.from({ length: maxLen }, (_, i) => i + 1);
+  /**
+   * Get comparison chart config with granularity support
+   * @param {Array} dataA - Dataset A (raw or aggregated)
+   * @param {Array} dataB - Dataset B (raw or aggregated)
+   * @param {string} labelA - Label for dataset A
+   * @param {string} labelB - Label for dataset B
+   * @param {string} [granularity="day"] - Time granularity (hour, day, week, month, year, decade, century)
+   */
+  function getComparisonChartConfig(
+    dataA,
+    dataB,
+    labelA,
+    labelB,
+    granularity = "day",
+  ) {
+    const TRS = window.TimeRangeSystem;
+
+    // Aggregiere Daten wenn TimeRangeSystem verfügbar
+    let processedDataA = dataA;
+    let processedDataB = dataB;
+
+    if (TRS && granularity !== "day") {
+      processedDataA = TRS.aggregateDataByGranularity(dataA, granularity);
+      processedDataB = TRS.aggregateDataByGranularity(dataB, granularity);
+    }
+
+    const config = TRS?.GRANULARITY_CONFIG[granularity];
+    const maxLen = Math.max(processedDataA.length, processedDataB.length);
+
+    // Labels basierend auf Granularität
+    const labels = processedDataA.map((d, i) => {
+      if (config && d.date) {
+        return config.formatLabel(new Date(d.date));
+      }
+      return i + 1;
+    });
 
     // Custom plugin for deviation area shading
     const deviationAreaPlugin = {
@@ -1529,7 +1562,7 @@
         datasets: [
           {
             label: labelA,
-            data: dataA.map((d) => d.temp_avg),
+            data: processedDataA.map((d) => d.temp_avg),
             borderColor: CONFIG.CHART_COLORS.secondary,
             backgroundColor: "transparent",
             borderWidth: 2.5,
@@ -1541,7 +1574,7 @@
           },
           {
             label: labelB,
-            data: dataB.map((d) => d.temp_avg),
+            data: processedDataB.map((d) => d.temp_avg),
             borderColor: CONFIG.CHART_COLORS.primary,
             backgroundColor: "transparent",
             borderWidth: 3,
@@ -1573,18 +1606,18 @@
               externalTooltipHandler(context, "comparison"),
             callbacks: {
               title: (items) => {
-                // Comparison chart: Show "Tag X" or dates if available
+                // Comparison chart: Show granularity-specific label
                 const chart = items[0].chart;
                 const index = items[0].dataIndex;
-                const dataA = chart.$comparisonDataA || [];
-                const dataB = chart.$comparisonDataB || [];
+                const dataA = chart.$comparisonDataA || processedDataA;
+                const dataB = chart.$comparisonDataB || processedDataB;
 
                 // Try to get date from either dataset
                 const dayData = dataA[index] || dataB[index];
-                if (dayData?.date) {
-                  return formatDateForTooltip(dayData.date);
+                if (dayData?.date && config) {
+                  return config.formatFull(new Date(dayData.date));
                 }
-                return `Tag ${items[0].label}`;
+                return `${config?.singular || "Tag"} ${items[0].label}`;
               },
               afterBody: (items) => {
                 if (items.length >= 2) {
@@ -1603,8 +1636,17 @@
         onClick: (event, elements, chart) => {
           if (elements.length > 0) {
             const dataIndex = elements[0].dataIndex;
-            const dayA = dataA[dataIndex];
-            const dayB = dataB[dataIndex];
+            const dayA = processedDataA[dataIndex];
+            const dayB = processedDataB[dataIndex];
+
+            // Validierung: Mindestens ein Datensatz muss vorhanden sein
+            if (!dayA && !dayB) {
+              console.warn(
+                "[HistoryCharts] Keine Daten für Index",
+                dataIndex + 1,
+              );
+              return;
+            }
 
             // Modal über Controller öffnen
             const controller = getHistoryController();
@@ -1618,6 +1660,7 @@
                 labelA: labelA,
                 labelB: labelB,
                 metric: metric,
+                granularity: granularity,
               });
             }
           }

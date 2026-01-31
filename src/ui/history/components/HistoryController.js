@@ -1665,12 +1665,21 @@
           );
 
         case "period":
+          // Try advanced modal first (with TimeRangeSystem), fallback to basic
+          const granularity = data.granularity || "month";
           return (
+            stats?.renderAdvancedPeriodModal?.(
+              data.periodType,
+              data.currentPeriod,
+              granularity,
+              data.periods,
+            ) ||
             stats?.renderPeriodSelectorModal?.(
               data.periods,
               data.currentPeriod,
               data.periodType,
-            ) || this._renderFallbackPeriodModal(data)
+            ) ||
+            this._renderFallbackPeriodModal(data)
           );
 
         case "info":
@@ -1928,6 +1937,7 @@
           break;
 
         case "period":
+          // Standard period item clicks
           modalElement.querySelectorAll(".period-item").forEach((item) => {
             item.addEventListener("click", async () => {
               const periodId = item.dataset.periodId;
@@ -1937,6 +1947,58 @@
               this.closeModal();
             });
           });
+
+          // Granularity tab clicks (TimeRangeSystem)
+          modalElement.querySelectorAll(".granularity-tab").forEach((tab) => {
+            tab.addEventListener("click", async () => {
+              const granularity = tab.dataset.granularity;
+              const periodType = tab.dataset.periodType;
+
+              if (data.onGranularityChange) {
+                await data.onGranularityChange(granularity, periodType);
+              } else {
+                // Reload modal mit neuer Granularität
+                this.closeModal();
+                setTimeout(() => {
+                  this.openPeriodModal(periodType, null, granularity);
+                }, 150);
+              }
+            });
+          });
+
+          // Preset buttons (schnellauswahl)
+          modalElement.querySelectorAll(".period-preset-btn").forEach((btn) => {
+            btn.addEventListener("click", async () => {
+              const presetId = btn.dataset.presetId;
+              const startDate = btn.dataset.startDate;
+              const endDate = btn.dataset.endDate;
+              const periodType = btn.dataset.periodType;
+
+              if (data.onPresetSelect) {
+                await data.onPresetSelect({
+                  presetId,
+                  startDate,
+                  endDate,
+                  periodType,
+                });
+              }
+              this.closeModal();
+            });
+          });
+
+          // Custom range button
+          const customRangeBtn = modalElement.querySelector(
+            '[data-action="custom-range"]',
+          );
+          if (customRangeBtn) {
+            customRangeBtn.addEventListener("click", () => {
+              const periodType = customRangeBtn.dataset.periodType;
+              this.closeModal();
+              setTimeout(() => {
+                this.openCustomDateModal(periodType);
+              }, 150);
+            });
+          }
           break;
 
         case "customDate":
