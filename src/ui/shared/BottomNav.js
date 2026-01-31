@@ -73,15 +73,27 @@
       scrollContainer.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    // CRITICAL: Trigger History render when switching to history tab
+    // CLEANUP: Beim Verlassen des History-Tabs Observer disconnecten
+    if (viewId !== "history" && global.HistoryCharts?.cleanupObservers) {
+      console.log("[BottomNav] Leaving History → Cleanup Observers");
+      global.HistoryCharts.cleanupObservers();
+    }
+
+    // CLEANUP: Charts zerstören beim Verlassen
+    if (viewId !== "history" && global.HistoryCharts?.destroyAll) {
+      global.HistoryCharts.destroyAll();
+    }
+
+    // Trigger History render when switching to history tab
     if (viewId === "history" && global.HistoryController) {
       console.log("[BottomNav] History-Tab aktiviert → Starte Render");
-      // Use setTimeout to ensure DOM is ready
-      setTimeout(() => {
+
+      // Use requestAnimationFrame to ensure DOM is fully rendered after hidden removal
+      requestAnimationFrame(() => {
         global.HistoryController.render().catch((err) => {
           console.warn("[BottomNav] History render failed:", err);
         });
-      }, 50);
+      });
     }
   }
 

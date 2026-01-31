@@ -66,6 +66,212 @@
   };
 
   // ============================================
+  // VISIBILITY OBSERVER - Wartet auf echte Sichtbarkeit
+  // ============================================
+  class VisibilityObserver {
+    constructor() {
+      this._pendingCreations = new Map();
+      this._resizeObserver = null;
+      this._mutationObserver = null;
+      this._init();
+    }
+
+    _init() {
+      // ResizeObserver für Canvas-Größenänderungen
+      if (typeof ResizeObserver !== "undefined") {
+        this._resizeObserver = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+            const canvas = entry.target;
+            if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
+              this._tryCreate(canvas.id);
+            }
+          }
+        });
+      }
+
+      // MutationObserver für DOM-Änderungen (display: none → block)
+      this._mutationObserver = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (
+            mutation.type === "attributes" &&
+            (mutation.attributeName === "style" ||
+              mutation.attributeName === "class" ||
+              mutation.attributeName === "hidden")
+          ) {
+            this._checkAllPending();
+          }
+        }
+      });
+
+      // Beobachte den Body für globale Style-Änderungen
+      this._mutationObserver.observe(document.body, {
+        attributes: true,
+        subtree: true,
+        attributeFilter: ["style", "class", "hidden"],
+      });
+    }
+
+    /**
+     * Registriert eine Chart-Erstellung die auf Sichtbarkeit wartet
+     */
+    waitForVisibility(canvasId, createFn, maxWaitMs = 5000) {
+      return new Promise((resolve, reject) => {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) {
+          reject(new Error(`Canvas ${canvasId} not found`));
+          return;
+        }
+
+        // Speichere die Erstellungsfunktion
+        this._pendingCreations.set(canvasId, { createFn, resolve, reject });
+
+        // Beobachte Canvas mit ResizeObserver
+        if (this._resizeObserver) {
+          this._resizeObserver.observe(canvas);
+        }
+
+        // Prüfe sofort ob bereits sichtbar
+        if (this._isVisible(canvas)) {
+          console.log(
+            `[VisibilityObserver] ${canvasId} already visible, creating immediately`,
+          );
+          this._tryCreate(canvasId);
+          return;
+        }
+
+        // Timeout als Fallback
+        setTimeout(() => {
+          if (this._pendingCreations.has(canvasId)) {
+            console.warn(
+              `[VisibilityObserver] ${canvasId} timeout after ${maxWaitMs}ms, forcing creation`,
+            );
+            this._forceCreate(canvasId);
+          }
+        }, maxWaitMs);
+
+        // requestAnimationFrame-Loop als zusätzlicher Mechanismus
+        this._rafCheck(canvasId);
+      });
+    }
+
+    _rafCheck(canvasId, attempts = 0) {
+      if (!this._pendingCreations.has(canvasId)) return;
+      if (attempts > 60) return; // Max ~1 Sekunde bei 60fps
+
+      requestAnimationFrame(() => {
+        const canvas = document.getElementById(canvasId);
+        if (canvas && this._isVisible(canvas)) {
+          this._tryCreate(canvasId);
+        } else {
+          this._rafCheck(canvasId, attempts + 1);
+        }
+      });
+    }
+
+    _isVisible(canvas) {
+      if (!canvas) return false;
+
+      // Prüfe offsetWidth/offsetHeight
+      if (canvas.offsetWidth <= 0 || canvas.offsetHeight <= 0) return false;
+
+      // Prüfe computed styles
+      const style = window.getComputedStyle(canvas);
+      if (style.display === "none" || style.visibility === "hidden")
+        return false;
+
+      // Prüfe Parent-Kette
+      let parent = canvas.parentElement;
+      while (parent && parent !== document.body) {
+        const parentStyle = window.getComputedStyle(parent);
+        if (
+          parentStyle.display === "none" ||
+          parentStyle.visibility === "hidden"
+        ) {
+          return false;
+        }
+        if (parent.hasAttribute("hidden")) return false;
+        parent = parent.parentElement;
+      }
+
+      return true;
+    }
+
+    _checkAllPending() {
+      for (const canvasId of this._pendingCreations.keys()) {
+        const canvas = document.getElementById(canvasId);
+        if (canvas && this._isVisible(canvas)) {
+          this._tryCreate(canvasId);
+        }
+      }
+    }
+
+    _tryCreate(canvasId) {
+      const pending = this._pendingCreations.get(canvasId);
+      if (!pending) return;
+
+      const canvas = document.getElementById(canvasId);
+      if (!canvas || !this._isVisible(canvas)) return;
+
+      console.log(
+        `[VisibilityObserver] ${canvasId} now visible (${canvas.offsetWidth}x${canvas.offsetHeight}), creating chart`,
+      );
+
+      // Entferne Observer
+      if (this._resizeObserver) {
+        this._resizeObserver.unobserve(canvas);
+      }
+      this._pendingCreations.delete(canvasId);
+
+      // Erstelle Chart
+      try {
+        const chart = pending.createFn();
+        pending.resolve(chart);
+      } catch (error) {
+        pending.reject(error);
+      }
+    }
+
+    _forceCreate(canvasId) {
+      const pending = this._pendingCreations.get(canvasId);
+      if (!pending) return;
+
+      const canvas = document.getElementById(canvasId);
+      if (this._resizeObserver && canvas) {
+        this._resizeObserver.unobserve(canvas);
+      }
+      this._pendingCreations.delete(canvasId);
+
+      try {
+        const chart = pending.createFn();
+        pending.resolve(chart);
+      } catch (error) {
+        pending.reject(error);
+      }
+    }
+
+    cleanup(canvasId) {
+      const canvas = document.getElementById(canvasId);
+      if (this._resizeObserver && canvas) {
+        this._resizeObserver.unobserve(canvas);
+      }
+      this._pendingCreations.delete(canvasId);
+    }
+
+    destroy() {
+      if (this._resizeObserver) {
+        this._resizeObserver.disconnect();
+      }
+      if (this._mutationObserver) {
+        this._mutationObserver.disconnect();
+      }
+      this._pendingCreations.clear();
+    }
+  }
+
+  // Singleton VisibilityObserver
+  const visibilityObserver = new VisibilityObserver();
+
+  // ============================================
   // CHART MANAGER CLASS
   // ============================================
   class ChartManager {
@@ -76,6 +282,7 @@
 
     /**
      * Create or update a chart, destroying existing instance first
+     * VISIBILITY-SAFE: Wartet auf echte Sichtbarkeit des Canvas
      * @param {string} canvasId - Canvas element ID
      * @param {Object} config - Chart.js config
      * @param {Array} sourceData - Original data array for click handlers
@@ -103,6 +310,35 @@
         return null;
       }
 
+      // VISIBILITY CHECK: Warte auf echte Sichtbarkeit
+      const createChartFn = () =>
+        this._createChartInternal(canvasId, config, sourceData);
+
+      // Prüfe ob Canvas bereits sichtbar ist
+      if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
+        return createChartFn();
+      }
+
+      // Warte auf Sichtbarkeit
+      console.log(
+        `[HistoryCharts] Canvas ${canvasId} not visible yet, waiting...`,
+      );
+      visibilityObserver
+        .waitForVisibility(canvasId, createChartFn)
+        .catch((err) =>
+          console.error(`[HistoryCharts] Deferred creation failed:`, err),
+        );
+
+      return null; // Async creation - Chart wird später erstellt
+    }
+
+    /**
+     * Interner Chart-Erstellungscode
+     */
+    _createChartInternal(canvasId, config, sourceData) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return null;
+
       try {
         const ctx = canvas.getContext("2d");
 
@@ -120,7 +356,9 @@
           this._dataStore.set(canvasId, sourceData);
         }
 
-        console.log(`📊 [HistoryCharts] Created: ${canvasId}`);
+        console.log(
+          `📊 [HistoryCharts] Created: ${canvasId} (${canvas.offsetWidth}x${canvas.offsetHeight})`,
+        );
         return chart;
       } catch (error) {
         console.error("[HistoryCharts] Creation failed:", error);
@@ -1104,6 +1342,17 @@
     has: (canvasId) => chartManager.has(canvasId),
     get: (canvasId) => chartManager.get(canvasId),
     getData: (canvasId) => chartManager.getData(canvasId),
+
+    // Observer cleanup - WICHTIG beim Tab-Wechsel
+    cleanupObservers: () => {
+      if (visibilityObserver) {
+        visibilityObserver.destroy();
+      }
+      console.log("[HistoryCharts] Observers cleaned up");
+    },
+
+    // Expose chartManager for direct access
+    chartManager,
 
     // Config generators
     getChartConfigForMetric,
