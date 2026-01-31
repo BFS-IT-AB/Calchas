@@ -3044,21 +3044,38 @@
     currentPeriod,
     selectedGranularity = "month",
     periods = [],
+    lockedGranularity = null,
   ) {
     const TRS = window.TimeRangeSystem;
+    const Selectors = window.TimeRangeSelectors;
+
     if (!TRS) {
       // Fallback auf alte Implementierung
       return renderPeriodSelectorModal(periods, currentPeriod, periodType);
     }
 
     const granularityConfig = TRS.GRANULARITY_CONFIG[selectedGranularity];
-    const presets = TRS.generateTimeRangePresets();
 
-    // Generiere Perioden basierend auf Granularität
-    const generatedPeriods = generatePeriodsForGranularity(
-      selectedGranularity,
-      periodType,
-    );
+    // Warnung wenn andere Periode andere Granularität hat
+    const granularityLocked =
+      lockedGranularity && lockedGranularity !== selectedGranularity;
+    const lockWarning = granularityLocked
+      ? `
+      <div class="period-lock-warning">
+        <span class="material-symbols-outlined">lock</span>
+        <span>Beide Perioden müssen die gleiche Zeiteinheit verwenden. Änderungen betreffen beide Perioden.</span>
+      </div>
+    `
+      : "";
+
+    // Hole granularitäts-spezifischen Selector
+    const selectorHTML = Selectors
+      ? Selectors.getSelectorForGranularity(
+          selectedGranularity,
+          currentPeriod,
+          periodType,
+        )
+      : "";
 
     return `
       <div class="history-modal__content history-modal__content--period history-modal__content--advanced">
@@ -3076,6 +3093,8 @@
             </div>
           </div>
         </header>
+
+        ${lockWarning}
 
         <!-- Granularitäts-Switcher -->
         <div class="granularity-selector">
@@ -3096,64 +3115,9 @@
           </div>
         </div>
 
-        <!-- Schnellauswahl -->
-        <div class="period-presets">
-          <h4 class="period-section-title">Schnellauswahl</h4>
-          <div class="period-preset-grid">
-            ${presets
-              .filter((p) => p.granularity === selectedGranularity)
-              .slice(0, 4)
-              .map(
-                (preset) => `
-              <button class="period-preset-btn"
-                      data-preset-id="${preset.id}"
-                      data-period-type="${periodType}"
-                      data-start-date="${preset.startDate.toISOString()}"
-                      data-end-date="${preset.endDate.toISOString()}">
-                <span class="material-symbols-outlined">bolt</span>
-                <span>${preset.label}</span>
-              </button>
-            `,
-              )
-              .join("")}
-          </div>
-        </div>
-
-        <!-- Periodenliste -->
-        <div class="history-modal__body">
-          <h4 class="period-section-title">Verfügbare Zeiträume</h4>
-          <div class="period-list period-list--advanced" id="period-list-container">
-            ${generatedPeriods
-              .map((p) => {
-                const isActive = p.id === currentPeriod;
-                return `
-                  <button class="period-item period-item--enhanced ${isActive ? "period-item--active" : ""}"
-                          data-period-id="${p.id}"
-                          data-period-type="${periodType}"
-                          data-granularity="${selectedGranularity}"
-                          data-start-date="${p.startDate}"
-                          data-end-date="${p.endDate}">
-                    <div class="period-item__indicator"></div>
-                    <div class="period-item__content">
-                      <span class="period-item__name">${p.label}</span>
-                      ${p.subtitle ? `<span class="period-item__subtitle">${p.subtitle}</span>` : ""}
-                      ${p.dataPoints ? `<span class="period-item__meta">${p.dataPoints} ${granularityConfig.label}</span>` : ""}
-                    </div>
-                    ${isActive ? '<span class="material-symbols-outlined period-item__check">check_circle</span>' : ""}
-                  </button>
-                `;
-              })
-              .join("")}
-          </div>
-        </div>
-
-        <!-- Custom Range -->
-        <div class="period-custom-section">
-          <button class="period-custom-btn" data-action="custom-range" data-period-type="${periodType}">
-            <span class="material-symbols-outlined">edit_calendar</span>
-            <span>Benutzerdefinierter Zeitraum</span>
-            <span class="material-symbols-outlined">arrow_forward</span>
-          </button>
+        <!-- Granularitäts-spezifischer Selector -->
+        <div class="history-modal__body history-modal__body--selector">
+          ${selectorHTML}
         </div>
       </div>
     `;

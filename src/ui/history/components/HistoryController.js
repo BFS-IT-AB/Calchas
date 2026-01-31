@@ -1667,12 +1667,14 @@
         case "period":
           // Try advanced modal first (with TimeRangeSystem), fallback to basic
           const granularity = data.granularity || "month";
+          const lockedGranularity = data.lockedGranularity || null;
           return (
             stats?.renderAdvancedPeriodModal?.(
               data.periodType,
               data.currentPeriod,
               granularity,
               data.periods,
+              lockedGranularity,
             ) ||
             stats?.renderPeriodSelectorModal?.(
               data.periods,
@@ -1694,6 +1696,178 @@
         default:
           console.warn("[HistoryController] Unknown modal type:", modalType);
           return null;
+      }
+    }
+
+    /**
+     * Attach event listeners for period selector modals
+     * Handles all granularity-specific UI components
+     */
+    _attachPeriodSelectorListeners(modalElement, data) {
+      // Helper function to extract period data and call onSelect
+      const handlePeriodSelection = async (element) => {
+        const periodId = element.dataset.periodId;
+        if (data.onSelect) {
+          const periodData = {
+            id: periodId,
+            startDate: element.dataset.startDate,
+            endDate: element.dataset.endDate,
+            granularity: element.dataset.granularity,
+          };
+          await data.onSelect(periodId, periodData);
+        }
+        this.closeModal();
+      };
+
+      // Standard period items
+      modalElement.querySelectorAll(".period-item").forEach((item) => {
+        item.addEventListener("click", () => handlePeriodSelection(item));
+      });
+
+      // Time Picker Items (Hours)
+      modalElement.querySelectorAll(".time-picker__item").forEach((item) => {
+        item.addEventListener("click", () => handlePeriodSelection(item));
+      });
+
+      // Day Calendar Cells
+      modalElement
+        .querySelectorAll(".day-calendar__cell:not(.day-calendar__cell--empty)")
+        .forEach((cell) => {
+          cell.addEventListener("click", () => handlePeriodSelection(cell));
+        });
+
+      // Week Calendar Weeks
+      modalElement.querySelectorAll(".week-calendar__week").forEach((week) => {
+        week.addEventListener("click", () => handlePeriodSelection(week));
+      });
+
+      // Month Grid Items
+      modalElement.querySelectorAll(".month-grid__item").forEach((item) => {
+        item.addEventListener("click", () => handlePeriodSelection(item));
+      });
+
+      // Year Picker Items
+      modalElement.querySelectorAll(".year-picker__item").forEach((item) => {
+        item.addEventListener("click", () => handlePeriodSelection(item));
+      });
+
+      // Decade List Items
+      modalElement.querySelectorAll(".decade-list__item").forEach((item) => {
+        item.addEventListener("click", () => handlePeriodSelection(item));
+      });
+
+      // Century List Items
+      modalElement.querySelectorAll(".century-list__item").forEach((item) => {
+        item.addEventListener("click", () => handlePeriodSelection(item));
+      });
+
+      // Granularity tab clicks
+      modalElement.querySelectorAll(".granularity-tab").forEach((tab) => {
+        tab.addEventListener("click", async () => {
+          const granularity = tab.dataset.granularity;
+          const periodType = tab.dataset.periodType;
+
+          if (data.onGranularityChange) {
+            await data.onGranularityChange(granularity, periodType);
+          }
+
+          // Reload modal content with synchronized granularity
+          // WICHTIG: Beide Perioden haben jetzt die gleiche Granularität
+          this._reloadPeriodModal(modalElement, {
+            ...data,
+            granularity: granularity,
+            lockedGranularity: granularity, // Beide synchronisiert
+          });
+        });
+      });
+
+      // Preset buttons (if any)
+      modalElement.querySelectorAll(".period-preset-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const presetId = btn.dataset.presetId;
+          const startDate = btn.dataset.startDate;
+          const endDate = btn.dataset.endDate;
+          const periodType = btn.dataset.periodType;
+
+          if (data.onPresetSelect) {
+            await data.onPresetSelect({
+              presetId,
+              startDate,
+              endDate,
+              periodType,
+            });
+          }
+          this.closeModal();
+        });
+      });
+
+      // Custom range button
+      const customRangeBtn = modalElement.querySelector(
+        '[data-action="custom-range"]',
+      );
+      if (customRangeBtn) {
+        customRangeBtn.addEventListener("click", () => {
+          const periodType = customRangeBtn.dataset.periodType;
+          this.closeModal();
+          setTimeout(() => {
+            this.openCustomDateModal(periodType);
+          }, 150);
+        });
+      }
+    }
+
+    /**
+     * Reload period modal content without closing
+     * Verwendet beim Wechsel der Granularität
+     */
+    _reloadPeriodModal(modalElement, data) {
+      const stats = window.HistoryStats;
+      if (!stats) {
+        console.error("[HistoryController] HistoryStats nicht verfügbar");
+        return;
+      }
+
+      const granularity = data.granularity || "month";
+      const lockedGranularity = data.lockedGranularity || null;
+
+      // Render new content
+      const newContent =
+        stats.renderAdvancedPeriodModal?.(
+          data.periodType,
+          data.currentPeriod,
+          granularity,
+          data.periods,
+          lockedGranularity,
+        ) ||
+        stats.renderPeriodSelectorModal?.(
+          data.periods,
+          data.currentPeriod,
+          data.periodType,
+        ) ||
+        this._renderFallbackPeriodModal(data);
+
+      if (!newContent) return;
+
+      // Parse HTML
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = newContent;
+      const newContentElement = tempDiv.firstElementChild;
+
+      // Replace modal content
+      const modalContent = modalElement.querySelector(
+        ".history-modal__content",
+      );
+      if (modalContent && newContentElement) {
+        modalContent.replaceWith(newContentElement);
+
+        // Re-attach event listeners
+        this._attachPeriodSelectorListeners(modalElement, data);
+
+        // Re-attach close button listener
+        const closeBtn = modalElement.querySelector('[data-action="close"]');
+        if (closeBtn) {
+          closeBtn.addEventListener("click", () => this.closeModal());
+        }
       }
     }
 
@@ -1937,68 +2111,8 @@
           break;
 
         case "period":
-          // Standard period item clicks
-          modalElement.querySelectorAll(".period-item").forEach((item) => {
-            item.addEventListener("click", async () => {
-              const periodId = item.dataset.periodId;
-              if (data.onSelect) {
-                await data.onSelect(periodId);
-              }
-              this.closeModal();
-            });
-          });
-
-          // Granularity tab clicks (TimeRangeSystem)
-          modalElement.querySelectorAll(".granularity-tab").forEach((tab) => {
-            tab.addEventListener("click", async () => {
-              const granularity = tab.dataset.granularity;
-              const periodType = tab.dataset.periodType;
-
-              if (data.onGranularityChange) {
-                await data.onGranularityChange(granularity, periodType);
-              } else {
-                // Reload modal mit neuer Granularität
-                this.closeModal();
-                setTimeout(() => {
-                  this.openPeriodModal(periodType, null, granularity);
-                }, 150);
-              }
-            });
-          });
-
-          // Preset buttons (schnellauswahl)
-          modalElement.querySelectorAll(".period-preset-btn").forEach((btn) => {
-            btn.addEventListener("click", async () => {
-              const presetId = btn.dataset.presetId;
-              const startDate = btn.dataset.startDate;
-              const endDate = btn.dataset.endDate;
-              const periodType = btn.dataset.periodType;
-
-              if (data.onPresetSelect) {
-                await data.onPresetSelect({
-                  presetId,
-                  startDate,
-                  endDate,
-                  periodType,
-                });
-              }
-              this.closeModal();
-            });
-          });
-
-          // Custom range button
-          const customRangeBtn = modalElement.querySelector(
-            '[data-action="custom-range"]',
-          );
-          if (customRangeBtn) {
-            customRangeBtn.addEventListener("click", () => {
-              const periodType = customRangeBtn.dataset.periodType;
-              this.closeModal();
-              setTimeout(() => {
-                this.openCustomDateModal(periodType);
-              }, 150);
-            });
-          }
+          // Zentrale Funktion für alle Period-Selector Event-Handler
+          this._attachPeriodSelectorListeners(modalElement, data);
           break;
 
         case "customDate":
