@@ -352,8 +352,10 @@
         const chart = new Chart(ctx, enhancedConfig);
         this.instances.set(canvasId, chart);
 
+        // Store source data in chart object for tooltip callbacks
         if (sourceData) {
           this._dataStore.set(canvasId, sourceData);
+          chart.$sourceData = sourceData; // Attach to chart for tooltip access
         }
 
         console.log(
@@ -408,20 +410,37 @@
     /**
      * Open day detail modal via MasterUIController
      * GOLDENE REGEL: Alle Detail-Popups über MasterUIController
+     * OPTIMIERT: Metrik wird korrekt aus Chart-ID inferiert und übergeben
      */
     _openDayDetailModal(dayData, sourceChartId) {
       const controller = getHistoryController();
+      const metric = this._inferMetricFromChartId(sourceChartId);
+
+      console.log(
+        `[HistoryCharts] Opening day detail modal for metric: ${metric}`,
+        dayData,
+      );
 
       if (controller?.openModal) {
         controller.openModal("dayDetail", {
           day: dayData,
-          metric: this._inferMetricFromChartId(sourceChartId),
+          metric: metric,
         });
       } else {
-        // Fallback: Direct MasterUIController call
+        // Fallback: Nutze HistoryStats für metrik-spezifisches Rendering
         const masterUI = getMasterUI();
-        if (masterUI?.openModal) {
-          const modalContent = this._createDayDetailContent(dayData);
+        const stats = global.HistoryStats;
+
+        if (masterUI?.openModal && stats?.renderDayDetailModal) {
+          const modalContent = stats.renderDayDetailModal(dayData, metric);
+          this._openDirectModal(
+            `history-day-detail-${metric}`,
+            modalContent,
+            masterUI,
+          );
+        } else if (masterUI?.openModal) {
+          // Legacy Fallback
+          const modalContent = this._createDayDetailContent(dayData, metric);
           this._openDirectModal(
             "history-chart-day-detail",
             modalContent,
@@ -431,16 +450,63 @@
       }
     }
 
+    /**
+     * Inferiert die Metrik aus der Chart-ID
+     * Verbesserte Logik mit mehr Mustern
+     */
     _inferMetricFromChartId(chartId) {
-      if (chartId.includes("temp")) return "temperature";
-      if (chartId.includes("precip")) return "precipitation";
-      if (chartId.includes("wind")) return "wind";
-      if (chartId.includes("humid")) return "humidity";
-      if (chartId.includes("sun")) return "sunshine";
+      const id = (chartId || "").toLowerCase();
+
+      // Temperatur-Patterns
+      if (
+        id.includes("temp") ||
+        id.includes("analyse-chart") ||
+        id.includes("comparison")
+      ) {
+        return "temperature";
+      }
+      // Niederschlag-Patterns
+      if (
+        id.includes("precip") ||
+        id.includes("rain") ||
+        id.includes("niederschlag")
+      ) {
+        return "precipitation";
+      }
+      // Wind-Patterns
+      if (id.includes("wind") || id.includes("sturm") || id.includes("böe")) {
+        return "wind";
+      }
+      // Feuchtigkeits-Patterns
+      if (id.includes("humid") || id.includes("feucht")) {
+        return "humidity";
+      }
+      // Sonnenschein-Patterns
+      if (
+        id.includes("sun") ||
+        id.includes("sonne") ||
+        id.includes("sunshine")
+      ) {
+        return "sunshine";
+      }
+
+      // Versuche aus State zu lesen
+      const controller = getHistoryController();
+      if (controller?.getState) {
+        const state = controller.getState();
+        if (state?.currentMetric) {
+          return state.currentMetric;
+        }
+      }
+
       return "temperature";
     }
 
-    _createDayDetailContent(day) {
+    /**
+     * Legacy Fallback für Day Detail Content
+     * Wird nur genutzt wenn HistoryStats nicht verfügbar ist
+     */
+    _createDayDetailContent(day, metric = "temperature") {
       const date = new Date(day.date);
       const formatted = date.toLocaleDateString("de-DE", {
         weekday: "long",
@@ -478,21 +544,82 @@
         }
       }
 
-      // GOLDENE REGEL: swipe-handle statt close button
+      // Metrik-spezifischer primärer Wert
+      const getPrimaryDisplay = () => {
+        switch (metric) {
+          case "precipitation":
+            return {
+              icon: "water_drop",
+              label: "Niederschlag",
+              value: `${day.precip?.toFixed(1) ?? "0"} mm`,
+              range: `${day.precip > 0 ? "Regentag" : "Trocken"}`,
+            };
+          case "wind":
+            return {
+              icon: "air",
+              label: "Wind",
+              value: `${day.wind_speed?.toFixed(0) ?? "–"} km/h`,
+              range:
+                day.wind_speed >= 62
+                  ? "Sturm"
+                  : day.wind_speed >= 39
+                    ? "Starker Wind"
+                    : "Mäßig",
+            };
+          case "humidity":
+            return {
+              icon: "humidity_percentage",
+              label: "Feuchtigkeit",
+              value: `${day.humidity ?? "–"}%`,
+              range:
+                day.humidity >= 70
+                  ? "Feucht"
+                  : day.humidity <= 30
+                    ? "Trocken"
+                    : "Normal",
+            };
+          case "sunshine":
+            return {
+              icon: "wb_sunny",
+              label: "Sonnenstunden",
+              value: `${day.sunshine?.toFixed(1) ?? "0"} h`,
+              range:
+                day.sunshine >= 8
+                  ? "Sonnig"
+                  : day.sunshine < 1
+                    ? "Bedeckt"
+                    : "Wechselhaft",
+            };
+          default:
+            return {
+              icon: "device_thermostat",
+              label: "Temperatur",
+              value: `${day.temp_avg?.toFixed(1) ?? "–"}°C`,
+              range: `${day.temp_min?.toFixed(1) ?? "–"}° / ${day.temp_max?.toFixed(1) ?? "–"}°`,
+            };
+        }
+      };
+
+      const primary = getPrimaryDisplay();
+
+      // GOLDENE REGEL: swipe-handle + design-system konform
       return `
-        <div class="standard-modal__content history-day-detail ${anomalyClass}">
+        <div class="standard-modal__content history-day-detail history-day-detail--${metric} ${anomalyClass}">
           <div class="swipe-handle"></div>
+          <button class="history-modal__close" data-action="close" aria-label="Schließen">
+            <span class="material-symbols-outlined">close</span>
+          </button>
           <header class="day-detail__header">
             <h3 class="day-detail__title">${formatted}</h3>
             ${anomalyText ? `<span class="day-detail__anomaly">${anomalyText}</span>` : ""}
           </header>
           <div class="day-detail__metrics-grid">
             <div class="day-detail__metric day-detail__metric--primary">
-              <span class="material-symbols-outlined">device_thermostat</span>
+              <span class="material-symbols-outlined">${primary.icon}</span>
               <div class="day-detail__metric-content">
-                <span class="day-detail__label">Temperatur</span>
-                <span class="day-detail__value">${day.temp_avg?.toFixed(1) ?? "–"}°C</span>
-                <span class="day-detail__range">${day.temp_min?.toFixed(1) ?? "–"}° / ${day.temp_max?.toFixed(1) ?? "–"}°</span>
+                <span class="day-detail__label">${primary.label}</span>
+                <span class="day-detail__value">${primary.value}</span>
+                <span class="day-detail__range">${primary.range}</span>
               </div>
             </div>
             <div class="day-detail__metric">
@@ -708,21 +835,26 @@
     if (tooltip.body) {
       const titleLines = tooltip.title || [];
 
-      let innerHtml = '<div class="weather-popup-content">';
+      let innerHtml = `
+              <div class="weather-popup-content">`;
 
-      // Header (wie popup-header bei Map)
+      // Header (exakt wie Map-Popup)
       if (titleLines.length > 0) {
-        innerHtml += `<div class="popup-header"><strong>${titleLines[0]}</strong></div>`;
+        innerHtml += `
+                <div class="popup-header">
+                  <strong>${titleLines[0]}</strong>
+                </div>`;
       }
 
-      // Grid (wie popup-grid bei Map)
-      innerHtml += '<div class="popup-grid">';
+      // Grid (exakt wie Map-Popup)
+      innerHtml += `
+                <div class="popup-grid">`;
 
       tooltip.dataPoints.forEach((dataPoint) => {
         const label = dataPoint.dataset.label || "";
         const rawValue = dataPoint.raw;
 
-        // Format value based on metric type
+        // Format value based on metric type with <small> tags like map popup
         let formattedValue = "";
         if (typeof rawValue === "number") {
           if (
@@ -735,7 +867,7 @@
           } else if (metricType === "precipitation") {
             formattedValue = rawValue.toFixed(1) + " mm";
           } else if (metricType === "wind") {
-            formattedValue = rawValue.toFixed(0) + " km/h";
+            formattedValue = rawValue.toFixed(0) + " <small>km/h</small>";
           } else if (metricType === "humidity") {
             formattedValue = rawValue.toFixed(0) + "%";
           } else if (metricType === "sunshine") {
@@ -748,24 +880,29 @@
         }
 
         innerHtml += `
-          <div class="popup-item">
-            <span class="popup-label">${label}</span>
-            <span class="popup-value">${formattedValue}</span>
-          </div>
-        `;
+                  <div class="popup-item">
+                    <span class="popup-label">${label}</span>
+                    <span class="popup-value">${formattedValue}</span>
+                  </div>`;
       });
 
-      innerHtml += "</div>";
+      innerHtml += `
+                </div>`;
 
-      // Footer (Additional info from afterBody callback)
+      // Footer (exakt wie Map-Popup)
       if (tooltip.afterBody && tooltip.afterBody.length > 0) {
         const footerText = tooltip.afterBody.join("").trim();
         if (footerText) {
-          innerHtml += `<div class="popup-footer">${footerText}</div>`;
+          innerHtml += `
+                <div class="popup-footer">
+                  <small>${footerText}</small>
+                </div>`;
         }
       }
 
-      innerHtml += "</div>";
+      innerHtml += `
+              </div>
+            `;
 
       tooltipEl.innerHTML = innerHtml;
     }
@@ -779,6 +916,36 @@
     tooltipEl.style.pointerEvents = "none";
     tooltipEl.style.left = tooltipX + "px";
     tooltipEl.style.top = tooltipY + "px";
+  }
+
+  /**
+   * Format date for tooltip display (e.g., "15. Januar 2026")
+   */
+  function formatDateForTooltip(dateStr) {
+    if (!dateStr) return "";
+    try {
+      const date = new Date(dateStr);
+      const day = date.getDate();
+      const monthNames = [
+        "Januar",
+        "Februar",
+        "März",
+        "April",
+        "Mai",
+        "Juni",
+        "Juli",
+        "August",
+        "September",
+        "Oktober",
+        "November",
+        "Dezember",
+      ];
+      const month = monthNames[date.getMonth()];
+      const year = date.getFullYear();
+      return `${day}. ${month} ${year}`;
+    } catch (e) {
+      return dateStr;
+    }
   }
 
   /**
@@ -962,8 +1129,14 @@
               externalTooltipHandler(context, "temperature"),
             callbacks: {
               title: (items) => {
-                const date = items[0].label;
-                return date;
+                // Get full date from chart's data store
+                const chart = items[0].chart;
+                const index = items[0].dataIndex;
+                const sourceData = chart.$sourceData || [];
+                if (sourceData[index]?.date) {
+                  return formatDateForTooltip(sourceData[index].date);
+                }
+                return items[0].label;
               },
               label: (item) => {
                 const value =
@@ -1034,6 +1207,12 @@
               externalTooltipHandler(context, "precipitation"),
             callbacks: {
               title: (items) => {
+                const chart = items[0].chart;
+                const index = items[0].dataIndex;
+                const sourceData = chart.$sourceData || [];
+                if (sourceData[index]?.date) {
+                  return formatDateForTooltip(sourceData[index].date);
+                }
                 return items[0].label;
               },
               label: (item) => {
@@ -1091,6 +1270,12 @@
             external: (context) => externalTooltipHandler(context, "wind"),
             callbacks: {
               title: (items) => {
+                const chart = items[0].chart;
+                const index = items[0].dataIndex;
+                const sourceData = chart.$sourceData || [];
+                if (sourceData[index]?.date) {
+                  return formatDateForTooltip(sourceData[index].date);
+                }
                 return items[0].label;
               },
               label: (item) => {
@@ -1148,6 +1333,12 @@
             external: (context) => externalTooltipHandler(context, "humidity"),
             callbacks: {
               title: (items) => {
+                const chart = items[0].chart;
+                const index = items[0].dataIndex;
+                const sourceData = chart.$sourceData || [];
+                if (sourceData[index]?.date) {
+                  return formatDateForTooltip(sourceData[index].date);
+                }
                 return items[0].label;
               },
               label: (item) => {
@@ -1203,6 +1394,12 @@
             external: (context) => externalTooltipHandler(context, "sunshine"),
             callbacks: {
               title: (items) => {
+                const chart = items[0].chart;
+                const index = items[0].dataIndex;
+                const sourceData = chart.$sourceData || [];
+                if (sourceData[index]?.date) {
+                  return formatDateForTooltip(sourceData[index].date);
+                }
                 return items[0].label;
               },
               label: (item) => {
@@ -1354,7 +1551,20 @@
             external: (context) =>
               externalTooltipHandler(context, "comparison"),
             callbacks: {
-              title: (items) => `Tag ${items[0].label}`,
+              title: (items) => {
+                // Comparison chart: Show "Tag X" or dates if available
+                const chart = items[0].chart;
+                const index = items[0].dataIndex;
+                const dataA = chart.$comparisonDataA || [];
+                const dataB = chart.$comparisonDataB || [];
+
+                // Try to get date from either dataset
+                const dayData = dataA[index] || dataB[index];
+                if (dayData?.date) {
+                  return formatDateForTooltip(dayData.date);
+                }
+                return `Tag ${items[0].label}`;
+              },
               afterBody: (items) => {
                 if (items.length >= 2) {
                   const diff = (items[1].raw - items[0].raw).toFixed(1);
@@ -1481,7 +1691,17 @@
             enabled: false,
             external: (context) => externalTooltipHandler(context, "daydetail"),
             callbacks: {
-              title: (items) => `⏰ ${items[0].label}`,
+              title: (items) => {
+                // For day detail chart, show the date if available in dayData
+                const chart = items[0].chart;
+                if (chart.$dayData?.date) {
+                  return (
+                    formatDateForTooltip(chart.$dayData.date) +
+                    ` - ${items[0].label}`
+                  );
+                }
+                return `⏰ ${items[0].label}`;
+              },
               label: (item) => {
                 if (item.dataset.label === "Temperatur") {
                   return `Temperatur: ${item.raw.toFixed(1)}°C`;
@@ -1584,7 +1804,16 @@
             enabled: false,
             external: (context) => externalTooltipHandler(context, "extreme"),
             callbacks: {
-              title: (items) => `⏰ ${items[0].label}`,
+              title: (items) => {
+                const chart = items[0].chart;
+                if (chart.$extremeData?.date) {
+                  return (
+                    formatDateForTooltip(chart.$extremeData.date) +
+                    ` - ${items[0].label}`
+                  );
+                }
+                return `⏰ ${items[0].label}`;
+              },
               label: (item) => `Temperatur: ${item.raw.toFixed(1)}°C`,
             },
           },

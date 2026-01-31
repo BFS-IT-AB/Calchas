@@ -1298,73 +1298,712 @@
   }
 
   // ============================================
-  // MODAL TEMPLATES
+  // MODAL TEMPLATES - METRIK-SPEZIFISCH
+  // Jede Metrik bekommt ein individuelles, wertvolles Modal
+  // GOLDENE REGEL: design-system.css Variablen nutzen
   // ============================================
 
   /**
-   * Render day detail modal content
-   * Uses health-glass-bg and health-swift-easing CSS variables
+   * METRIK-SPEZIFISCHE MODAL-KONFIGURATIONEN
+   * Definiert Farben, Icons, Einheiten und Kontextinformationen pro Metrik
+   */
+  const METRIC_MODAL_CONFIG = {
+    temperature: {
+      icon: "device_thermostat",
+      title: "Temperaturdetails",
+      accentColor: "--ui-accent-amber",
+      gradient:
+        "linear-gradient(135deg, rgba(251, 191, 36, 0.15), transparent)",
+      unit: "°C",
+      getContextInfo: (day, normals) => {
+        const avg = day.temp_avg ?? (day.temp_min + day.temp_max) / 2;
+        const anomaly = avg - (normals?.avgTemp ?? 5);
+        if (anomaly > 5)
+          return {
+            type: "extreme-warm",
+            text: `${anomaly.toFixed(1)}° über Klimamittel`,
+            icon: "local_fire_department",
+          };
+        if (anomaly > 2)
+          return {
+            type: "warm",
+            text: `${anomaly.toFixed(1)}° wärmer als normal`,
+            icon: "trending_up",
+          };
+        if (anomaly < -5)
+          return {
+            type: "extreme-cold",
+            text: `${Math.abs(anomaly).toFixed(1)}° unter Klimamittel`,
+            icon: "severe_cold",
+          };
+        if (anomaly < -2)
+          return {
+            type: "cold",
+            text: `${Math.abs(anomaly).toFixed(1)}° kälter als normal`,
+            icon: "trending_down",
+          };
+        return {
+          type: "normal",
+          text: "Im Normalbereich",
+          icon: "check_circle",
+        };
+      },
+      getHealthTip: (day) => {
+        if (day.temp_max >= 30)
+          return "⚠️ Hitzewarnung: Viel trinken, Mittagshitze meiden";
+        if (day.temp_min <= -10)
+          return "⚠️ Frostgefahr: Wasserleitungen schützen, warm anziehen";
+        if (day.temp_min < 0)
+          return "❄️ Frost möglich: Pflanzen schützen, Glättegefahr";
+        if (day.temp_max >= 25)
+          return "☀️ Sommerlich: Sonnenschutz nicht vergessen";
+        return null;
+      },
+    },
+    precipitation: {
+      icon: "water_drop",
+      title: "Niederschlagsdetails",
+      accentColor: "--ui-accent-blue",
+      gradient:
+        "linear-gradient(135deg, rgba(59, 130, 246, 0.15), transparent)",
+      unit: "mm",
+      getContextInfo: (day) => {
+        const precip = day.precip ?? 0;
+        if (precip >= 20)
+          return { type: "heavy", text: "Starkregen", icon: "thunderstorm" };
+        if (precip >= 10)
+          return { type: "moderate", text: "Ergiebiger Regen", icon: "rainy" };
+        if (precip >= 2)
+          return { type: "light", text: "Leichter Regen", icon: "grain" };
+        if (precip > 0)
+          return { type: "trace", text: "Nieselregen", icon: "water_drop" };
+        return { type: "dry", text: "Trocken", icon: "wb_sunny" };
+      },
+      getHealthTip: (day) => {
+        const precip = day.precip ?? 0;
+        if (precip >= 30)
+          return "⚠️ Überflutungsgefahr: Keller prüfen, Abflüsse freihalten";
+        if (precip >= 15)
+          return "🌧️ Starkregen: Regenschirm empfohlen, Aquaplaning möglich";
+        if (precip > 0) return "💧 Regenschauer: Jacke mitnehmen";
+        return null;
+      },
+    },
+    wind: {
+      icon: "air",
+      title: "Winddetails",
+      accentColor: "--ui-accent-green",
+      gradient:
+        "linear-gradient(135deg, rgba(74, 222, 128, 0.15), transparent)",
+      unit: "km/h",
+      getContextInfo: (day) => {
+        const wind = day.wind_speed ?? 0;
+        if (wind >= 75)
+          return { type: "hurricane", text: "Orkan", icon: "cyclone" };
+        if (wind >= 62)
+          return { type: "storm", text: "Sturm (Beaufort 8+)", icon: "storm" };
+        if (wind >= 39)
+          return {
+            type: "strong",
+            text: "Starker Wind (Beaufort 6)",
+            icon: "air",
+          };
+        if (wind >= 20)
+          return { type: "moderate", text: "Mäßiger Wind", icon: "air" };
+        if (wind >= 12)
+          return { type: "light", text: "Leichte Brise", icon: "waves" };
+        return { type: "calm", text: "Windstill", icon: "filter_drama" };
+      },
+      getHealthTip: (day) => {
+        const wind = day.wind_speed ?? 0;
+        if (wind >= 62)
+          return "⚠️ Sturmwarnung: Draußen meiden, Gegenstände sichern";
+        if (wind >= 50)
+          return "⚠️ Starker Wind: Vorsicht bei Brücken, Bäume meiden";
+        if (wind >= 30) return "💨 Böig: Aufpassen beim Radfahren";
+        return null;
+      },
+    },
+    humidity: {
+      icon: "humidity_percentage",
+      title: "Feuchtigkeitsdetails",
+      accentColor: "--ui-accent-purple",
+      gradient:
+        "linear-gradient(135deg, rgba(168, 85, 247, 0.15), transparent)",
+      unit: "%",
+      getContextInfo: (day) => {
+        const humidity = day.humidity ?? 50;
+        if (humidity >= 90)
+          return { type: "very-humid", text: "Sehr schwül", icon: "water" };
+        if (humidity >= 70)
+          return { type: "humid", text: "Feucht", icon: "humidity_high" };
+        if (humidity >= 40)
+          return {
+            type: "comfortable",
+            text: "Angenehm",
+            icon: "sentiment_satisfied",
+          };
+        if (humidity >= 25)
+          return { type: "dry", text: "Trocken", icon: "humidity_low" };
+        return { type: "very-dry", text: "Sehr trocken", icon: "warning" };
+      },
+      getHealthTip: (day) => {
+        const humidity = day.humidity ?? 50;
+        if (humidity >= 85)
+          return "🌡️ Schwüle Luft: Kreislaufprobleme möglich, viel trinken";
+        if (humidity < 30)
+          return "💨 Trockene Luft: Haut eincremen, ausreichend trinken";
+        return null;
+      },
+    },
+    sunshine: {
+      icon: "wb_sunny",
+      title: "Sonnenscheindetails",
+      accentColor: "--ui-accent-amber",
+      gradient:
+        "linear-gradient(135deg, rgba(255, 210, 111, 0.2), transparent)",
+      unit: "h",
+      getContextInfo: (day) => {
+        const sunshine = day.sunshine ?? 0;
+        const percent = (sunshine / 14) * 100; // Max ~14h im Sommer
+        if (sunshine >= 10)
+          return {
+            type: "sunny",
+            text: "Strahlend sonnig",
+            icon: "light_mode",
+          };
+        if (sunshine >= 6)
+          return {
+            type: "partly-sunny",
+            text: "Überwiegend sonnig",
+            icon: "wb_sunny",
+          };
+        if (sunshine >= 2)
+          return {
+            type: "partly-cloudy",
+            text: "Wechselhaft",
+            icon: "partly_cloudy_day",
+          };
+        if (sunshine > 0)
+          return {
+            type: "mostly-cloudy",
+            text: "Meist bewölkt",
+            icon: "cloud",
+          };
+        return { type: "overcast", text: "Bedeckt", icon: "filter_drama" };
+      },
+      getHealthTip: (day) => {
+        const sunshine = day.sunshine ?? 0;
+        if (sunshine >= 8)
+          return "☀️ Sonnig: Sonnenschutz LSF 30+ verwenden, Mittagssonne meiden";
+        if (sunshine >= 4)
+          return "🌤️ UV-Schutz empfohlen bei längerem Aufenthalt";
+        if (sunshine < 1) return "☁️ Wenig Licht: Vitamin D beachten";
+        return null;
+      },
+    },
+  };
+
+  /**
+   * Render day detail modal content - METRIK-SPEZIFISCH
+   * Zeigt kontextrelevante Informationen basierend auf der ausgewählten Metrik
+   *
+   * @param {Object} day - Tagesdaten (date, temp_min, temp_max, precip, etc.)
+   * @param {string} metric - Aktuelle Metrik (temperature, precipitation, wind, humidity, sunshine)
+   * @returns {string} HTML für das Modal
    */
   function renderDayDetailModal(day, metric = "temperature") {
     if (!day) return "";
 
     const date = new Date(day.date);
     const formattedDate = `${date.getDate()}. ${CONFIG.MONTH_LABELS_DE[date.getMonth()]} ${date.getFullYear()}`;
-    const weatherDesc = getWeatherDescription(day);
+    const weekday = date.toLocaleDateString("de-DE", { weekday: "long" });
+
+    // Hole metrik-spezifische Konfiguration
+    const config =
+      METRIC_MODAL_CONFIG[metric] || METRIC_MODAL_CONFIG.temperature;
+    const monthIdx = date.getMonth();
+    const normals =
+      CONFIG.CLIMATE_NORMALS[CONFIG.MONTH_NAMES[monthIdx]] ||
+      CONFIG.CLIMATE_NORMALS.january;
+
+    // Berechne Kontext-Informationen
+    const contextInfo = config.getContextInfo(day, normals);
+    const healthTip = config.getHealthTip(day);
+
+    // Primärwert basierend auf Metrik
+    const getPrimaryValue = () => {
+      switch (metric) {
+        case "temperature":
+          return `${day.temp_avg?.toFixed(1) ?? ((day.temp_min + day.temp_max) / 2).toFixed(1)}°C`;
+        case "precipitation":
+          return `${day.precip?.toFixed(1) ?? "0"} mm`;
+        case "wind":
+          return `${day.wind_speed?.toFixed(0) ?? "–"} km/h`;
+        case "humidity":
+          return `${day.humidity ?? "–"}%`;
+        case "sunshine":
+          return `${day.sunshine?.toFixed(1) ?? "0"} h`;
+        default:
+          return "–";
+      }
+    };
+
+    // Metrik-spezifische Detail-Cards
+    const getMetricSpecificCards = () => {
+      switch (metric) {
+        case "temperature":
+          return `
+            <div class="detail-card">
+              <h4 class="detail-card__title">Temperaturverlauf</h4>
+              <div class="detail-card__hero">
+                <span class="detail-card__value">${day.temp_avg?.toFixed(1) ?? "–"}°C</span>
+                <span class="detail-card__label">Tagesdurchschnitt</span>
+              </div>
+              <div class="detail-card__row">
+                <span>🔺 Maximum</span>
+                <span>${day.temp_max?.toFixed(1) ?? "–"}°C</span>
+              </div>
+              <div class="detail-card__row">
+                <span>🔻 Minimum</span>
+                <span>${day.temp_min?.toFixed(1) ?? "–"}°C</span>
+              </div>
+              <div class="detail-card__row">
+                <span>📊 Spanne</span>
+                <span>${((day.temp_max ?? 0) - (day.temp_min ?? 0)).toFixed(1)}°C</span>
+              </div>
+              <div class="detail-card__row">
+                <span>🌡️ Klimamittel</span>
+                <span>${normals.avgTemp.toFixed(1)}°C</span>
+              </div>
+            </div>
+            ${
+              day.temp_min !== null && day.temp_min < 0
+                ? `
+              <div class="detail-card detail-card--frost">
+                <div class="detail-card__row">
+                  <span class="material-symbols-outlined">ac_unit</span>
+                  <span>Frosttag (Min unter 0°C)</span>
+                </div>
+              </div>
+            `
+                : ""
+            }
+            ${
+              day.temp_max !== null && day.temp_max >= 25
+                ? `
+              <div class="detail-card detail-card--summer">
+                <div class="detail-card__row">
+                  <span class="material-symbols-outlined">wb_sunny</span>
+                  <span>Sommertag (Max ≥ 25°C)</span>
+                </div>
+              </div>
+            `
+                : ""
+            }
+          `;
+
+        case "precipitation":
+          const precipIntensity =
+            (day.precip ?? 0) > 0
+              ? `${((day.precip ?? 0) / 24).toFixed(2)} mm/h im Schnitt`
+              : "Keine Niederschläge";
+          return `
+            <div class="detail-card">
+              <h4 class="detail-card__title">Niederschlagsanalyse</h4>
+              <div class="detail-card__hero">
+                <span class="detail-card__value">${day.precip?.toFixed(1) ?? "0"} mm</span>
+                <span class="detail-card__label">Tagessumme</span>
+              </div>
+              <div class="detail-card__row">
+                <span>⏱️ Intensität</span>
+                <span>${precipIntensity}</span>
+              </div>
+              <div class="detail-card__row">
+                <span>💧 Monatsmittel</span>
+                <span>${normals.precip.toFixed(1)} mm/Monat</span>
+              </div>
+              <div class="detail-card__row">
+                <span>📊 Prozent vom Monat</span>
+                <span>${(((day.precip ?? 0) / normals.precip) * 100).toFixed(0)}%</span>
+              </div>
+            </div>
+            ${
+              (day.precip ?? 0) >= 10
+                ? `
+              <div class="detail-card detail-card--warning">
+                <div class="detail-card__warning">
+                  <span class="material-symbols-outlined">warning</span>
+                  <span>Starkregen-Tag: Über 10 mm Niederschlag</span>
+                </div>
+              </div>
+            `
+                : ""
+            }
+          `;
+
+        case "wind":
+          const beaufort = getBeaufortScale(day.wind_speed ?? 0);
+          return `
+            <div class="detail-card">
+              <h4 class="detail-card__title">Windanalyse</h4>
+              <div class="detail-card__hero">
+                <span class="detail-card__value">${day.wind_speed?.toFixed(0) ?? "–"} km/h</span>
+                <span class="detail-card__label">Windspitze</span>
+              </div>
+              <div class="detail-card__row">
+                <span>🌬️ Beaufort-Skala</span>
+                <span>${beaufort.scale} - ${beaufort.description}</span>
+              </div>
+              <div class="detail-card__row">
+                <span>🎯 Auswirkung</span>
+                <span>${beaufort.effect}</span>
+              </div>
+            </div>
+            ${
+              (day.wind_speed ?? 0) >= 62
+                ? `
+              <div class="detail-card detail-card--warning">
+                <div class="detail-card__warning">
+                  <span class="material-symbols-outlined">storm</span>
+                  <span>Sturmtag: Windspitzen ≥ 62 km/h</span>
+                </div>
+              </div>
+            `
+                : ""
+            }
+          `;
+
+        case "humidity":
+          const comfortLevel = getComfortLevel(
+            day.humidity ?? 50,
+            day.temp_avg ?? 15,
+          );
+          return `
+            <div class="detail-card">
+              <h4 class="detail-card__title">Feuchtigkeitsanalyse</h4>
+              <div class="detail-card__hero">
+                <span class="detail-card__value">${day.humidity ?? "–"}%</span>
+                <span class="detail-card__label">Relative Luftfeuchte</span>
+              </div>
+              <div class="detail-card__row">
+                <span>😊 Komfortlevel</span>
+                <span>${comfortLevel.label}</span>
+              </div>
+              <div class="detail-card__row">
+                <span>🌡️ Gefühlte Temp.</span>
+                <span>${comfortLevel.feelsLike}°C</span>
+              </div>
+              <div class="detail-card__row">
+                <span>💧 Taupunkt</span>
+                <span>${comfortLevel.dewPoint.toFixed(1)}°C</span>
+              </div>
+            </div>
+            ${
+              (day.humidity ?? 50) >= 85
+                ? `
+              <div class="detail-card detail-card--info">
+                <div class="detail-card__row">
+                  <span class="material-symbols-outlined">info</span>
+                  <span>Hohe Luftfeuchtigkeit kann Schimmelbildung begünstigen</span>
+                </div>
+              </div>
+            `
+                : ""
+            }
+          `;
+
+        case "sunshine":
+          const maxDaylight = getDaylightHours(date);
+          const sunPercent =
+            maxDaylight > 0
+              ? (((day.sunshine ?? 0) / maxDaylight) * 100).toFixed(0)
+              : 0;
+          return `
+            <div class="detail-card">
+              <h4 class="detail-card__title">Sonnenscheinanalyse</h4>
+              <div class="detail-card__hero">
+                <span class="detail-card__value">${day.sunshine?.toFixed(1) ?? "0"} h</span>
+                <span class="detail-card__label">Sonnenstunden</span>
+              </div>
+              <div class="detail-card__row">
+                <span>☀️ Max. Tageslicht</span>
+                <span>~${maxDaylight.toFixed(1)} h</span>
+              </div>
+              <div class="detail-card__row">
+                <span>📊 Sonnenanteil</span>
+                <span>${sunPercent}%</span>
+              </div>
+              <div class="detail-card__row">
+                <span>🌤️ Monatsmittel</span>
+                <span>${(normals.sunshine / 30).toFixed(1)} h/Tag</span>
+              </div>
+            </div>
+            ${
+              (day.sunshine ?? 0) < 1
+                ? `
+              <div class="detail-card detail-card--cloudy">
+                <div class="detail-card__row">
+                  <span class="material-symbols-outlined">cloud</span>
+                  <span>Bedeckter Tag: Unter 1 Stunde Sonnenschein</span>
+                </div>
+              </div>
+            `
+                : ""
+            }
+          `;
+
+        default:
+          return "";
+      }
+    };
 
     return `
-      <div class="history-modal__content history-modal__content--day-detail">
+      <div class="history-modal__content history-modal__content--day-detail history-modal__content--${metric}" style="--modal-gradient: ${config.gradient}">
         <div class="swipe-handle"></div>
         <button class="history-modal__close" data-action="close" aria-label="Schließen">
           <span class="material-symbols-outlined">close</span>
         </button>
 
-        <header class="day-detail__header">
-          <h3>${formattedDate}</h3>
-          <p class="day-detail__weather">${weatherDesc}</p>
+        <!-- Metrik-spezifischer Header -->
+        <header class="day-detail__header day-detail__header--${metric}">
+          <div class="day-detail__date-badge">
+            <span class="day-detail__weekday">${weekday}</span>
+            <span class="day-detail__date">${formattedDate}</span>
+          </div>
+          <div class="day-detail__primary">
+            <span class="material-symbols-outlined day-detail__icon">${config.icon}</span>
+            <span class="day-detail__primary-value">${getPrimaryValue()}</span>
+          </div>
+          <div class="day-detail__context day-detail__context--${contextInfo.type}">
+            <span class="material-symbols-outlined">${contextInfo.icon}</span>
+            <span>${contextInfo.text}</span>
+          </div>
         </header>
 
-        <div class="day-detail__chart">
-          <canvas id="history-day-detail-chart"></canvas>
+        <!-- Metrik-spezifische Detail-Cards -->
+        <div class="day-detail__cards">
+          ${getMetricSpecificCards()}
         </div>
 
-        <div class="day-detail__metrics">
-          <div class="day-detail__metric">
-            <span class="material-symbols-outlined">device_thermostat</span>
-            <div>
-              <span class="day-detail__metric-label">Temperatur</span>
-              <span class="day-detail__metric-value">${day.temp_min?.toFixed(1) ?? "–"}° / ${day.temp_max?.toFixed(1) ?? "–"}°</span>
-            </div>
+        <!-- Gesundheitstipp (wenn vorhanden) -->
+        ${
+          healthTip
+            ? `
+          <div class="day-detail__health-tip">
+            <span class="day-detail__health-tip-text">${healthTip}</span>
           </div>
-          <div class="day-detail__metric">
-            <span class="material-symbols-outlined">water_drop</span>
-            <div>
-              <span class="day-detail__metric-label">Niederschlag</span>
-              <span class="day-detail__metric-value">${day.precip?.toFixed(1) ?? "0"} mm</span>
-            </div>
-          </div>
-          <div class="day-detail__metric">
-            <span class="material-symbols-outlined">air</span>
-            <div>
-              <span class="day-detail__metric-label">Wind</span>
-              <span class="day-detail__metric-value">${day.wind_speed ?? "–"} km/h</span>
-            </div>
-          </div>
-          <div class="day-detail__metric">
-            <span class="material-symbols-outlined">humidity_percentage</span>
-            <div>
-              <span class="day-detail__metric-label">Feuchtigkeit</span>
-              <span class="day-detail__metric-value">${day.humidity ?? "–"}%</span>
-            </div>
-          </div>
-        </div>
+        `
+            : ""
+        }
 
-        <div class="day-detail__note">
-          <span class="material-symbols-outlined">info</span>
-          <p>${getSeasonalNote(day)}</p>
+        <!-- Weitere Metriken (Kontext) -->
+        <div class="day-detail__other-metrics">
+          <h4>Weitere Werte</h4>
+          <div class="day-detail__metrics-grid">
+            ${
+              metric !== "temperature"
+                ? `
+              <div class="day-detail__metric-item">
+                <span class="material-symbols-outlined">device_thermostat</span>
+                <div>
+                  <span class="label">Temperatur</span>
+                  <span class="value">${day.temp_min?.toFixed(1) ?? "–"}° / ${day.temp_max?.toFixed(1) ?? "–"}°</span>
+                </div>
+              </div>
+            `
+                : ""
+            }
+            ${
+              metric !== "precipitation"
+                ? `
+              <div class="day-detail__metric-item">
+                <span class="material-symbols-outlined">water_drop</span>
+                <div>
+                  <span class="label">Niederschlag</span>
+                  <span class="value">${day.precip?.toFixed(1) ?? "0"} mm</span>
+                </div>
+              </div>
+            `
+                : ""
+            }
+            ${
+              metric !== "wind"
+                ? `
+              <div class="day-detail__metric-item">
+                <span class="material-symbols-outlined">air</span>
+                <div>
+                  <span class="label">Wind</span>
+                  <span class="value">${day.wind_speed?.toFixed(0) ?? "–"} km/h</span>
+                </div>
+              </div>
+            `
+                : ""
+            }
+            ${
+              metric !== "humidity"
+                ? `
+              <div class="day-detail__metric-item">
+                <span class="material-symbols-outlined">humidity_percentage</span>
+                <div>
+                  <span class="label">Feuchtigkeit</span>
+                  <span class="value">${day.humidity ?? "–"}%</span>
+                </div>
+              </div>
+            `
+                : ""
+            }
+            ${
+              metric !== "sunshine"
+                ? `
+              <div class="day-detail__metric-item">
+                <span class="material-symbols-outlined">wb_sunny</span>
+                <div>
+                  <span class="label">Sonne</span>
+                  <span class="value">${day.sunshine?.toFixed(1) ?? "0"} h</span>
+                </div>
+              </div>
+            `
+                : ""
+            }
+          </div>
         </div>
       </div>
     `;
+  }
+
+  // ============================================
+  // HELPER FUNCTIONS für Metrik-Modals
+  // ============================================
+
+  /**
+   * Beaufort-Skala Lookup
+   */
+  function getBeaufortScale(windSpeed) {
+    if (windSpeed < 1)
+      return {
+        scale: 0,
+        description: "Windstille",
+        effect: "Rauch steigt senkrecht",
+      };
+    if (windSpeed < 6)
+      return {
+        scale: 1,
+        description: "Leiser Zug",
+        effect: "Rauch treibt leicht",
+      };
+    if (windSpeed < 12)
+      return {
+        scale: 2,
+        description: "Leichte Brise",
+        effect: "Blätter rascheln",
+      };
+    if (windSpeed < 20)
+      return {
+        scale: 3,
+        description: "Schwache Brise",
+        effect: "Blätter bewegen sich",
+      };
+    if (windSpeed < 29)
+      return {
+        scale: 4,
+        description: "Mäßige Brise",
+        effect: "Zweige bewegen sich",
+      };
+    if (windSpeed < 39)
+      return {
+        scale: 5,
+        description: "Frische Brise",
+        effect: "Kleine Bäume schwanken",
+      };
+    if (windSpeed < 50)
+      return {
+        scale: 6,
+        description: "Starker Wind",
+        effect: "Große Äste bewegen sich",
+      };
+    if (windSpeed < 62)
+      return {
+        scale: 7,
+        description: "Steifer Wind",
+        effect: "Ganze Bäume bewegen sich",
+      };
+    if (windSpeed < 75)
+      return {
+        scale: 8,
+        description: "Stürmischer Wind",
+        effect: "Zweige brechen",
+      };
+    if (windSpeed < 89)
+      return {
+        scale: 9,
+        description: "Sturm",
+        effect: "Dachziegel lösen sich",
+      };
+    if (windSpeed < 103)
+      return {
+        scale: 10,
+        description: "Schwerer Sturm",
+        effect: "Bäume entwurzelt",
+      };
+    if (windSpeed < 118)
+      return {
+        scale: 11,
+        description: "Orkanartiger Sturm",
+        effect: "Schwere Schäden",
+      };
+    return {
+      scale: 12,
+      description: "Orkan",
+      effect: "Schwerste Verwüstungen",
+    };
+  }
+
+  /**
+   * Komfortlevel basierend auf Temperatur und Feuchtigkeit
+   */
+  function getComfortLevel(humidity, temp) {
+    // Taupunkt berechnen (Magnus-Formel vereinfacht)
+    const a = 17.27;
+    const b = 237.7;
+    const alpha = (a * temp) / (b + temp) + Math.log(humidity / 100);
+    const dewPoint = (b * alpha) / (a - alpha);
+
+    // Gefühlte Temperatur (vereinfacht mit Hitzeindex)
+    let feelsLike = temp;
+    if (temp >= 27 && humidity >= 40) {
+      // Vereinfachter Hitzeindex
+      feelsLike = temp + (humidity - 40) * 0.1;
+    }
+
+    // Komfortlevel
+    let label = "Angenehm";
+    if (humidity < 30) label = "Zu trocken";
+    else if (humidity > 70 && temp > 25) label = "Schwül";
+    else if (humidity > 80) label = "Feucht";
+    else if (humidity >= 40 && humidity <= 60) label = "Optimal";
+
+    return {
+      label,
+      feelsLike: Math.round(feelsLike),
+      dewPoint,
+    };
+  }
+
+  /**
+   * Geschätzte Tageslichtdauer basierend auf Datum (für Deutschland ~52°N)
+   */
+  function getDaylightHours(date) {
+    const dayOfYear = Math.floor(
+      (date - new Date(date.getFullYear(), 0, 0)) / 86400000,
+    );
+    // Vereinfachte Formel für ~52° nördlicher Breite
+    const declination =
+      -23.45 * Math.cos((2 * Math.PI * (dayOfYear + 10)) / 365);
+    const hourAngle = Math.acos(
+      -Math.tan((52 * Math.PI) / 180) * Math.tan((declination * Math.PI) / 180),
+    );
+    return (2 * hourAngle * 180) / Math.PI / 15;
   }
 
   /**
