@@ -758,6 +758,7 @@
 
     /**
      * Distribute data to HistoryCharts and HistoryStats
+     * Nutzt async-Berechnung für große Datenmengen (>100 Tage)
      */
     async _distributeDataToComponents(data) {
       const stats = getStatsManager();
@@ -765,11 +766,49 @@
 
       if (!data || data.length === 0) return;
 
-      // Calculate statistics
+      // Calculate statistics (non-blocking für große Datenmengen)
       let calculatedStats = null;
-      if (stats?.calculateStats) {
+
+      // Schwellwert: ab 100 Tagen async berechnen
+      const ASYNC_THRESHOLD = 100;
+
+      if (data.length > ASYNC_THRESHOLD && stats?.calculateStatsAsync) {
+        // Async-Berechnung mit Progress-Indikator
+        console.log(
+          `📊 [HistoryController] Large dataset (${data.length} days), using async calculation...`,
+        );
+
+        try {
+          calculatedStats = await stats.calculateStatsAsync(
+            data,
+            (progress) => {
+              // Optional: Progress-Update für UI
+              this._updateCalculationProgress?.(progress);
+            },
+          );
+        } catch (err) {
+          console.error(
+            "[HistoryController] Async stats calculation failed:",
+            err,
+          );
+          // Fallback auf synchrone Berechnung
+          calculatedStats = stats?.calculateStats?.(data) ?? null;
+        }
+      } else if (stats?.calculateStats) {
+        // Synchrone Berechnung für kleine Datenmengen
         calculatedStats = stats.calculateStats(data);
+      }
+
+      if (calculatedStats) {
         this.state.set("currentStats", calculatedStats);
+
+        // Log Trend-Daten wenn vorhanden
+        if (calculatedStats.trends) {
+          console.log("📈 [HistoryController] Trends calculated:", {
+            temperature: calculatedStats.trends.temperature,
+            precipitation: calculatedStats.trends.precipitation,
+          });
+        }
       }
 
       // Find extremes

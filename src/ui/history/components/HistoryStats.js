@@ -119,6 +119,7 @@
   /**
    * Generate a grid of statistics cards from calculated stats
    * Uses MetricCard design from Health-Page
+   * Nutzt integrierte Trend-Daten wenn vorhanden
    */
   function renderStatsGrid(stats, comparisonStats = null, month = 0) {
     if (!stats)
@@ -128,7 +129,24 @@
       CONFIG.CLIMATE_NORMALS[CONFIG.MONTH_NAMES[month]] ||
       CONFIG.CLIMATE_NORMALS.january;
 
-    // Calculate trends if comparison available
+    // Trend-Formatierung: Nutze integrierte Trends (Vorwoche) oder Vergleichsperiode
+    const formatTrendFromStats = (trendObj, unit = "") => {
+      if (!trendObj?.percent && trendObj?.percent !== 0) {
+        return { trend: null, value: null };
+      }
+      const prefix = trendObj.percent > 0 ? "+" : "";
+      return {
+        trend:
+          trendObj.direction === "up"
+            ? "up"
+            : trendObj.direction === "down"
+              ? "down"
+              : null,
+        value: `${prefix}${trendObj.percent}%`,
+      };
+    };
+
+    // Fallback: Berechne Trend aus Vergleichsperiode (legacy)
     const calcTrend = (current, previous) => {
       if (previous === null || current === null)
         return { trend: null, value: null };
@@ -139,11 +157,25 @@
       };
     };
 
-    const tempTrend = comparisonStats
-      ? calcTrend(stats.avgTemp, comparisonStats.avgTemp)
+    // Priorisiere integrierte Trends (Vorwoche), fallback auf comparisonStats
+    const tempTrend = stats.trends?.temperature
+      ? formatTrendFromStats(stats.trends.temperature)
+      : comparisonStats
+        ? calcTrend(stats.avgTemp, comparisonStats.avgTemp)
+        : {};
+
+    const precipTrend = stats.trends?.precipitation
+      ? formatTrendFromStats(stats.trends.precipitation)
+      : comparisonStats
+        ? calcTrend(stats.totalPrecip, comparisonStats.totalPrecip)
+        : {};
+
+    const windTrend = stats.trends?.wind
+      ? formatTrendFromStats(stats.trends.wind)
       : {};
-    const precipTrend = comparisonStats
-      ? calcTrend(stats.totalPrecip, comparisonStats.totalPrecip)
+
+    const sunshineTrend = stats.trends?.sunshine
+      ? formatTrendFromStats(stats.trends.sunshine)
       : {};
 
     // Temperature anomaly color
@@ -156,6 +188,13 @@
           ? "metric-card--cold"
           : "";
 
+    // Trend-Subtitle: Zeige Vorwochen-Vergleich wenn verfügbar
+    const getTrendSubtitle = (trendObj, baseSubtitle) => {
+      if (!trendObj?.raw && trendObj?.raw !== 0) return baseSubtitle;
+      const prefix = trendObj.raw > 0 ? "+" : "";
+      return `${baseSubtitle} (${prefix}${trendObj.raw.toFixed(1)} vs. Vorwoche)`;
+    };
+
     const cards = [
       renderMetricCard({
         icon: "device_thermostat",
@@ -164,8 +203,11 @@
         unit: "°C",
         colorClass: tempColorClass,
         trend: tempTrend.trend,
-        trendValue: tempTrend.value ? tempTrend.value + "°" : null,
-        subtitle: `Klimamittel: ${normals.avgTemp.toFixed(1)}°`,
+        trendValue: tempTrend.value,
+        subtitle: getTrendSubtitle(
+          stats.trends?.temperature,
+          `Klimamittel: ${normals.avgTemp.toFixed(1)}°`,
+        ),
       }),
       renderMetricCard({
         icon: "thermostat_auto",
@@ -180,7 +222,7 @@
         value: stats.totalPrecip?.toFixed(1) ?? "0",
         unit: " mm",
         trend: precipTrend.trend,
-        trendValue: precipTrend.value ? precipTrend.value + " mm" : null,
+        trendValue: precipTrend.value,
         subtitle: `${stats.rainDays} Regentage`,
       }),
       renderMetricCard({
@@ -188,6 +230,8 @@
         label: "Windspitze",
         value: stats.maxWind?.toFixed(0) ?? "–",
         unit: " km/h",
+        trend: windTrend.trend,
+        trendValue: windTrend.value,
         subtitle: `Ø ${stats.avgWind?.toFixed(1) ?? "–"} km/h`,
       }),
       renderMetricCard({
@@ -195,6 +239,8 @@
         label: "Sonnenstunden",
         value: stats.totalSunshine?.toFixed(0) ?? "0",
         unit: " h",
+        trend: sunshineTrend.trend,
+        trendValue: sunshineTrend.value,
         subtitle: `${stats.sunnyDays} sonnige Tage`,
       }),
       renderMetricCard({
@@ -299,99 +345,722 @@
   }
 
   // ============================================
-  // STATISTICS CALCULATIONS
+  // STATISTICS CALCULATIONS (Non-Blocking)
   // ============================================
 
   /**
+   * Partitionierte Berechnung für große Datenmengen.
+   * Verarbeitet Chunks via requestIdleCallback / setTimeout-Fallback.
+   * @private
+   */
+  const CHUNK_SIZE = 100; // Datenpunkte pro Iteration
+  const IDLE_TIMEOUT = 16; // ~60fps Budget
+
+  /**
+   * Scheduler für non-blocking Operationen
+   * Nutzt requestIdleCallback wenn verfügbar, sonst setTimeout
+   * @private
+   */
+  function scheduleTask(callback) {
+    if (typeof requestIdleCallback === "function") {
+      return requestIdleCallback(callback, { timeout: 50 });
+    }
+    return setTimeout(callback, 0);
+  }
+
+  /**
+   * Berechnet Summe/Avg partitioniert über Chunks
+   * @private
+   */
+  function processChunked(arr, extractor, operation = "sum") {
+    let sum = 0;
+    let count = 0;
+    let min = Infinity;
+    let max = -Infinity;
+
+    for (let i = 0; i < arr.length; i++) {
+      const val = extractor(arr[i]);
+      if (val !== null && val !== undefined && !Number.isNaN(val)) {
+        sum += val;
+        count++;
+        if (val < min) min = val;
+        if (val > max) max = val;
+      }
+    }
+
+    if (count === 0)
+      return { sum: 0, avg: null, min: null, max: null, count: 0 };
+
+    return {
+      sum,
+      avg: sum / count,
+      min: min === Infinity ? null : min,
+      max: max === -Infinity ? null : max,
+      count,
+    };
+  }
+
+  /**
+   * Zählt Einträge die Prädikat erfüllen
+   * @private
+   */
+  function countMatching(arr, predicate) {
+    let count = 0;
+    for (let i = 0; i < arr.length; i++) {
+      if (predicate(arr[i])) count++;
+    }
+    return count;
+  }
+
+  /**
+   * Splittet Daten in aktuelle Woche und Vorwoche
+   * @private
+   */
+  function splitByWeek(data) {
+    if (!data?.length) return { current: [], previous: [] };
+
+    // Sortiere nach Datum (neueste zuerst)
+    const sorted = [...data].sort(
+      (a, b) => new Date(b.date) - new Date(a.date),
+    );
+
+    const now = new Date(sorted[0]?.date || Date.now());
+    const oneWeekAgo = new Date(now);
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const twoWeeksAgo = new Date(now);
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
+    const current = [];
+    const previous = [];
+
+    for (const entry of sorted) {
+      const entryDate = new Date(entry.date);
+      if (entryDate >= oneWeekAgo) {
+        current.push(entry);
+      } else if (entryDate >= twoWeeksAgo) {
+        previous.push(entry);
+      }
+    }
+
+    return { current, previous };
+  }
+
+  /**
+   * Berechnet Trend in Prozent (Vgl. Vorwoche)
+   * @param {number|null} current - Aktueller Wert
+   * @param {number|null} previous - Vorwochenwert
+   * @returns {Object} Trend-Objekt mit percent, direction, raw
+   */
+  function calculateTrend(current, previous) {
+    if (current === null || previous === null || previous === 0) {
+      return { percent: null, direction: "stable", raw: null };
+    }
+
+    const diff = current - previous;
+    const percent = (diff / Math.abs(previous)) * 100;
+
+    return {
+      percent: Number(percent.toFixed(1)),
+      direction: diff > 0.5 ? "up" : diff < -0.5 ? "down" : "stable",
+      raw: Number(diff.toFixed(2)),
+    };
+  }
+
+  /**
    * Calculate comprehensive statistics from weather data
+   * Synchrone Version für kleine Datenmengen (<100 Einträge)
    */
   function calculateStats(data) {
     if (!data || data.length === 0) return getEmptyStats();
 
-    const validTemps = data.filter((d) => d.temp_avg !== null);
-    const validMinTemps = data.filter((d) => d.temp_min !== null);
-    const validMaxTemps = data.filter((d) => d.temp_max !== null);
-    const validPrecip = data.filter((d) => d.precip !== null);
-    const validWind = data.filter((d) => d.wind_speed !== null);
-    const validHumidity = data.filter((d) => d.humidity !== null);
-    const validSunshine = data.filter((d) => d.sunshine !== null);
+    // Für große Datenmengen async verwenden
+    if (data.length > 365) {
+      console.warn(
+        "[HistoryStats] Large dataset detected. Consider using calculateStatsAsync().",
+      );
+    }
+
+    // Validierung in einem Durchlauf (Single-Pass)
+    const temps = processChunked(data, (d) => d?.temp_avg);
+    const minTemps = processChunked(data, (d) => d?.temp_min);
+    const maxTemps = processChunked(data, (d) => d?.temp_max);
+    const precip = processChunked(data, (d) => d?.precip);
+    const wind = processChunked(data, (d) => d?.wind_speed);
+    const humidity = processChunked(data, (d) => d?.humidity);
+    const sunshine = processChunked(data, (d) => d?.sunshine);
+
+    // Trend-Berechnung (Vorwoche vs. aktuelle Woche)
+    const { current: currentWeek, previous: prevWeek } = splitByWeek(data);
+    const currentWeekStats =
+      currentWeek.length > 0 ? calculateWeekStats(currentWeek) : null;
+    const prevWeekStats =
+      prevWeek.length > 0 ? calculateWeekStats(prevWeek) : null;
+
+    const trends = {
+      temperature: calculateTrend(
+        currentWeekStats?.avgTemp,
+        prevWeekStats?.avgTemp,
+      ),
+      precipitation: calculateTrend(
+        currentWeekStats?.totalPrecip,
+        prevWeekStats?.totalPrecip,
+      ),
+      wind: calculateTrend(currentWeekStats?.avgWind, prevWeekStats?.avgWind),
+      sunshine: calculateTrend(
+        currentWeekStats?.totalSunshine,
+        prevWeekStats?.totalSunshine,
+      ),
+      humidity: calculateTrend(
+        currentWeekStats?.avgHumidity,
+        prevWeekStats?.avgHumidity,
+      ),
+    };
 
     return {
       // Temperature stats
-      avgTemp: validTemps.length
-        ? validTemps.reduce((s, d) => s + d.temp_avg, 0) / validTemps.length
-        : null,
-      maxTemp: validMaxTemps.length
-        ? Math.max(...validMaxTemps.map((d) => d.temp_max))
-        : null,
-      minTemp: validMinTemps.length
-        ? Math.min(...validMinTemps.map((d) => d.temp_min))
-        : null,
+      avgTemp: temps.avg,
+      maxTemp: maxTemps.max,
+      minTemp: minTemps.min,
       tempRange:
-        validMaxTemps.length && validMinTemps.length
-          ? Math.max(...validMaxTemps.map((d) => d.temp_max)) -
-            Math.min(...validMinTemps.map((d) => d.temp_min))
+        maxTemps.max !== null && minTemps.min !== null
+          ? maxTemps.max - minTemps.min
           : null,
 
-      // Frost analysis
-      frostDays: validMinTemps.filter((d) => d.temp_min < 0).length,
-      iceDays: validMaxTemps.filter((d) => d.temp_max < 0).length,
-      tropicalNights: validMinTemps.filter((d) => d.temp_min >= 20).length,
-      hotDays: validMaxTemps.filter((d) => d.temp_max >= 30).length,
-      summerDays: validMaxTemps.filter((d) => d.temp_max >= 25).length,
+      // Frost analysis (Single-Pass Counting)
+      frostDays: countMatching(
+        data,
+        (d) => d?.temp_min !== null && d.temp_min < 0,
+      ),
+      iceDays: countMatching(
+        data,
+        (d) => d?.temp_max !== null && d.temp_max < 0,
+      ),
+      tropicalNights: countMatching(
+        data,
+        (d) => d?.temp_min !== null && d.temp_min >= 20,
+      ),
+      hotDays: countMatching(
+        data,
+        (d) => d?.temp_max !== null && d.temp_max >= 30,
+      ),
+      summerDays: countMatching(
+        data,
+        (d) => d?.temp_max !== null && d.temp_max >= 25,
+      ),
 
       // Precipitation stats
-      totalPrecip: validPrecip.reduce((s, d) => s + d.precip, 0),
-      avgPrecip: validPrecip.length
-        ? validPrecip.reduce((s, d) => s + d.precip, 0) / validPrecip.length
-        : 0,
-      maxPrecip: validPrecip.length
-        ? Math.max(...validPrecip.map((d) => d.precip))
-        : 0,
-      rainDays: validPrecip.filter((d) => d.precip >= 0.1).length,
-      heavyRainDays: validPrecip.filter((d) => d.precip >= 10).length,
-      dryDays: validPrecip.filter((d) => d.precip < 0.1).length,
+      totalPrecip: precip.sum,
+      avgPrecip: precip.avg ?? 0,
+      maxPrecip: precip.max ?? 0,
+      rainDays: countMatching(
+        data,
+        (d) => d?.precip !== null && d.precip >= 0.1,
+      ),
+      heavyRainDays: countMatching(
+        data,
+        (d) => d?.precip !== null && d.precip >= 10,
+      ),
+      dryDays: countMatching(data, (d) => d?.precip === null || d.precip < 0.1),
 
       // Wind stats
-      avgWind: validWind.length
-        ? validWind.reduce((s, d) => s + d.wind_speed, 0) / validWind.length
-        : 0,
-      maxWind: validWind.length
-        ? Math.max(...validWind.map((d) => d.wind_speed))
-        : 0,
-      stormDays: validWind.filter((d) => d.wind_speed >= 62).length,
-      windyDays: validWind.filter((d) => d.wind_speed >= 39).length,
-      calmDays: validWind.filter((d) => d.wind_speed < 12).length,
+      avgWind: wind.avg ?? 0,
+      maxWind: wind.max ?? 0,
+      stormDays: countMatching(
+        data,
+        (d) => d?.wind_speed !== null && d.wind_speed >= 62,
+      ),
+      windyDays: countMatching(
+        data,
+        (d) => d?.wind_speed !== null && d.wind_speed >= 39,
+      ),
+      calmDays: countMatching(
+        data,
+        (d) => d?.wind_speed !== null && d.wind_speed < 12,
+      ),
 
       // Humidity stats
-      avgHumidity: validHumidity.length
-        ? validHumidity.reduce((s, d) => s + d.humidity, 0) /
-          validHumidity.length
-        : null,
-      maxHumidity: validHumidity.length
-        ? Math.max(...validHumidity.map((d) => d.humidity))
-        : null,
-      minHumidity: validHumidity.length
-        ? Math.min(...validHumidity.map((d) => d.humidity))
-        : null,
-      humidDays: validHumidity.filter((d) => d.humidity >= 85).length,
+      avgHumidity: humidity.avg,
+      maxHumidity: humidity.max,
+      minHumidity: humidity.min,
+      humidDays: countMatching(
+        data,
+        (d) => d?.humidity !== null && d.humidity >= 85,
+      ),
 
       // Sunshine stats
-      totalSunshine: validSunshine.reduce((s, d) => s + d.sunshine, 0),
-      avgSunshine: validSunshine.length
-        ? validSunshine.reduce((s, d) => s + d.sunshine, 0) /
-          validSunshine.length
-        : 0,
-      maxSunshine: validSunshine.length
-        ? Math.max(...validSunshine.map((d) => d.sunshine))
-        : 0,
-      cloudyDays: validSunshine.filter((d) => d.sunshine < 1).length,
-      sunnyDays: validSunshine.filter((d) => d.sunshine >= 8).length,
+      totalSunshine: sunshine.sum,
+      avgSunshine: sunshine.avg ?? 0,
+      maxSunshine: sunshine.max ?? 0,
+      cloudyDays: countMatching(
+        data,
+        (d) => d?.sunshine !== null && d.sunshine < 1,
+      ),
+      sunnyDays: countMatching(
+        data,
+        (d) => d?.sunshine !== null && d.sunshine >= 8,
+      ),
 
       // Meta
       totalDays: data.length,
-      dataQuality: validTemps.length / data.length,
+      dataQuality: temps.count / data.length,
+
+      // === NEU: Trends (Vgl. Vorwoche) ===
+      trends,
+      weekComparison: {
+        currentWeek: currentWeekStats,
+        previousWeek: prevWeekStats,
+        daysInCurrentWeek: currentWeek.length,
+        daysInPreviousWeek: prevWeek.length,
+      },
     };
+  }
+
+  /**
+   * Schnelle Wochen-Statistik für Trend-Berechnung
+   * @private
+   */
+  function calculateWeekStats(weekData) {
+    if (!weekData?.length) return null;
+
+    const temps = processChunked(weekData, (d) => d?.temp_avg);
+    const precip = processChunked(weekData, (d) => d?.precip);
+    const wind = processChunked(weekData, (d) => d?.wind_speed);
+    const sunshine = processChunked(weekData, (d) => d?.sunshine);
+    const humidity = processChunked(weekData, (d) => d?.humidity);
+
+    return {
+      avgTemp: temps.avg,
+      totalPrecip: precip.sum,
+      avgWind: wind.avg,
+      totalSunshine: sunshine.sum,
+      avgHumidity: humidity.avg,
+      days: weekData.length,
+    };
+  }
+
+  /**
+   * Asynchrone Statistik-Berechnung für große Datenmengen (>100 Tage).
+   * Nutzt partitionierte Verarbeitung um UI nicht zu blockieren.
+   *
+   * @param {Array} data - Wetterdaten-Array
+   * @param {Function} onProgress - Optional: Progress-Callback (0-100)
+   * @returns {Promise<Object>} Stats-Objekt
+   */
+  function calculateStatsAsync(data, onProgress = null) {
+    return new Promise((resolve) => {
+      if (!data || data.length === 0) {
+        resolve(getEmptyStats());
+        return;
+      }
+
+      // Für kleine Datenmengen synchron berechnen
+      if (data.length <= CHUNK_SIZE) {
+        resolve(calculateStats(data));
+        return;
+      }
+
+      // Partitionierte Berechnung
+      const totalChunks = Math.ceil(data.length / CHUNK_SIZE);
+      let processedChunks = 0;
+
+      // Akkumulatoren für Single-Pass
+      const accum = {
+        tempSum: 0,
+        tempCount: 0,
+        tempMin: Infinity,
+        tempMax: -Infinity,
+        minTempMin: Infinity,
+        maxTempMax: -Infinity,
+        precipSum: 0,
+        precipMax: 0,
+        windSum: 0,
+        windCount: 0,
+        windMax: 0,
+        humiditySum: 0,
+        humidityCount: 0,
+        humidityMin: Infinity,
+        humidityMax: -Infinity,
+        sunshineSum: 0,
+        sunshineCount: 0,
+        sunshineMax: 0,
+        // Counters
+        frostDays: 0,
+        iceDays: 0,
+        tropicalNights: 0,
+        hotDays: 0,
+        summerDays: 0,
+        rainDays: 0,
+        heavyRainDays: 0,
+        dryDays: 0,
+        stormDays: 0,
+        windyDays: 0,
+        calmDays: 0,
+        humidDays: 0,
+        cloudyDays: 0,
+        sunnyDays: 0,
+      };
+
+      function processChunk(startIdx) {
+        const endIdx = Math.min(startIdx + CHUNK_SIZE, data.length);
+
+        for (let i = startIdx; i < endIdx; i++) {
+          const d = data[i];
+          if (!d) continue;
+
+          // Temperature
+          if (d.temp_avg !== null && d.temp_avg !== undefined) {
+            accum.tempSum += d.temp_avg;
+            accum.tempCount++;
+          }
+          if (d.temp_min !== null && d.temp_min !== undefined) {
+            if (d.temp_min < accum.minTempMin) accum.minTempMin = d.temp_min;
+            if (d.temp_min < 0) accum.frostDays++;
+            if (d.temp_min >= 20) accum.tropicalNights++;
+          }
+          if (d.temp_max !== null && d.temp_max !== undefined) {
+            if (d.temp_max > accum.maxTempMax) accum.maxTempMax = d.temp_max;
+            if (d.temp_max < 0) accum.iceDays++;
+            if (d.temp_max >= 30) accum.hotDays++;
+            if (d.temp_max >= 25) accum.summerDays++;
+          }
+
+          // Precipitation
+          if (d.precip !== null && d.precip !== undefined) {
+            accum.precipSum += d.precip;
+            if (d.precip > accum.precipMax) accum.precipMax = d.precip;
+            if (d.precip >= 0.1) accum.rainDays++;
+            if (d.precip >= 10) accum.heavyRainDays++;
+            if (d.precip < 0.1) accum.dryDays++;
+          } else {
+            accum.dryDays++;
+          }
+
+          // Wind
+          if (d.wind_speed !== null && d.wind_speed !== undefined) {
+            accum.windSum += d.wind_speed;
+            accum.windCount++;
+            if (d.wind_speed > accum.windMax) accum.windMax = d.wind_speed;
+            if (d.wind_speed >= 62) accum.stormDays++;
+            if (d.wind_speed >= 39) accum.windyDays++;
+            if (d.wind_speed < 12) accum.calmDays++;
+          }
+
+          // Humidity
+          if (d.humidity !== null && d.humidity !== undefined) {
+            accum.humiditySum += d.humidity;
+            accum.humidityCount++;
+            if (d.humidity < accum.humidityMin) accum.humidityMin = d.humidity;
+            if (d.humidity > accum.humidityMax) accum.humidityMax = d.humidity;
+            if (d.humidity >= 85) accum.humidDays++;
+          }
+
+          // Sunshine
+          if (d.sunshine !== null && d.sunshine !== undefined) {
+            accum.sunshineSum += d.sunshine;
+            accum.sunshineCount++;
+            if (d.sunshine > accum.sunshineMax) accum.sunshineMax = d.sunshine;
+            if (d.sunshine < 1) accum.cloudyDays++;
+            if (d.sunshine >= 8) accum.sunnyDays++;
+          }
+        }
+
+        processedChunks++;
+
+        // Progress callback
+        if (typeof onProgress === "function") {
+          onProgress(Math.round((processedChunks / totalChunks) * 100));
+        }
+
+        // Nächsten Chunk schedulen oder Ergebnis zurückgeben
+        if (endIdx < data.length) {
+          scheduleTask(() => processChunk(endIdx));
+        } else {
+          // Fertig - Ergebnis zusammenstellen
+          const { current: currentWeek, previous: prevWeek } =
+            splitByWeek(data);
+          const currentWeekStats =
+            currentWeek.length > 0 ? calculateWeekStats(currentWeek) : null;
+          const prevWeekStats =
+            prevWeek.length > 0 ? calculateWeekStats(prevWeek) : null;
+
+          const trends = {
+            temperature: calculateTrend(
+              currentWeekStats?.avgTemp,
+              prevWeekStats?.avgTemp,
+            ),
+            precipitation: calculateTrend(
+              currentWeekStats?.totalPrecip,
+              prevWeekStats?.totalPrecip,
+            ),
+            wind: calculateTrend(
+              currentWeekStats?.avgWind,
+              prevWeekStats?.avgWind,
+            ),
+            sunshine: calculateTrend(
+              currentWeekStats?.totalSunshine,
+              prevWeekStats?.totalSunshine,
+            ),
+            humidity: calculateTrend(
+              currentWeekStats?.avgHumidity,
+              prevWeekStats?.avgHumidity,
+            ),
+          };
+
+          resolve({
+            avgTemp:
+              accum.tempCount > 0 ? accum.tempSum / accum.tempCount : null,
+            maxTemp: accum.maxTempMax === -Infinity ? null : accum.maxTempMax,
+            minTemp: accum.minTempMin === Infinity ? null : accum.minTempMin,
+            tempRange:
+              accum.maxTempMax !== -Infinity && accum.minTempMin !== Infinity
+                ? accum.maxTempMax - accum.minTempMin
+                : null,
+            frostDays: accum.frostDays,
+            iceDays: accum.iceDays,
+            tropicalNights: accum.tropicalNights,
+            hotDays: accum.hotDays,
+            summerDays: accum.summerDays,
+            totalPrecip: accum.precipSum,
+            avgPrecip: accum.rainDays > 0 ? accum.precipSum / data.length : 0,
+            maxPrecip: accum.precipMax,
+            rainDays: accum.rainDays,
+            heavyRainDays: accum.heavyRainDays,
+            dryDays: accum.dryDays,
+            avgWind: accum.windCount > 0 ? accum.windSum / accum.windCount : 0,
+            maxWind: accum.windMax,
+            stormDays: accum.stormDays,
+            windyDays: accum.windyDays,
+            calmDays: accum.calmDays,
+            avgHumidity:
+              accum.humidityCount > 0
+                ? accum.humiditySum / accum.humidityCount
+                : null,
+            maxHumidity:
+              accum.humidityMax === -Infinity ? null : accum.humidityMax,
+            minHumidity:
+              accum.humidityMin === Infinity ? null : accum.humidityMin,
+            humidDays: accum.humidDays,
+            totalSunshine: accum.sunshineSum,
+            avgSunshine:
+              accum.sunshineCount > 0
+                ? accum.sunshineSum / accum.sunshineCount
+                : 0,
+            maxSunshine: accum.sunshineMax,
+            cloudyDays: accum.cloudyDays,
+            sunnyDays: accum.sunnyDays,
+            totalDays: data.length,
+            dataQuality: accum.tempCount / data.length,
+            trends,
+            weekComparison: {
+              currentWeek: currentWeekStats,
+              previousWeek: prevWeekStats,
+              daysInCurrentWeek: currentWeek.length,
+              daysInPreviousWeek: prevWeek.length,
+            },
+          });
+        }
+      }
+
+      // Start processing
+      scheduleTask(() => processChunk(0));
+    });
+  }
+
+  /**
+   * Web Worker Code als Blob-URL (für echtes Offloading)
+   * Wird nur bei Bedarf initialisiert
+   * @private
+   */
+  let _statsWorker = null;
+
+  function getStatsWorker() {
+    if (_statsWorker) return _statsWorker;
+
+    const workerCode = `
+      self.onmessage = function(e) {
+        const { data, id } = e.data;
+        if (!data || !Array.isArray(data)) {
+          self.postMessage({ id, error: 'Invalid data' });
+          return;
+        }
+
+        try {
+          const stats = calculateStatsSync(data);
+          self.postMessage({ id, stats });
+        } catch (err) {
+          self.postMessage({ id, error: err.message });
+        }
+      };
+
+      function calculateStatsSync(data) {
+        // Inline-Version der Statistik-Berechnung
+        const accum = {
+          tempSum: 0, tempCount: 0, minTempMin: Infinity, maxTempMax: -Infinity,
+          precipSum: 0, precipMax: 0, windSum: 0, windCount: 0, windMax: 0,
+          humiditySum: 0, humidityCount: 0, humidityMin: Infinity, humidityMax: -Infinity,
+          sunshineSum: 0, sunshineCount: 0, sunshineMax: 0,
+          frostDays: 0, iceDays: 0, tropicalNights: 0, hotDays: 0, summerDays: 0,
+          rainDays: 0, heavyRainDays: 0, dryDays: 0, stormDays: 0, windyDays: 0,
+          calmDays: 0, humidDays: 0, cloudyDays: 0, sunnyDays: 0,
+        };
+
+        for (const d of data) {
+          if (!d) continue;
+          if (d.temp_avg != null) { accum.tempSum += d.temp_avg; accum.tempCount++; }
+          if (d.temp_min != null) {
+            if (d.temp_min < accum.minTempMin) accum.minTempMin = d.temp_min;
+            if (d.temp_min < 0) accum.frostDays++;
+            if (d.temp_min >= 20) accum.tropicalNights++;
+          }
+          if (d.temp_max != null) {
+            if (d.temp_max > accum.maxTempMax) accum.maxTempMax = d.temp_max;
+            if (d.temp_max < 0) accum.iceDays++;
+            if (d.temp_max >= 30) accum.hotDays++;
+            if (d.temp_max >= 25) accum.summerDays++;
+          }
+          if (d.precip != null) {
+            accum.precipSum += d.precip;
+            if (d.precip > accum.precipMax) accum.precipMax = d.precip;
+            if (d.precip >= 0.1) accum.rainDays++;
+            if (d.precip >= 10) accum.heavyRainDays++;
+            if (d.precip < 0.1) accum.dryDays++;
+          } else { accum.dryDays++; }
+          if (d.wind_speed != null) {
+            accum.windSum += d.wind_speed; accum.windCount++;
+            if (d.wind_speed > accum.windMax) accum.windMax = d.wind_speed;
+            if (d.wind_speed >= 62) accum.stormDays++;
+            if (d.wind_speed >= 39) accum.windyDays++;
+            if (d.wind_speed < 12) accum.calmDays++;
+          }
+          if (d.humidity != null) {
+            accum.humiditySum += d.humidity; accum.humidityCount++;
+            if (d.humidity < accum.humidityMin) accum.humidityMin = d.humidity;
+            if (d.humidity > accum.humidityMax) accum.humidityMax = d.humidity;
+            if (d.humidity >= 85) accum.humidDays++;
+          }
+          if (d.sunshine != null) {
+            accum.sunshineSum += d.sunshine; accum.sunshineCount++;
+            if (d.sunshine > accum.sunshineMax) accum.sunshineMax = d.sunshine;
+            if (d.sunshine < 1) accum.cloudyDays++;
+            if (d.sunshine >= 8) accum.sunnyDays++;
+          }
+        }
+
+        return {
+          avgTemp: accum.tempCount > 0 ? accum.tempSum / accum.tempCount : null,
+          maxTemp: accum.maxTempMax === -Infinity ? null : accum.maxTempMax,
+          minTemp: accum.minTempMin === Infinity ? null : accum.minTempMin,
+          tempRange: accum.maxTempMax !== -Infinity && accum.minTempMin !== Infinity
+            ? accum.maxTempMax - accum.minTempMin : null,
+          frostDays: accum.frostDays, iceDays: accum.iceDays,
+          tropicalNights: accum.tropicalNights, hotDays: accum.hotDays,
+          summerDays: accum.summerDays, totalPrecip: accum.precipSum,
+          avgPrecip: data.length > 0 ? accum.precipSum / data.length : 0,
+          maxPrecip: accum.precipMax, rainDays: accum.rainDays,
+          heavyRainDays: accum.heavyRainDays, dryDays: accum.dryDays,
+          avgWind: accum.windCount > 0 ? accum.windSum / accum.windCount : 0,
+          maxWind: accum.windMax, stormDays: accum.stormDays,
+          windyDays: accum.windyDays, calmDays: accum.calmDays,
+          avgHumidity: accum.humidityCount > 0 ? accum.humiditySum / accum.humidityCount : null,
+          maxHumidity: accum.humidityMax === -Infinity ? null : accum.humidityMax,
+          minHumidity: accum.humidityMin === Infinity ? null : accum.humidityMin,
+          humidDays: accum.humidDays, totalSunshine: accum.sunshineSum,
+          avgSunshine: accum.sunshineCount > 0 ? accum.sunshineSum / accum.sunshineCount : 0,
+          maxSunshine: accum.sunshineMax, cloudyDays: accum.cloudyDays,
+          sunnyDays: accum.sunnyDays, totalDays: data.length,
+          dataQuality: accum.tempCount / data.length,
+        };
+      }
+    `;
+
+    try {
+      const blob = new Blob([workerCode], { type: "application/javascript" });
+      _statsWorker = new Worker(URL.createObjectURL(blob));
+    } catch (e) {
+      console.warn("[HistoryStats] Web Worker not supported:", e);
+      _statsWorker = null;
+    }
+
+    return _statsWorker;
+  }
+
+  /**
+   * Berechnet Statistiken im Web Worker (echtes Offloading)
+   * Fallback auf calculateStatsAsync wenn Worker nicht verfügbar
+   *
+   * @param {Array} data - Wetterdaten
+   * @returns {Promise<Object>} Stats-Objekt
+   */
+  function calculateStatsInWorker(data) {
+    return new Promise((resolve, reject) => {
+      const worker = getStatsWorker();
+
+      if (!worker) {
+        // Fallback auf async Berechnung
+        calculateStatsAsync(data).then(resolve).catch(reject);
+        return;
+      }
+
+      const id = Date.now() + Math.random();
+
+      const handler = (e) => {
+        if (e.data?.id !== id) return;
+        worker.removeEventListener("message", handler);
+
+        if (e.data.error) {
+          reject(new Error(e.data.error));
+        } else {
+          // Trend-Berechnung im Main-Thread (braucht Date-Objekte)
+          const stats = e.data.stats;
+          const { current: currentWeek, previous: prevWeek } =
+            splitByWeek(data);
+          const currentWeekStats =
+            currentWeek.length > 0 ? calculateWeekStats(currentWeek) : null;
+          const prevWeekStats =
+            prevWeek.length > 0 ? calculateWeekStats(prevWeek) : null;
+
+          stats.trends = {
+            temperature: calculateTrend(
+              currentWeekStats?.avgTemp,
+              prevWeekStats?.avgTemp,
+            ),
+            precipitation: calculateTrend(
+              currentWeekStats?.totalPrecip,
+              prevWeekStats?.totalPrecip,
+            ),
+            wind: calculateTrend(
+              currentWeekStats?.avgWind,
+              prevWeekStats?.avgWind,
+            ),
+            sunshine: calculateTrend(
+              currentWeekStats?.totalSunshine,
+              prevWeekStats?.totalSunshine,
+            ),
+            humidity: calculateTrend(
+              currentWeekStats?.avgHumidity,
+              prevWeekStats?.avgHumidity,
+            ),
+          };
+          stats.weekComparison = {
+            currentWeek: currentWeekStats,
+            previousWeek: prevWeekStats,
+            daysInCurrentWeek: currentWeek.length,
+            daysInPreviousWeek: prevWeek.length,
+          };
+
+          resolve(stats);
+        }
+      };
+
+      worker.addEventListener("message", handler);
+      worker.postMessage({ data, id });
+
+      // Timeout nach 5 Sekunden
+      setTimeout(() => {
+        worker.removeEventListener("message", handler);
+        calculateStatsAsync(data).then(resolve).catch(reject);
+      }, 5000);
+    });
   }
 
   /**
@@ -1237,12 +1906,20 @@
   // PUBLIC API
   // ============================================
   global.HistoryStats = {
-    // Statistics
+    // Statistics (synchron für kleine Datenmengen)
     calculateStats,
     getEmptyStats,
     comparePeriods,
     generateInsights,
     findExtremes,
+
+    // Statistics (async für große Datenmengen - non-blocking)
+    calculateStatsAsync,
+    calculateStatsInWorker,
+
+    // Trend-Utilities
+    calculateTrend,
+    splitByWeek,
 
     // MetricCard Templates (Health-Page Parity)
     renderMetricCard,
