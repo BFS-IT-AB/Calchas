@@ -287,6 +287,101 @@
       return mockData;
     }
 
+    /**
+     * Load hourly data for a date range (for day/hour comparisons)
+     * @param {string} startDate - Start date (YYYY-MM-DD)
+     * @param {string} endDate - End date (YYYY-MM-DD)
+     * @param {object} location - {lat, lon}
+     * @returns {Promise<Array>} - Array of hourly data points
+     */
+    async loadHourlyDateRange(startDate, endDate, location) {
+      const cacheKey = `hourly_${startDate}_${endDate}_${location.lat}_${location.lon}`;
+
+      const cached = this._getFromCache(cacheKey);
+      if (cached) {
+        console.log(
+          `✅ [DataPipeline] Hourly data from cache: ${startDate} to ${endDate}`,
+        );
+        return cached;
+      }
+
+      try {
+        const dataService = getWeatherDataService();
+        if (dataService?.loadHourlyHistory) {
+          console.log(
+            `🌐 [DataPipeline] Loading hourly data: ${startDate} to ${endDate}`,
+          );
+          const result = await dataService.loadHourlyHistory(
+            location.lat,
+            location.lon,
+            startDate,
+            endDate,
+          );
+
+          if (
+            result &&
+            !result.error &&
+            result.hourly &&
+            result.hourly.length > 0
+          ) {
+            console.log(
+              `✅ [DataPipeline] Hourly data loaded: ${result.hourly.length} hours from ${result.source}`,
+            );
+            this._setCache(cacheKey, result.hourly);
+            return result.hourly;
+          }
+
+          console.warn(
+            `⚠️ [DataPipeline] Hourly data load returned no data or error: ${result?.error}`,
+          );
+        }
+      } catch (error) {
+        console.error(`❌ [DataPipeline] Hourly data load failed:`, error);
+      }
+
+      // Fallback: Try to load daily data and convert to pseudo-hourly
+      console.log(
+        `📊 [DataPipeline] Falling back to daily data for ${startDate} to ${endDate}`,
+      );
+      try {
+        const dailyData = await this.loadDateRange(
+          startDate,
+          endDate,
+          location,
+        );
+        if (dailyData && dailyData.length > 0) {
+          // Convert daily to pseudo-hourly (one entry per day at noon)
+          const pseudoHourly = dailyData.map((day) => ({
+            timestamp: `${day.date}T12:00:00`,
+            date: day.date,
+            hour: 12,
+            temp: day.temp_avg,
+            temp_avg: day.temp_avg,
+            temp_min: day.temp_min,
+            temp_max: day.temp_max,
+            precip: day.precip,
+            wind_speed: day.wind_speed,
+            humidity: day.humidity,
+            _dailyFallback: true,
+          }));
+
+          this._setCache(cacheKey, pseudoHourly);
+          return pseudoHourly;
+        }
+      } catch (fallbackError) {
+        console.error(
+          `❌ [DataPipeline] Daily fallback also failed:`,
+          fallbackError,
+        );
+      }
+
+      // Final fallback: Empty array
+      console.warn(
+        `⚠️ [DataPipeline] No hourly data available for ${startDate} to ${endDate}`,
+      );
+      return [];
+    }
+
     _getFromCache(key) {
       const entry = this._cache.get(key);
       if (!entry) return null;
@@ -1227,6 +1322,36 @@
           granularity: periodData.granularity,
         });
 
+        // Check if we should load hourly data (for day comparisons or single day analysis)
+        const start = new Date(periodData.startDate);
+        const end = new Date(periodData.endDate || periodData.startDate);
+        const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+        // Use hourly data for 1-3 day comparisons
+        if (daysDiff <= 3) {
+          console.log(
+            `[HistoryController] Using hourly data for ${daysDiff} day(s)`,
+          );
+          const hourlyData = await this.dataPipeline.loadHourlyDateRange(
+            periodData.startDate,
+            periodData.endDate || periodData.startDate,
+            location,
+          );
+
+          if (hourlyData && hourlyData.length > 0) {
+            console.log("[HistoryController] Loaded hourly data:", {
+              length: hourlyData.length,
+              firstTimestamp: hourlyData[0]?.timestamp,
+              lastTimestamp: hourlyData[hourlyData.length - 1]?.timestamp,
+              firstTemp: hourlyData[0]?.temp_avg,
+              isDailyFallback: hourlyData[0]?._dailyFallback,
+            });
+
+            return hourlyData;
+          }
+        }
+
+        // Use daily data for longer periods
         const data = await this.dataPipeline.loadDateRange(
           periodData.startDate,
           periodData.endDate || periodData.startDate,

@@ -925,27 +925,46 @@
    * METRIK-SPEZIFISCHE TOOLTIP-RENDERER
    */
 
+  // Helper: Detect if data is hourly (has timestamp/hour) or daily
+  function isHourlyData(data) {
+    return data && (data.timestamp || data.hour !== undefined);
+  }
+
   // Temperature Tooltip - KOMPAKT
   function renderTemperatureTooltip(data, tooltip) {
     let items = [];
+    const isHourly = isHourlyData(data);
 
-    if (data.temp_avg != null) {
+    if (data.temp_avg != null || data.temp != null) {
+      const temp =
+        data.temp_avg !== null && data.temp_avg !== undefined
+          ? data.temp_avg
+          : data.temp;
       items.push({
-        label: "Ø TEMP",
-        value: `${data.temp_avg.toFixed(1)}°C`,
+        label: isHourly ? "TEMP" : "Ø TEMP",
+        value: `${temp.toFixed(1)}°C`,
         highlight: true,
       });
     }
 
-    if (data.temp_max != null && data.temp_min != null) {
+    if (!isHourly && data.temp_max != null && data.temp_min != null) {
       items.push({
         label: "MIN-MAX",
         value: `${data.temp_min.toFixed(1)}° - ${data.temp_max.toFixed(1)}°`,
       });
-    } else if (data.temp_max != null) {
+    } else if (!isHourly && data.temp_max != null) {
       items.push({ label: "MAX TEMP", value: `${data.temp_max.toFixed(1)}°C` });
-    } else if (data.temp_min != null) {
+    } else if (!isHourly && data.temp_min != null) {
       items.push({ label: "MIN TEMP", value: `${data.temp_min.toFixed(1)}°C` });
+    }
+
+    // Add hour indicator for hourly data
+    if (isHourly && data.hour !== undefined) {
+      items.push({
+        label: "UHRZEIT",
+        value: `${String(data.hour).padStart(2, "0")}:00`,
+        muted: true,
+      });
     }
 
     return { items };
@@ -954,25 +973,43 @@
   // Precipitation Tooltip - KOMPAKT
   function renderPrecipitationTooltip(data, tooltip) {
     let items = [];
+    const isHourly = isHourlyData(data);
 
     if (data.precip != null) {
       // Intensität direkt im Wert
       let intensity = "";
-      if (data.precip === 0) intensity = " (Trocken)";
-      else if (data.precip < 2.5) intensity = " (Leicht)";
-      else if (data.precip < 10) intensity = " (Mäßig)";
-      else if (data.precip < 50) intensity = " (Stark)";
-      else intensity = " (Sehr stark)";
+      if (isHourly) {
+        // Hourly precipitation intensity
+        if (data.precip === 0) intensity = " (Trocken)";
+        else if (data.precip < 0.5) intensity = " (Leicht)";
+        else if (data.precip < 2) intensity = " (Mäßig)";
+        else if (data.precip < 5) intensity = " (Stark)";
+        else intensity = " (Sehr stark)";
+      } else {
+        // Daily precipitation intensity
+        if (data.precip === 0) intensity = " (Trocken)";
+        else if (data.precip < 2.5) intensity = " (Leicht)";
+        else if (data.precip < 10) intensity = " (Mäßig)";
+        else if (data.precip < 50) intensity = " (Stark)";
+        else intensity = " (Sehr stark)";
+      }
 
       items.push({
-        label: "Σ REGEN",
+        label: isHourly ? "REGEN" : "Σ REGEN",
         value: `${data.precip.toFixed(1)} mm${intensity}`,
         highlight: true,
       });
     }
 
-    if (data.temp_avg != null) {
-      items.push({ label: "Ø TEMP", value: `${data.temp_avg.toFixed(1)}°C` });
+    if (data.temp_avg != null || data.temp != null) {
+      const temp =
+        data.temp_avg !== null && data.temp_avg !== undefined
+          ? data.temp_avg
+          : data.temp;
+      items.push({
+        label: isHourly ? "TEMP" : "Ø TEMP",
+        value: `${temp.toFixed(1)}°C`,
+      });
     }
 
     return { items };
@@ -1067,6 +1104,7 @@
   // Comparison Tooltip - KOMPAKT & INTELLIGENT
   function renderComparisonTooltip(data, tooltip, labelA, labelB, chart) {
     let items = [];
+    const isHourly = isHourlyData(data.comparisonA || data.comparisonB);
 
     // Berechne Differenz einmal
     let diffStr = "";
@@ -1078,24 +1116,42 @@
       diffValue = data.comparisonB.temp_avg - data.comparisonA.temp_avg;
       const sign = diffValue > 0 ? "+" : "";
       diffStr = ` (${sign}${diffValue.toFixed(1)}°)`;
+    } else if (
+      data.comparisonA?.temp != null &&
+      data.comparisonB?.temp != null
+    ) {
+      diffValue = data.comparisonB.temp - data.comparisonA.temp;
+      const sign = diffValue > 0 ? "+" : "";
+      diffStr = ` (${sign}${diffValue.toFixed(1)}°)`;
     }
 
-    // Hole aggregierte Info (z.B. "Dekade 4", "Jahr 10")
+    // Hole aggregierte Info (z.B. "Dekade 4", "Jahr 10", "Stunde 15")
     const dataIndex = tooltip.dataPoints?.[0]?.dataIndex;
     const aggregatedLabel = chart?.data?.labels?.[dataIndex];
 
-    if (data.comparisonA?.temp_avg != null) {
+    const tempA =
+      data.comparisonA?.temp_avg !== null &&
+      data.comparisonA?.temp_avg !== undefined
+        ? data.comparisonA.temp_avg
+        : data.comparisonA?.temp;
+    const tempB =
+      data.comparisonB?.temp_avg !== null &&
+      data.comparisonB?.temp_avg !== undefined
+        ? data.comparisonB.temp_avg
+        : data.comparisonB?.temp;
+
+    if (tempA != null) {
       items.push({
-        label: `Ø ${labelA || "ZEITRAUM A"}`,
-        value: `${data.comparisonA.temp_avg.toFixed(1)}°C`,
+        label: `${isHourly ? "" : "Ø "}${labelA || "ZEITRAUM A"}`,
+        value: `${tempA.toFixed(1)}°C`,
         highlight: true,
       });
     }
 
-    if (data.comparisonB?.temp_avg != null) {
+    if (tempB != null) {
       items.push({
-        label: `Ø ${labelB || "ZEITRAUM B"}`,
-        value: `${data.comparisonB.temp_avg.toFixed(1)}°C${diffStr}`,
+        label: `${isHourly ? "" : "Ø "}${labelB || "ZEITRAUM B"}`,
+        value: `${tempB.toFixed(1)}°C${diffStr}`,
         highlight: true,
       });
     }
@@ -2041,10 +2097,31 @@
     // Damit beide Zeiträume vergleichbar sind
     const maxLength = Math.max(processedDataA.length, processedDataB.length);
 
+    // Detect if data is hourly
+    const isHourlyA =
+      processedDataA.length > 0 &&
+      (processedDataA[0].timestamp || processedDataA[0].hour !== undefined);
+    const isHourlyB =
+      processedDataB.length > 0 &&
+      (processedDataB[0].timestamp || processedDataB[0].hour !== undefined);
+    const isHourly = isHourlyA || isHourlyB;
+
     const labels = Array.from({ length: maxLength }, (_, i) => {
       const index = i + 1;
 
-      // Generische Labels basierend auf Aggregation
+      // Hourly labels
+      if (isHourly) {
+        // If we have hourly data, show hour numbers
+        const hour =
+          processedDataA[i]?.hour !== undefined
+            ? processedDataA[i].hour
+            : processedDataB[i]?.hour !== undefined
+              ? processedDataB[i].hour
+              : i;
+        return `${String(hour).padStart(2, "0")}:00`;
+      }
+
+      // Generische Labels basierend auf Aggregation (tägliche/längere Zeiträume)
       if (aggregationGranularity === "decade") {
         return `Dekade ${index}`;
       } else if (aggregationGranularity === "year") {
@@ -2117,7 +2194,11 @@
         datasets: [
           {
             label: labelA,
-            data: processedDataA.map((d) => d.temp_avg),
+            data: processedDataA.map((d) =>
+              d.temp_avg !== null && d.temp_avg !== undefined
+                ? d.temp_avg
+                : d.temp,
+            ),
             borderColor: CONFIG.CHART_COLORS.secondary,
             backgroundColor: "transparent",
             borderWidth: 2.5,
@@ -2129,7 +2210,11 @@
           },
           {
             label: labelB,
-            data: processedDataB.map((d) => d.temp_avg),
+            data: processedDataB.map((d) =>
+              d.temp_avg !== null && d.temp_avg !== undefined
+                ? d.temp_avg
+                : d.temp,
+            ),
             borderColor: CONFIG.CHART_COLORS.primary,
             backgroundColor: "transparent",
             borderWidth: 3,
