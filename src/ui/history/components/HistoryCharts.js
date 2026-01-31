@@ -1465,6 +1465,7 @@
 
   /**
    * Generate comparison chart config (two periods)
+   * ENHANCED: Click-Handler für Vergleichs-Modals hinzugefügt
    */
   function getComparisonChartConfig(dataA, dataB, labelA, labelB) {
     const maxLen = Math.max(dataA.length, dataB.length);
@@ -1597,6 +1598,34 @@
                 `${item.dataset.label}: ${item.raw.toFixed(1)}°C`,
             },
           },
+        },
+        // Click-Handler für Vergleichs-Tag-Modal
+        onClick: (event, elements, chart) => {
+          if (elements.length > 0) {
+            const dataIndex = elements[0].dataIndex;
+            const dayA = dataA[dataIndex];
+            const dayB = dataB[dataIndex];
+
+            // Modal über Controller öffnen
+            const controller = getHistoryController();
+            const metric =
+              controller?.getState?.("currentMetric") || "temperature";
+
+            if (controller?.openModal) {
+              controller.openModal("comparisonDay", {
+                dayA: dayA,
+                dayB: dayB,
+                labelA: labelA,
+                labelB: labelB,
+                metric: metric,
+              });
+            }
+          }
+        },
+        // Cursor ändern beim Hover
+        onHover: (event, elements) => {
+          event.native.target.style.cursor =
+            elements.length > 0 ? "pointer" : "default";
         },
       },
     };
