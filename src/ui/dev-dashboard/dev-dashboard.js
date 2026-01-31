@@ -212,6 +212,58 @@
     );
   };
 
+  window.clearAllCaches = function () {
+    if (!confirm("Möchten Sie wirklich alle Caches löschen?")) {
+      return;
+    }
+
+    try {
+      let cleared = 0;
+
+      // Clear historyCacheService
+      if (window.historyCacheService && window.historyCacheService.clear) {
+        window.historyCacheService.clear();
+        console.log("✅ historyCacheService cleared");
+        cleared++;
+      }
+
+      // Clear localStorage cache entries
+      const cacheKeys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith("cache_") || key.startsWith("weather_"))) {
+          cacheKeys.push(key);
+        }
+      }
+      cacheKeys.forEach((key) => localStorage.removeItem(key));
+      if (cacheKeys.length > 0) {
+        console.log(
+          `✅ Removed ${cacheKeys.length} localStorage cache entries`,
+        );
+        cleared += cacheKeys.length;
+      }
+
+      // Clear Service Worker cache (if available)
+      if ("caches" in window) {
+        caches.keys().then((names) => {
+          names.forEach((name) => {
+            caches.delete(name);
+            console.log(`✅ Cleared cache: ${name}`);
+            cleared++;
+          });
+        });
+      }
+
+      alert(
+        `✅ Cache erfolgreich geleert! (${cleared} Einträge)\n\nBitte laden Sie die Seite neu (F5), um frische Daten zu laden.`,
+      );
+      console.log(`✅ ${cleared} cache entries cleared`);
+    } catch (err) {
+      console.error("❌ Error clearing cache:", err);
+      alert("Fehler beim Löschen des Caches: " + err.message);
+    }
+  };
+
   window.exportLogs = function () {
     try {
       // Collect recent console logs (if available via custom logger)

@@ -318,12 +318,24 @@
       }
 
       // SAFETY: Leere Daten abfangen
-      if (
-        !config?.data?.datasets?.length ||
-        config.data.datasets.every((ds) => !ds.data?.length)
-      ) {
-        console.warn("[HistoryCharts] Empty data - aborting chart creation");
+      // WICHTIG: Prüfe nicht nur auf Länge, sondern auch ob ALLE Werte null/undefined sind
+      if (!config?.data?.datasets?.length) {
+        console.warn("[HistoryCharts] No datasets - aborting chart creation");
         return null;
+      }
+
+      const hasAnyData = config.data.datasets.some((ds) => {
+        if (!ds.data || !ds.data.length) return false;
+        // Prüfe ob mindestens ein Wert nicht null/undefined ist
+        return ds.data.some((val) => val !== null && val !== undefined);
+      });
+
+      if (!hasAnyData) {
+        console.warn(
+          "[HistoryCharts] All data values are null/undefined - chart may appear empty",
+        );
+        console.warn("[HistoryCharts] Creating chart anyway for consistent UI");
+        // Erstelle Chart trotzdem, damit UI konsistent bleibt (zeigt "Keine Daten")
       }
 
       // VISIBILITY CHECK: Warte auf echte Sichtbarkeit
@@ -1860,6 +1872,25 @@
    */
   function getHumidityChartConfig(data, labels) {
     const baseOptions = getBaseOptions("humidity");
+
+    // DEBUG: Log humidity data
+    const humidityValues = data.map((d) => d.humidity);
+    console.log("📊 [HumidityChart] Data points:", data.length);
+    console.log("📊 [HumidityChart] Humidity values:", humidityValues);
+    const validHumidityCount = humidityValues.filter(
+      (v) => v !== null && v !== undefined,
+    ).length;
+    console.log("📊 [HumidityChart] Non-null values:", validHumidityCount);
+    console.log("📊 [HumidityChart] Sample data:", data.slice(0, 3));
+
+    // SAFETY: Falls keine echten humidity-Daten vorhanden, zeige Warnung
+    if (validHumidityCount === 0) {
+      console.warn(
+        "⚠️ [HumidityChart] No valid humidity data found in dataset!",
+      );
+      console.warn("⚠️ [HumidityChart] Chart may appear empty or show zeros");
+    }
+
     return {
       type: "line",
       data: {
@@ -1867,18 +1898,31 @@
         datasets: [
           {
             label: "Feuchtigkeit",
-            data: data.map((d) => d.humidity),
+            data: humidityValues,
             borderColor: CONFIG.CHART_COLORS.humidity,
             backgroundColor: "rgba(100, 181, 246, 0.15)",
             borderWidth: 2.5,
             fill: true,
             tension: 0.4,
             pointRadius: 0,
+            spanGaps: true, // WICHTIG: Verbinde Punkte auch wenn Daten fehlen
           },
         ],
       },
       options: {
         ...baseOptions,
+        scales: {
+          ...baseOptions.scales,
+          y: {
+            ...baseOptions.scales.y,
+            min: 0,
+            max: 100,
+            ticks: {
+              ...baseOptions.scales.y.ticks,
+              stepSize: 20,
+            },
+          },
+        },
         plugins: {
           ...baseOptions.plugins,
           tooltip: {

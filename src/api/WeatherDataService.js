@@ -13,6 +13,7 @@
   // KONFIGURATION
   // ============================================
   const CONFIG = {
+    CACHE_VERSION: "v2.1.0-humidity", // Cache-Version - bei Breaking Changes erhöhen!
     CACHE_TTL: 30 * 60 * 1000, // 30 Minuten
     RETRY: {
       MAX_ATTEMPTS: 3,
@@ -609,6 +610,7 @@
             (d.tmin !== null && d.tmax !== null ? (d.tmin + d.tmax) / 2 : null),
           precip: d.prcp || 0,
           wind_speed: d.wspd || null,
+          humidity: null,
           sunshine: d.tsun ? d.tsun / 60 : null,
           weather_code: code,
           source: "meteostat",
@@ -733,18 +735,39 @@
     },
     mergeDaily: function (results) {
       const byDate = {};
-      results.forEach(function (sourceData) {
+
+      console.log(
+        "🔀 [DataMerger] Starting merge with",
+        results.length,
+        "sources",
+      );
+
+      results.forEach(function (sourceData, idx) {
         if (!Array.isArray(sourceData)) return;
+        console.log(
+          "🔀 [DataMerger] Source",
+          idx,
+          ":",
+          sourceData.length,
+          "days",
+        );
+
         sourceData.forEach(function (day) {
           if (!day.date) return;
-          if (!byDate[day.date]) {
-            byDate[day.date] = Object.assign({}, day, {
+
+          // Normalisiere Datum zu YYYY-MM-DD Format
+          var normalizedDate = day.date.split("T")[0];
+
+          if (!byDate[normalizedDate]) {
+            byDate[normalizedDate] = Object.assign({}, day, {
+              date: normalizedDate,
               sources: [day.source],
             });
           } else {
-            var existing = byDate[day.date];
+            var existing = byDate[normalizedDate];
             Object.keys(day).forEach(function (key) {
               if (key === "source") return;
+              // Überschreibe null/undefined Werte mit echten Daten
               if (
                 (existing[key] === null || existing[key] === undefined) &&
                 day[key] !== null &&
@@ -753,18 +776,32 @@
                 existing[key] = day[key];
               }
             });
-            if (existing.sources.indexOf(day.source) < 0)
+            if (day.source && existing.sources.indexOf(day.source) < 0) {
               existing.sources.push(day.source);
+            }
           }
         });
       });
-      return Object.keys(byDate)
+
+      var merged = Object.keys(byDate)
         .map(function (k) {
           return byDate[k];
         })
         .sort(function (a, b) {
           return a.date.localeCompare(b.date);
         });
+
+      console.log("🔀 [DataMerger] Result:", merged.length, "unique days");
+      console.log(
+        "🔀 [DataMerger] First 3 days:",
+        merged.slice(0, 3).map((d) => ({
+          date: d.date,
+          humidity: d.humidity,
+          sources: d.sources,
+        })),
+      );
+
+      return merged;
     },
     mergeHourly: function (results) {
       const byTimestamp = {};
@@ -843,7 +880,7 @@
     var cache = this._getCache();
     var today = new Date().toISOString().split("T")[0];
     var cacheKey = cache.generateKey(
-      "current",
+      CONFIG.CACHE_VERSION + ":current",
       today,
       today,
       latitude,
@@ -1046,7 +1083,7 @@
     var self = this;
     var cache = this._getCache();
     var cacheKey = cache.generateKey(
-      "daily",
+      CONFIG.CACHE_VERSION + ":daily",
       startDate,
       endDate,
       latitude,
@@ -1162,14 +1199,22 @@
               result.source +
               "] History: " +
               result.data.length +
-              " days",
+              " days - Sample dates:",
+            result.data.slice(0, 3).map((d) => d.date),
           );
         } else if (result.error) {
           console.warn("⚠️ [" + result.source + "] Error: " + result.error);
         }
       });
 
+      console.log(
+        "🔀 [loadHistory] About to merge",
+        dailyResults.length,
+        "sources",
+      );
       var merged = DataMerger.mergeDaily(dailyResults);
+      console.log("🔀 [loadHistory] After merge:", merged.length, "days");
+
       if (merged.length > 0) {
         cache.set(cacheKey, merged);
         return merged;
@@ -1206,7 +1251,7 @@
     var self = this;
     var cache = this._getCache();
     var cacheKey = cache.generateKey(
-      "hourly",
+      CONFIG.CACHE_VERSION + ":hourly",
       startDate,
       endDate,
       latitude,
@@ -1405,7 +1450,7 @@
         startDate +
         "&end_date=" +
         endDate +
-        "&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,wind_speed_10m_max,sunshine_duration,weather_code&timezone=auto";
+        "&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean,sunshine_duration,weather_code&timezone=auto";
       return fetch(url, {
         signal: AbortSignal.timeout
           ? AbortSignal.timeout(CONFIG.TIMEOUT.HISTORICAL)
@@ -1708,7 +1753,45 @@
   global.WeatherDataService = WeatherDataService;
   global.weatherDataService = weatherDataService;
 
+  // Export Adapters for debugging (DEV only)
+  global.OpenMeteoAdapter = OpenMeteoAdapter;
+  global.BrightSkyAdapter = BrightSkyAdapter;
+  global.VisualCrossingAdapter = VisualCrossingAdapter;
+  global.OpenWeatherMapAdapter = OpenWeatherMapAdapter;
+  global.MeteostatAdapter = MeteostatAdapter;
+  global.DataMerger = DataMerger;
+
+  // Clear old cache versions on startup
+  (function clearOldCaches() {
+    try {
+      var keysToRemove = [];
+      for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        if (
+          key &&
+          key.startsWith("historyCache_") &&
+          !key.includes(CONFIG.CACHE_VERSION)
+        ) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(function (key) {
+        localStorage.removeItem(key);
+      });
+      if (keysToRemove.length > 0) {
+        console.log(
+          "🧹 [WeatherDataService] Removed",
+          keysToRemove.length,
+          "old cache entries",
+        );
+      }
+    } catch (e) {
+      console.warn("⚠️ Failed to clear old caches:", e);
+    }
+  })();
+
   console.log(
-    "✅ [WeatherDataServiceBrowser] Loaded - Parallel Multi-Source Architecture",
+    "✅ [WeatherDataServiceBrowser] Loaded - Parallel Multi-Source Architecture v" +
+      CONFIG.CACHE_VERSION,
   );
 })(typeof window !== "undefined" ? window : this);
