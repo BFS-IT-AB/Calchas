@@ -545,10 +545,13 @@
       }
       modal.innerHTML = content;
 
-      // Add body class for modal-open state (triggers close button hiding)
-      document.body.classList.add("modal-open");
-
+      // Modal via MasterUI öffnen - body.modal-open wird dort gesetzt
       masterUI.openModal(modalId);
+
+      // Body-Class nur setzen wenn Modal wirklich sichtbar
+      if (modal.style.display !== "none") {
+        document.body.classList.add("modal-open");
+      }
 
       // Setup swipe-to-close handler
       this._setupSwipeHandler(modal, masterUI);

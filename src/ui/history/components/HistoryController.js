@@ -332,6 +332,8 @@
         currentCalendarDate: new Date(),
         selectedCalendarDay: null,
         selectedExtreme: null,
+        // Modal State
+        activeModal: null,
         // Data stores
         currentData: [],
         comparisonDataA: [],
@@ -473,6 +475,9 @@
       this.state.set("isInitialized", true);
       console.log("✅ [HistoryController] Initialized - ready for render()");
 
+      // Event-Delegation am #history-section Container einrichten
+      this._setupEventDelegation();
+
       // KRITISCH: Initiales Render explizit aufrufen
       if (
         this._viewInstance &&
@@ -480,6 +485,172 @@
       ) {
         console.error("INIT CALLING RENDER NOW");
         await this._viewInstance.render();
+      }
+    }
+
+    /**
+     * Setup Event-Delegation am #history-section Container.
+     * WICHTIG: Da Karten dynamisch gerendert werden, müssen Klicks
+     * via .closest() am Container abgefangen werden.
+     */
+    _setupEventDelegation() {
+      const section = document.getElementById("history-section");
+      if (!section) {
+        console.warn(
+          "[HistoryController] #history-section not found for event delegation",
+        );
+        return;
+      }
+
+      // Vermeide doppelte Listener
+      if (section.dataset.delegationBound === "true") {
+        return;
+      }
+      section.dataset.delegationBound = "true";
+
+      // Zentraler Click-Handler via Event-Delegation
+      section.addEventListener("click", async (e) => {
+        // Lifecycle-Check
+        if (!this.state.get("isInitialized")) {
+          console.warn("[HistoryController] Click ignored - not initialized");
+          return;
+        }
+
+        // Extreme-Card Klick
+        const extremeCard = e.target.closest(".extreme-card");
+        if (extremeCard) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const extremeId = extremeCard.dataset.extremeId;
+          const extremeType = extremeCard.dataset.extremeType;
+          const extremeDate = extremeCard.dataset.extremeDate;
+
+          console.log("[HistoryController] Extreme card clicked:", {
+            extremeId,
+            extremeType,
+            extremeDate,
+          });
+
+          // Extreme-Daten laden und Modal öffnen
+          await this._handleExtremeCardClick({
+            id: extremeId,
+            type: extremeType,
+            date: extremeDate,
+          });
+          return;
+        }
+
+        // Metric-Card Klick (falls clickable)
+        const metricCard = e.target.closest(".metric-card--clickable");
+        if (metricCard) {
+          const action = metricCard.dataset.action;
+          if (action) {
+            console.log("[HistoryController] Metric card action:", action);
+            this._handleMetricCardAction(action);
+          }
+          return;
+        }
+
+        // Modal-Overlay Klick (zum Schließen)
+        const overlay = e.target.closest(".modal-overlay");
+        if (overlay && !e.target.closest(".modal")) {
+          this.closeModal();
+          return;
+        }
+
+        // Close-Button in Modal
+        const closeBtn = e.target.closest('[data-action="close"]');
+        if (closeBtn) {
+          this.closeModal();
+          return;
+        }
+      });
+
+      // Keyboard-Handler für Accessibility (ESC schließt Modal)
+      section.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && this.state.get("activeModal")) {
+          this.closeModal();
+        }
+      });
+
+      console.log(
+        "✅ [HistoryController] Event delegation bound to #history-section",
+      );
+    }
+
+    /**
+     * Handle Extreme-Card Klick
+     * @private
+     */
+    async _handleExtremeCardClick(extremeInfo) {
+      const { id, type, date } = extremeInfo;
+
+      // Extreme-Daten aus State holen
+      const extremes = this.state.get("extremes");
+      const currentData = this.state.get("currentData") || [];
+
+      // Finde das passende Extreme
+      let extremeData = null;
+
+      if (extremes) {
+        // Suche nach Typ
+        const typeMap = {
+          hot: "hottestDay",
+          cold: "coldestDay",
+          rain: "wettestDay",
+          wind: "windiestDay",
+        };
+        extremeData = extremes[typeMap[type]] || null;
+      }
+
+      // Fallback: Suche in currentData nach Datum
+      if (!extremeData && date) {
+        extremeData = currentData.find((d) => d.date === date) || null;
+      }
+
+      if (!extremeData) {
+        console.warn(
+          "[HistoryController] Extreme data not found for:",
+          extremeInfo,
+        );
+        return;
+      }
+
+      // State für selectedExtreme setzen
+      this.state.set("selectedExtreme", {
+        id,
+        type,
+        date,
+        data: extremeData,
+      });
+
+      // Modal öffnen
+      this.openModal("extreme", {
+        extreme: extremeData,
+        type,
+        date,
+      });
+    }
+
+    /**
+     * Handle Metric-Card Action
+     * @private
+     */
+    _handleMetricCardAction(action) {
+      switch (action) {
+        case "open-temperature-detail":
+          this.openModal("dayDetail", { metric: "temperature" });
+          break;
+        case "open-precipitation-detail":
+          this.openModal("dayDetail", { metric: "precipitation" });
+          break;
+        case "open-extreme":
+          // Tab wechseln zu Extreme
+          this.state.set("currentTab", "extreme");
+          break;
+        default:
+          console.log("[HistoryController] Unknown metric action:", action);
       }
     }
 
@@ -946,6 +1117,62 @@
     // ========================================
 
     /**
+     * Toggle modal state with body scroll lock.
+     * ZENTRALE METHODE für alle Modal-Interaktionen.
+     *
+     * @param {string} id - Modal ID (z.B. 'history-modal-extreme')
+     * @param {boolean} isOpen - true = öffnen, false = schließen
+     */
+    toggleModal(id, isOpen) {
+      // Lifecycle-Check: Nur wenn initialisiert
+      if (!this.state.get("isInitialized")) {
+        console.warn(
+          "[HistoryController] toggleModal blocked - not initialized",
+        );
+        return;
+      }
+
+      const modalElement = document.getElementById(id);
+      const masterUI = getMasterUI();
+
+      if (isOpen) {
+        // State setzen
+        this.state.set("activeModal", id);
+
+        // Body-Scroll sperren NUR wenn Modal wirklich existiert
+        if (modalElement || masterUI) {
+          document.body.classList.add("modal-open");
+        }
+
+        // Modal via MasterUI oder direkt öffnen
+        if (masterUI?.openModal) {
+          masterUI.openModal(id);
+        } else if (modalElement) {
+          modalElement.style.display = "flex";
+          modalElement.classList.add("modal--open");
+        }
+
+        console.log("[HistoryController] Modal opened:", id);
+      } else {
+        // State zurücksetzen
+        this.state.set("activeModal", null);
+
+        // Body-Scroll IMMER wiederherstellen beim Schließen
+        document.body.classList.remove("modal-open");
+
+        // Modal schließen
+        if (masterUI?.closeActiveModal) {
+          masterUI.closeActiveModal();
+        } else if (modalElement) {
+          modalElement.style.display = "none";
+          modalElement.classList.remove("modal--open");
+        }
+
+        console.log("[HistoryController] Modal closed:", id);
+      }
+    }
+
+    /**
      * Open a modal using MasterUIController
      * This is the ONLY way modals should be opened in History.
      *
@@ -953,6 +1180,14 @@
      * @param {Object} data - Data to pass to the modal
      */
     openModal(modalType, data = {}) {
+      // Lifecycle-Check
+      if (!this.state.get("isInitialized")) {
+        console.warn(
+          "[HistoryController] openModal blocked - not initialized. Call init() first.",
+        );
+        return;
+      }
+
       const masterUI = getMasterUI();
       if (!masterUI) {
         console.error("[HistoryController] MasterUIController not available");
@@ -974,7 +1209,9 @@
       const modalElement = this._createOrGetModal(modalId, modalContent);
 
       if (modalElement) {
-        masterUI.openModal(modalId);
+        // Nutze toggleModal für konsistentes State-Management
+        this.toggleModal(modalId, true);
+
         console.log(
           "[HistoryController] Modal opened via MasterUIController:",
           modalType,
@@ -991,10 +1228,18 @@
      * Close the currently open history modal
      */
     closeModal() {
-      const masterUI = getMasterUI();
-      if (masterUI?.closeActiveModal) {
-        masterUI.closeActiveModal();
+      const activeModal = this.state.get("activeModal");
+      if (activeModal) {
+        this.toggleModal(activeModal, false);
+      } else {
+        // Fallback für Modals ohne State
+        const masterUI = getMasterUI();
+        if (masterUI?.closeActiveModal) {
+          masterUI.closeActiveModal();
+        }
       }
+      // IMMER Body-Scroll wiederherstellen beim Schließen
+      document.body.classList.remove("modal-open");
     }
 
     /**
@@ -1005,6 +1250,10 @@
       if (masterUI?.closeAll) {
         masterUI.closeAll();
       }
+
+      // Body-Scroll wiederherstellen
+      document.body.classList.remove("modal-open");
+      this.state.set("activeModal", null);
 
       // Also clean up any legacy modal containers
       const modalContainer = document.getElementById(CONFIG.modalContainerId);
