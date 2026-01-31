@@ -1873,6 +1873,770 @@
   }
 
   // ============================================
+  // VERGLEICHS-SEKTION MODAL
+  // Zeigt Tag-Details mit Vergleich beider Zeiträume
+  // ============================================
+
+  /**
+   * VERGLEICHS-MODAL KONFIGURATION
+   * Für Klicks auf Vergleichs-Charts
+   */
+  const COMPARISON_MODAL_CONFIG = {
+    temperature: {
+      icon: "device_thermostat",
+      title: "Temperatur-Vergleich",
+      unit: "°C",
+      gradient:
+        "linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(59, 130, 246, 0.08))",
+      getValue: (day) => day.temp_avg ?? (day.temp_min + day.temp_max) / 2,
+      format: (val) => `${val?.toFixed(1) ?? "–"}°C`,
+    },
+    precipitation: {
+      icon: "water_drop",
+      title: "Niederschlag-Vergleich",
+      unit: "mm",
+      gradient:
+        "linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(96, 165, 250, 0.08))",
+      getValue: (day) => day.precip ?? 0,
+      format: (val) => `${val?.toFixed(1) ?? "0"} mm`,
+    },
+  };
+
+  /**
+   * Render Vergleichs-Modal für einen Tag mit Daten aus beiden Zeiträumen
+   * @param {Object} dayA - Tagesdaten Zeitraum A
+   * @param {Object} dayB - Tagesdaten Zeitraum B (gleicher Tag des Monats)
+   * @param {string} labelA - Label für Zeitraum A (z.B. "Januar 2025")
+   * @param {string} labelB - Label für Zeitraum B (z.B. "Januar 2026")
+   * @param {string} metric - Aktuelle Metrik (temperature/precipitation)
+   */
+  function renderComparisonDayModal(
+    dayA,
+    dayB,
+    labelA,
+    labelB,
+    metric = "temperature",
+  ) {
+    const config =
+      COMPARISON_MODAL_CONFIG[metric] || COMPARISON_MODAL_CONFIG.temperature;
+
+    const dateA = dayA ? new Date(dayA.date) : null;
+    const dateB = dayB ? new Date(dayB.date) : null;
+    const dayNum = dateA?.getDate() || dateB?.getDate() || "–";
+
+    const valA = dayA ? config.getValue(dayA) : null;
+    const valB = dayB ? config.getValue(dayB) : null;
+    const diff = valA !== null && valB !== null ? valB - valA : null;
+
+    const diffText =
+      diff !== null
+        ? (diff > 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1)) + config.unit
+        : "–";
+    const diffClass = diff > 0 ? "positive" : diff < 0 ? "negative" : "neutral";
+
+    return `
+      <div class="history-modal__content history-modal__content--comparison" style="--modal-gradient: ${config.gradient}">
+        <div class="swipe-handle"></div>
+        <button class="history-modal__close" data-action="close" aria-label="Schließen">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+
+        <header class="comparison-modal__header">
+          <span class="material-symbols-outlined comparison-modal__icon">${config.icon}</span>
+          <div class="comparison-modal__title">
+            <h3>${config.title}</h3>
+            <span class="comparison-modal__subtitle">Tag ${dayNum}</span>
+          </div>
+        </header>
+
+        <!-- Vergleichs-Cards -->
+        <div class="comparison-modal__cards">
+          <div class="comparison-modal__card comparison-modal__card--a">
+            <span class="comparison-modal__card-label">${labelA}</span>
+            <span class="comparison-modal__card-value">${config.format(valA)}</span>
+            ${
+              dayA
+                ? `
+              <div class="comparison-modal__card-details">
+                <span>🌡️ ${dayA.temp_min?.toFixed(1) ?? "–"}° / ${dayA.temp_max?.toFixed(1) ?? "–"}°</span>
+                <span>💧 ${dayA.precip?.toFixed(1) ?? "0"} mm</span>
+              </div>
+            `
+                : '<span class="comparison-modal__no-data">Keine Daten</span>'
+            }
+          </div>
+
+          <div class="comparison-modal__diff comparison-modal__diff--${diffClass}">
+            <span class="material-symbols-outlined">${diff > 0 ? "arrow_upward" : diff < 0 ? "arrow_downward" : "remove"}</span>
+            <span>${diffText}</span>
+          </div>
+
+          <div class="comparison-modal__card comparison-modal__card--b">
+            <span class="comparison-modal__card-label">${labelB}</span>
+            <span class="comparison-modal__card-value">${config.format(valB)}</span>
+            ${
+              dayB
+                ? `
+              <div class="comparison-modal__card-details">
+                <span>🌡️ ${dayB.temp_min?.toFixed(1) ?? "–"}° / ${dayB.temp_max?.toFixed(1) ?? "–"}°</span>
+                <span>💧 ${dayB.precip?.toFixed(1) ?? "0"} mm</span>
+              </div>
+            `
+                : '<span class="comparison-modal__no-data">Keine Daten</span>'
+            }
+          </div>
+        </div>
+
+        <!-- Interpretation -->
+        <div class="comparison-modal__insight">
+          <span class="material-symbols-outlined">lightbulb</span>
+          <p>${getComparisonInsight(diff, metric, labelA, labelB)}</p>
+        </div>
+
+        <!-- Alle Metriken im Vergleich -->
+        <div class="comparison-modal__metrics">
+          <h4>Detailvergleich</h4>
+          <div class="comparison-modal__metrics-table">
+            <div class="comparison-modal__metrics-row comparison-modal__metrics-row--header">
+              <span>Metrik</span>
+              <span>${labelA.split(" ")[0]}</span>
+              <span>${labelB.split(" ")[0]}</span>
+            </div>
+            <div class="comparison-modal__metrics-row">
+              <span>Ø Temperatur</span>
+              <span>${dayA?.temp_avg?.toFixed(1) ?? "–"}°C</span>
+              <span>${dayB?.temp_avg?.toFixed(1) ?? "–"}°C</span>
+            </div>
+            <div class="comparison-modal__metrics-row">
+              <span>Maximum</span>
+              <span>${dayA?.temp_max?.toFixed(1) ?? "–"}°C</span>
+              <span>${dayB?.temp_max?.toFixed(1) ?? "–"}°C</span>
+            </div>
+            <div class="comparison-modal__metrics-row">
+              <span>Minimum</span>
+              <span>${dayA?.temp_min?.toFixed(1) ?? "–"}°C</span>
+              <span>${dayB?.temp_min?.toFixed(1) ?? "–"}°C</span>
+            </div>
+            <div class="comparison-modal__metrics-row">
+              <span>Niederschlag</span>
+              <span>${dayA?.precip?.toFixed(1) ?? "0"} mm</span>
+              <span>${dayB?.precip?.toFixed(1) ?? "0"} mm</span>
+            </div>
+            <div class="comparison-modal__metrics-row">
+              <span>Wind</span>
+              <span>${dayA?.wind_speed?.toFixed(0) ?? "–"} km/h</span>
+              <span>${dayB?.wind_speed?.toFixed(0) ?? "–"} km/h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Generiert einen Insight-Text für den Vergleich
+   */
+  function getComparisonInsight(diff, metric, labelA, labelB) {
+    if (diff === null)
+      return "Nicht genügend Daten für einen Vergleich verfügbar.";
+
+    const yearA = labelA.match(/\d{4}/)?.[0] || "A";
+    const yearB = labelB.match(/\d{4}/)?.[0] || "B";
+
+    if (metric === "temperature") {
+      if (Math.abs(diff) < 1)
+        return `Die Temperaturen waren in beiden Jahren nahezu identisch.`;
+      if (diff > 5)
+        return `${yearB} war deutlich wärmer – ${diff.toFixed(1)}°C mehr als ${yearA}. Ein klarer Temperaturanstieg.`;
+      if (diff > 2)
+        return `${yearB} war spürbar wärmer als ${yearA}. Der Unterschied von ${diff.toFixed(1)}°C ist signifikant.`;
+      if (diff < -5)
+        return `${yearB} war deutlich kälter – ${Math.abs(diff).toFixed(1)}°C weniger als ${yearA}.`;
+      if (diff < -2) return `${yearB} war merklich kühler als ${yearA}.`;
+      return `Leichte Temperaturabweichung zwischen den Jahren.`;
+    }
+
+    if (metric === "precipitation") {
+      if (Math.abs(diff) < 1)
+        return `Der Niederschlag war in beiden Jahren sehr ähnlich.`;
+      if (diff > 10)
+        return `${yearB} war deutlich nasser – ${diff.toFixed(1)} mm mehr Niederschlag.`;
+      if (diff > 5) return `${yearB} hatte mehr Regen als ${yearA}.`;
+      if (diff < -10) return `${yearB} war deutlich trockener als ${yearA}.`;
+      if (diff < -5) return `${yearB} hatte weniger Niederschlag.`;
+      return `Geringe Niederschlagsunterschiede zwischen den Jahren.`;
+    }
+
+    return "Daten werden verglichen.";
+  }
+
+  // ============================================
+  // KALENDER-SEKTION MODAL
+  // Kompakte Tagesübersicht für Kalender-Klicks
+  // ============================================
+
+  /**
+   * KALENDER-MODAL KONFIGURATION
+   * Je nach aktiver Kalender-Metrik unterschiedliche Darstellung
+   */
+  const CALENDAR_MODAL_CONFIG = {
+    temperature: {
+      icon: "device_thermostat",
+      title: "Temperatur",
+      gradient:
+        "linear-gradient(135deg, rgba(251, 191, 36, 0.15), transparent)",
+      getHeroValue: (day) =>
+        `${day.temp_avg?.toFixed(1) ?? ((day.temp_min + day.temp_max) / 2).toFixed(1)}°`,
+      getHeroLabel: "Tagesdurchschnitt",
+      getDetailCards: (day) => `
+        <div class="calendar-modal__stat">
+          <span class="calendar-modal__stat-icon">🔺</span>
+          <span class="calendar-modal__stat-value">${day.temp_max?.toFixed(1) ?? "–"}°</span>
+          <span class="calendar-modal__stat-label">Maximum</span>
+        </div>
+        <div class="calendar-modal__stat">
+          <span class="calendar-modal__stat-icon">🔻</span>
+          <span class="calendar-modal__stat-value">${day.temp_min?.toFixed(1) ?? "–"}°</span>
+          <span class="calendar-modal__stat-label">Minimum</span>
+        </div>
+        <div class="calendar-modal__stat">
+          <span class="calendar-modal__stat-icon">📊</span>
+          <span class="calendar-modal__stat-value">${((day.temp_max ?? 0) - (day.temp_min ?? 0)).toFixed(1)}°</span>
+          <span class="calendar-modal__stat-label">Spanne</span>
+        </div>
+      `,
+      getConditionBadge: (day) => {
+        if (day.temp_max >= 30)
+          return { class: "hot", text: "Heißer Tag", icon: "🔥" };
+        if (day.temp_max >= 25)
+          return { class: "warm", text: "Sommertag", icon: "☀️" };
+        if (day.temp_min < 0)
+          return { class: "frost", text: "Frosttag", icon: "❄️" };
+        if (day.temp_max < 10)
+          return { class: "cold", text: "Kühler Tag", icon: "🌡️" };
+        return { class: "mild", text: "Mild", icon: "🌤️" };
+      },
+    },
+    precipitation: {
+      icon: "water_drop",
+      title: "Niederschlag",
+      gradient:
+        "linear-gradient(135deg, rgba(59, 130, 246, 0.15), transparent)",
+      getHeroValue: (day) => `${day.precip?.toFixed(1) ?? "0"} mm`,
+      getHeroLabel: "Gesamtniederschlag",
+      getDetailCards: (day) => {
+        const precip = day.precip ?? 0;
+        const intensity =
+          precip >= 20
+            ? "Stark"
+            : precip >= 5
+              ? "Mäßig"
+              : precip > 0
+                ? "Leicht"
+                : "Kein";
+        return `
+          <div class="calendar-modal__stat">
+            <span class="calendar-modal__stat-icon">💧</span>
+            <span class="calendar-modal__stat-value">${intensity}</span>
+            <span class="calendar-modal__stat-label">Intensität</span>
+          </div>
+          <div class="calendar-modal__stat">
+            <span class="calendar-modal__stat-icon">💦</span>
+            <span class="calendar-modal__stat-value">${day.humidity ?? "–"}%</span>
+            <span class="calendar-modal__stat-label">Feuchtigkeit</span>
+          </div>
+          <div class="calendar-modal__stat">
+            <span class="calendar-modal__stat-icon">🌬️</span>
+            <span class="calendar-modal__stat-value">${day.wind_speed?.toFixed(0) ?? "–"}</span>
+            <span class="calendar-modal__stat-label">Wind km/h</span>
+          </div>
+        `;
+      },
+      getConditionBadge: (day) => {
+        const precip = day.precip ?? 0;
+        if (precip >= 20)
+          return { class: "heavy", text: "Starkregen", icon: "⛈️" };
+        if (precip >= 10)
+          return { class: "moderate", text: "Regentag", icon: "🌧️" };
+        if (precip >= 2) return { class: "light", text: "Schauer", icon: "🌦️" };
+        if (precip > 0) return { class: "drizzle", text: "Niesel", icon: "💧" };
+        return { class: "dry", text: "Trocken", icon: "☀️" };
+      },
+    },
+    sunshine: {
+      icon: "wb_sunny",
+      title: "Sonnenschein",
+      gradient:
+        "linear-gradient(135deg, rgba(255, 210, 111, 0.18), transparent)",
+      getHeroValue: (day) => `${day.sunshine?.toFixed(1) ?? "0"} h`,
+      getHeroLabel: "Sonnenstunden",
+      getDetailCards: (day) => {
+        const date = new Date(day.date);
+        const possibleHours = getDaylightHours(date);
+        const percentage = day.sunshine
+          ? Math.round((day.sunshine / possibleHours) * 100)
+          : 0;
+        return `
+          <div class="calendar-modal__stat">
+            <span class="calendar-modal__stat-icon">📊</span>
+            <span class="calendar-modal__stat-value">${percentage}%</span>
+            <span class="calendar-modal__stat-label">Ausnutzung</span>
+          </div>
+          <div class="calendar-modal__stat">
+            <span class="calendar-modal__stat-icon">🌅</span>
+            <span class="calendar-modal__stat-value">${possibleHours.toFixed(1)} h</span>
+            <span class="calendar-modal__stat-label">Tageslicht</span>
+          </div>
+          <div class="calendar-modal__stat">
+            <span class="calendar-modal__stat-icon">☁️</span>
+            <span class="calendar-modal__stat-value">${(possibleHours - (day.sunshine ?? 0)).toFixed(1)} h</span>
+            <span class="calendar-modal__stat-label">Bewölkt</span>
+          </div>
+        `;
+      },
+      getConditionBadge: (day) => {
+        const date = new Date(day.date);
+        const possibleHours = getDaylightHours(date);
+        const percentage = day.sunshine
+          ? (day.sunshine / possibleHours) * 100
+          : 0;
+        if (percentage >= 80)
+          return { class: "sunny", text: "Sonnig", icon: "☀️" };
+        if (percentage >= 50)
+          return { class: "partly", text: "Teils sonnig", icon: "⛅" };
+        if (percentage >= 20)
+          return { class: "cloudy", text: "Bewölkt", icon: "🌥️" };
+        return { class: "overcast", text: "Bedeckt", icon: "☁️" };
+      },
+    },
+  };
+
+  /**
+   * Render Kalender-Tag-Modal
+   * Kompakte, übersichtliche Darstellung des gewählten Tages
+   * @param {Object} day - Tagesdaten
+   * @param {string} metric - Aktive Kalender-Metrik (temperature/precipitation/sunshine)
+   */
+  function renderCalendarDayModal(day, metric = "temperature") {
+    if (!day) return "";
+
+    const config =
+      CALENDAR_MODAL_CONFIG[metric] || CALENDAR_MODAL_CONFIG.temperature;
+    const date = new Date(day.date);
+    const weekday = date.toLocaleDateString("de-DE", { weekday: "long" });
+    const formattedDate = `${date.getDate()}. ${CONFIG.MONTH_LABELS_DE[date.getMonth()]} ${date.getFullYear()}`;
+    const condition = config.getConditionBadge(day);
+
+    return `
+      <div class="history-modal__content history-modal__content--calendar history-modal__content--calendar-${metric}" style="--modal-gradient: ${config.gradient}">
+        <div class="swipe-handle"></div>
+        <button class="history-modal__close" data-action="close" aria-label="Schließen">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+
+        <header class="calendar-modal__header">
+          <div class="calendar-modal__date">
+            <span class="calendar-modal__weekday">${weekday}</span>
+            <span class="calendar-modal__full-date">${formattedDate}</span>
+          </div>
+          <div class="calendar-modal__condition calendar-modal__condition--${condition.class}">
+            <span>${condition.icon}</span>
+            <span>${condition.text}</span>
+          </div>
+        </header>
+
+        <div class="calendar-modal__hero">
+          <span class="material-symbols-outlined calendar-modal__hero-icon">${config.icon}</span>
+          <div class="calendar-modal__hero-value">${config.getHeroValue(day)}</div>
+          <div class="calendar-modal__hero-label">${config.getHeroLabel}</div>
+        </div>
+
+        <div class="calendar-modal__stats">
+          ${config.getDetailCards(day)}
+        </div>
+
+        <!-- Schnellübersicht andere Metriken -->
+        <div class="calendar-modal__quick-stats">
+          ${
+            metric !== "temperature"
+              ? `
+            <div class="calendar-modal__quick-item">
+              <span class="material-symbols-outlined">device_thermostat</span>
+              <span>${day.temp_min?.toFixed(1) ?? "–"}° / ${day.temp_max?.toFixed(1) ?? "–"}°</span>
+            </div>
+          `
+              : ""
+          }
+          ${
+            metric !== "precipitation"
+              ? `
+            <div class="calendar-modal__quick-item">
+              <span class="material-symbols-outlined">water_drop</span>
+              <span>${day.precip?.toFixed(1) ?? "0"} mm</span>
+            </div>
+          `
+              : ""
+          }
+          ${
+            metric !== "sunshine"
+              ? `
+            <div class="calendar-modal__quick-item">
+              <span class="material-symbols-outlined">wb_sunny</span>
+              <span>${day.sunshine?.toFixed(1) ?? "0"} h</span>
+            </div>
+          `
+              : ""
+          }
+        </div>
+
+        <div class="calendar-modal__note">
+          <span class="material-symbols-outlined">eco</span>
+          <p>${getSeasonalNote(day)}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  // ============================================
+  // EXTREME-SEKTION MODALS
+  // Individuelle Modals für jeden Extrem-Typ
+  // ============================================
+
+  /**
+   * EXTREME-MODAL KONFIGURATIONEN
+   * Individuelle Darstellung je nach Extrem-Typ
+   */
+  const EXTREME_MODAL_CONFIG = {
+    "hottest-day": {
+      icon: "local_fire_department",
+      title: "Heißester Tag",
+      gradient:
+        "linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(251, 191, 36, 0.1))",
+      accentClass: "hot",
+      getHeroValue: (ext) => `${ext.data?.temp_max?.toFixed(1) ?? "–"}°C`,
+      getHeroLabel: "Höchsttemperatur",
+      getInsight: (ext, normals) => {
+        const anomaly = (ext.data?.temp_max ?? 0) - (normals?.avgTemp ?? 15);
+        if (anomaly > 15)
+          return "Extremhitze – deutlich über dem saisonalen Durchschnitt. Solche Temperaturen können gesundheitsgefährdend sein.";
+        if (anomaly > 10)
+          return "Sehr heißer Tag – erheblich wärmer als üblich für diese Jahreszeit.";
+        return "Der wärmste Tag im Analysezeitraum.";
+      },
+      getDetailCards: (ext) => `
+        <div class="extreme-modal__stat extreme-modal__stat--primary">
+          <span class="material-symbols-outlined">device_thermostat</span>
+          <div>
+            <span class="extreme-modal__stat-value">${ext.data?.temp_max?.toFixed(1) ?? "–"}°C</span>
+            <span class="extreme-modal__stat-label">Maximum</span>
+          </div>
+        </div>
+        <div class="extreme-modal__stat">
+          <span class="material-symbols-outlined">thermostat</span>
+          <div>
+            <span class="extreme-modal__stat-value">${ext.data?.temp_avg?.toFixed(1) ?? "–"}°C</span>
+            <span class="extreme-modal__stat-label">Durchschnitt</span>
+          </div>
+        </div>
+        <div class="extreme-modal__stat">
+          <span class="material-symbols-outlined">ac_unit</span>
+          <div>
+            <span class="extreme-modal__stat-value">${ext.data?.temp_min?.toFixed(1) ?? "–"}°C</span>
+            <span class="extreme-modal__stat-label">Minimum</span>
+          </div>
+        </div>
+        <div class="extreme-modal__stat">
+          <span class="material-symbols-outlined">wb_sunny</span>
+          <div>
+            <span class="extreme-modal__stat-value">${ext.data?.sunshine?.toFixed(1) ?? "–"} h</span>
+            <span class="extreme-modal__stat-label">Sonnenstunden</span>
+          </div>
+        </div>
+      `,
+      getHealthTip: () =>
+        "⚠️ Bei Hitze: Viel trinken, direkte Sonne meiden, körperliche Anstrengung reduzieren. Besonders gefährdet: Kinder, Ältere, chronisch Kranke.",
+    },
+    "coldest-day": {
+      icon: "severe_cold",
+      title: "Kältester Tag",
+      gradient:
+        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 197, 253, 0.1))",
+      accentClass: "cold",
+      getHeroValue: (ext) => `${ext.data?.temp_min?.toFixed(1) ?? "–"}°C`,
+      getHeroLabel: "Tiefsttemperatur",
+      getInsight: (ext, normals) => {
+        const temp = ext.data?.temp_min ?? 0;
+        if (temp < -15)
+          return "Extreme Kälte – gefährlich für Mensch und Infrastruktur. Wasserleitungen und Fahrzeuge schützen!";
+        if (temp < -10)
+          return "Strenger Frost – erhebliche Kälte, auch tagsüber frostig.";
+        if (temp < 0)
+          return "Frostnacht – Glättegefahr und Frostschäden möglich.";
+        return "Der kälteste Tag im Analysezeitraum.";
+      },
+      getDetailCards: (ext) => `
+        <div class="extreme-modal__stat extreme-modal__stat--primary">
+          <span class="material-symbols-outlined">ac_unit</span>
+          <div>
+            <span class="extreme-modal__stat-value">${ext.data?.temp_min?.toFixed(1) ?? "–"}°C</span>
+            <span class="extreme-modal__stat-label">Minimum</span>
+          </div>
+        </div>
+        <div class="extreme-modal__stat">
+          <span class="material-symbols-outlined">thermostat</span>
+          <div>
+            <span class="extreme-modal__stat-value">${ext.data?.temp_avg?.toFixed(1) ?? "–"}°C</span>
+            <span class="extreme-modal__stat-label">Durchschnitt</span>
+          </div>
+        </div>
+        <div class="extreme-modal__stat">
+          <span class="material-symbols-outlined">device_thermostat</span>
+          <div>
+            <span class="extreme-modal__stat-value">${ext.data?.temp_max?.toFixed(1) ?? "–"}°C</span>
+            <span class="extreme-modal__stat-label">Maximum</span>
+          </div>
+        </div>
+        <div class="extreme-modal__stat">
+          <span class="material-symbols-outlined">air</span>
+          <div>
+            <span class="extreme-modal__stat-value">${ext.data?.wind_speed?.toFixed(0) ?? "–"} km/h</span>
+            <span class="extreme-modal__stat-label">Wind</span>
+          </div>
+        </div>
+      `,
+      getHealthTip: () =>
+        "❄️ Bei Kälte: Warm kleiden (Schichten), Extremitäten schützen, auf Glatteis achten. Wasserleitungen vor Frost schützen!",
+    },
+    "heaviest-rain": {
+      icon: "thunderstorm",
+      title: "Stärkster Niederschlag",
+      gradient:
+        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(96, 165, 250, 0.1))",
+      accentClass: "rain",
+      getHeroValue: (ext) => `${ext.data?.precip?.toFixed(1) ?? "0"} mm`,
+      getHeroLabel: "Tagesniederschlag",
+      getInsight: (ext) => {
+        const precip = ext.data?.precip ?? 0;
+        if (precip >= 50)
+          return "Extremniederschlag – Überflutungsgefahr, lokale Unwetter möglich. Kellerräume und Abflüsse prüfen!";
+        if (precip >= 30)
+          return "Sehr starker Regen – erhöhte Gefahr von Überschwemmungen und Aquaplaning.";
+        if (precip >= 20)
+          return "Ergiebiger Niederschlag – deutlich mehr als ein normaler Regentag.";
+        return "Der niederschlagsreichste Tag im Analysezeitraum.";
+      },
+      getDetailCards: (ext) => `
+        <div class="extreme-modal__stat extreme-modal__stat--primary">
+          <span class="material-symbols-outlined">water_drop</span>
+          <div>
+            <span class="extreme-modal__stat-value">${ext.data?.precip?.toFixed(1) ?? "0"} mm</span>
+            <span class="extreme-modal__stat-label">Niederschlag</span>
+          </div>
+        </div>
+        <div class="extreme-modal__stat">
+          <span class="material-symbols-outlined">humidity_percentage</span>
+          <div>
+            <span class="extreme-modal__stat-value">${ext.data?.humidity ?? "–"}%</span>
+            <span class="extreme-modal__stat-label">Feuchtigkeit</span>
+          </div>
+        </div>
+        <div class="extreme-modal__stat">
+          <span class="material-symbols-outlined">device_thermostat</span>
+          <div>
+            <span class="extreme-modal__stat-value">${ext.data?.temp_avg?.toFixed(1) ?? "–"}°C</span>
+            <span class="extreme-modal__stat-label">Temperatur</span>
+          </div>
+        </div>
+        <div class="extreme-modal__stat">
+          <span class="material-symbols-outlined">air</span>
+          <div>
+            <span class="extreme-modal__stat-value">${ext.data?.wind_speed?.toFixed(0) ?? "–"} km/h</span>
+            <span class="extreme-modal__stat-label">Wind</span>
+          </div>
+        </div>
+      `,
+      getHealthTip: () =>
+        "🌧️ Bei Starkregen: Keller auf Wassereintritt prüfen, Abflüsse freihalten, bei Gewitter nicht im Freien aufhalten.",
+    },
+    "strongest-wind": {
+      icon: "storm",
+      title: "Stärkster Wind",
+      gradient:
+        "linear-gradient(135deg, rgba(74, 222, 128, 0.15), rgba(34, 197, 94, 0.08))",
+      accentClass: "wind",
+      getHeroValue: (ext) => `${ext.data?.wind_speed?.toFixed(0) ?? "–"} km/h`,
+      getHeroLabel: "Windgeschwindigkeit",
+      getInsight: (ext) => {
+        const wind = ext.data?.wind_speed ?? 0;
+        const beaufort = getBeaufortScale(wind);
+        if (wind >= 100)
+          return `Orkan (Beaufort ${beaufort.scale}) – Lebensgefahr im Freien! Gebäude nicht verlassen.`;
+        if (wind >= 75)
+          return `Schwerer Sturm (Beaufort ${beaufort.scale}) – ${beaufort.effect}`;
+        if (wind >= 50)
+          return `Starker Wind (Beaufort ${beaufort.scale}) – ${beaufort.effect}`;
+        return `Der windigste Tag im Analysezeitraum – ${beaufort.description}.`;
+      },
+      getDetailCards: (ext) => {
+        const beaufort = getBeaufortScale(ext.data?.wind_speed ?? 0);
+        return `
+          <div class="extreme-modal__stat extreme-modal__stat--primary">
+            <span class="material-symbols-outlined">air</span>
+            <div>
+              <span class="extreme-modal__stat-value">${ext.data?.wind_speed?.toFixed(0) ?? "–"} km/h</span>
+              <span class="extreme-modal__stat-label">Windstärke</span>
+            </div>
+          </div>
+          <div class="extreme-modal__stat">
+            <span class="material-symbols-outlined">speed</span>
+            <div>
+              <span class="extreme-modal__stat-value">Bft ${beaufort.scale}</span>
+              <span class="extreme-modal__stat-label">${beaufort.description}</span>
+            </div>
+          </div>
+          <div class="extreme-modal__stat">
+            <span class="material-symbols-outlined">device_thermostat</span>
+            <div>
+              <span class="extreme-modal__stat-value">${ext.data?.temp_avg?.toFixed(1) ?? "–"}°C</span>
+              <span class="extreme-modal__stat-label">Temperatur</span>
+            </div>
+          </div>
+          <div class="extreme-modal__stat">
+            <span class="material-symbols-outlined">water_drop</span>
+            <div>
+              <span class="extreme-modal__stat-value">${ext.data?.precip?.toFixed(1) ?? "0"} mm</span>
+              <span class="extreme-modal__stat-label">Niederschlag</span>
+            </div>
+          </div>
+        `;
+      },
+      getHealthTip: () =>
+        "💨 Bei Sturm: Fenster schließen, lose Gegenstände sichern, Aufenthalt unter Bäumen/Gerüsten meiden.",
+    },
+    // Generischer Fallback
+    default: {
+      icon: "info",
+      title: "Wetterereignis",
+      gradient:
+        "linear-gradient(135deg, rgba(138, 180, 255, 0.12), transparent)",
+      accentClass: "default",
+      getHeroValue: (ext) => ext.value || "–",
+      getHeroLabel: "Messwert",
+      getInsight: () =>
+        "Ein bemerkenswertes Wetterereignis im Analysezeitraum.",
+      getDetailCards: (ext) => `
+        <div class="extreme-modal__stat">
+          <span class="material-symbols-outlined">device_thermostat</span>
+          <div>
+            <span class="extreme-modal__stat-value">${ext.data?.temp_avg?.toFixed(1) ?? "–"}°C</span>
+            <span class="extreme-modal__stat-label">Temperatur</span>
+          </div>
+        </div>
+        <div class="extreme-modal__stat">
+          <span class="material-symbols-outlined">water_drop</span>
+          <div>
+            <span class="extreme-modal__stat-value">${ext.data?.precip?.toFixed(1) ?? "0"} mm</span>
+            <span class="extreme-modal__stat-label">Niederschlag</span>
+          </div>
+        </div>
+      `,
+      getHealthTip: () => null,
+    },
+  };
+
+  /**
+   * Render erweitertes Extreme-Modal
+   * Individuell je nach Extrem-Typ (heißester Tag, kältester Tag, stärkster Niederschlag)
+   * @param {Object} extreme - Extreme-Daten (id, type, data, icon, title, value, dateFormatted)
+   * @param {Object} location - Aktueller Standort
+   */
+  function renderExtremeDetailModalEnhanced(extreme, location) {
+    if (!extreme) return "";
+
+    // Bestimme Konfiguration basierend auf Typ oder ID
+    let configKey = "default";
+    const id = (extreme.id || extreme.type || "").toLowerCase();
+    if (id.includes("hot") || id.includes("heiss") || id.includes("heiß"))
+      configKey = "hottest-day";
+    else if (id.includes("cold") || id.includes("kalt") || id.includes("kält"))
+      configKey = "coldest-day";
+    else if (
+      id.includes("rain") ||
+      id.includes("precip") ||
+      id.includes("niederschlag")
+    )
+      configKey = "heaviest-rain";
+    else if (id.includes("wind") || id.includes("sturm"))
+      configKey = "strongest-wind";
+
+    const config =
+      EXTREME_MODAL_CONFIG[configKey] || EXTREME_MODAL_CONFIG.default;
+
+    // Klimanormale für Kontext
+    const date = extreme.data?.date ? new Date(extreme.data.date) : new Date();
+    const monthIdx = date.getMonth();
+    const normals =
+      CONFIG.CLIMATE_NORMALS[CONFIG.MONTH_NAMES[monthIdx]] ||
+      CONFIG.CLIMATE_NORMALS.january;
+
+    const healthTip = config.getHealthTip ? config.getHealthTip() : null;
+
+    return `
+      <div class="history-modal__content history-modal__content--extreme history-modal__content--extreme-${config.accentClass}" style="--modal-gradient: ${config.gradient}">
+        <div class="swipe-handle"></div>
+        <button class="history-modal__close" data-action="close" aria-label="Schließen">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+
+        <header class="extreme-modal__header extreme-modal__header--${config.accentClass}">
+          <div class="extreme-modal__icon-wrapper">
+            <span class="material-symbols-outlined extreme-modal__icon">${config.icon}</span>
+          </div>
+          <div class="extreme-modal__title-group">
+            <h3 class="extreme-modal__title">${config.title}</h3>
+            <span class="extreme-modal__hero-value">${config.getHeroValue(extreme)}</span>
+            <span class="extreme-modal__hero-label">${config.getHeroLabel}</span>
+          </div>
+        </header>
+
+        <div class="extreme-modal__meta">
+          <div class="extreme-modal__meta-item">
+            <span class="material-symbols-outlined">calendar_today</span>
+            <span>${extreme.dateFormatted || "–"}</span>
+          </div>
+          <div class="extreme-modal__meta-item">
+            <span class="material-symbols-outlined">location_on</span>
+            <span>${location?.name || "Berlin"}</span>
+          </div>
+        </div>
+
+        <div class="extreme-modal__insight">
+          <span class="material-symbols-outlined">lightbulb</span>
+          <p>${config.getInsight(extreme, normals)}</p>
+        </div>
+
+        <div class="extreme-modal__stats">
+          ${config.getDetailCards(extreme)}
+        </div>
+
+        ${
+          healthTip
+            ? `
+          <div class="extreme-modal__health-tip">
+            <p>${healthTip}</p>
+          </div>
+        `
+            : ""
+        }
+
+        <div class="extreme-modal__chart" id="extreme-modal-chart-container">
+          <canvas id="history-extreme-mini-chart"></canvas>
+        </div>
+      </div>
+    `;
+  }
+
+  // ============================================
   // HELPER FUNCTIONS für Metrik-Modals
   // ============================================
 
@@ -2583,7 +3347,10 @@
 
     // Modal templates
     renderDayDetailModal,
+    renderComparisonDayModal,
+    renderCalendarDayModal,
     renderExtremeDetailModal,
+    renderExtremeDetailModalEnhanced,
     renderLocationModal,
     renderPeriodSelectorModal,
     renderInfoModal,

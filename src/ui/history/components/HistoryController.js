@@ -846,9 +846,12 @@
       };
 
       // Vollständiges Modal-Content rendern
-      const fullContent = stats?.renderExtremeDetailModal
-        ? stats.renderExtremeDetailModal(extreme, location)
-        : this._renderFallbackExtremeContent(extreme, location);
+      // Nutze das erweiterte Modal wenn verfügbar
+      const fullContent = stats?.renderExtremeDetailModalEnhanced
+        ? stats.renderExtremeDetailModalEnhanced(extreme, location)
+        : stats?.renderExtremeDetailModal
+          ? stats.renderExtremeDetailModal(extreme, location)
+          : this._renderFallbackExtremeContent(extreme, location);
 
       // SMOOTH TRANSITION: Fade out skeleton, fade in content
       const contentContainer = modalElement.querySelector(
@@ -1623,8 +1626,32 @@
             this._renderFallbackDayModal(data)
           );
 
-        case "extreme":
+        case "comparisonDay":
+          // Vergleichs-Modal für Tag mit Daten aus beiden Zeiträumen
           return (
+            stats?.renderComparisonDayModal?.(
+              data.dayA,
+              data.dayB,
+              data.labelA,
+              data.labelB,
+              data.metric,
+            ) || this._renderFallbackComparisonModal(data)
+          );
+
+        case "calendarDay":
+          // Kalender-Tag Modal
+          return (
+            stats?.renderCalendarDayModal?.(data.day, data.metric) ||
+            this._renderFallbackCalendarModal(data)
+          );
+
+        case "extreme":
+          // Versuche zuerst das erweiterte Modal
+          return (
+            stats?.renderExtremeDetailModalEnhanced?.(
+              data.extreme,
+              data.location,
+            ) ||
             stats?.renderExtremeDetailModal?.(data.extreme, data.location) ||
             this._renderFallbackExtremeModal(data)
           );
@@ -1676,6 +1703,46 @@
           <div class="history-modal__body">
             <p>Temperatur: ${day.temp_avg?.toFixed(1) || "–"}°C</p>
             <p>Niederschlag: ${day.precip?.toFixed(1) || "0"} mm</p>
+          </div>
+        </div>
+      `;
+    }
+
+    _renderFallbackComparisonModal(data) {
+      const dayA = data.dayA || {};
+      const dayB = data.dayB || {};
+      return `
+        <div class="history-modal__content history-modal__content--comparison">
+          <div class="swipe-handle"></div>
+          <header class="history-modal__header">
+            <h3>Vergleich</h3>
+            <button class="history-modal__close" data-action="close">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </header>
+          <div class="history-modal__body">
+            <p>${data.labelA || "Zeitraum A"}: ${dayA.temp_avg?.toFixed(1) || "–"}°C</p>
+            <p>${data.labelB || "Zeitraum B"}: ${dayB.temp_avg?.toFixed(1) || "–"}°C</p>
+          </div>
+        </div>
+      `;
+    }
+
+    _renderFallbackCalendarModal(data) {
+      const day = data.day || {};
+      return `
+        <div class="history-modal__content history-modal__content--calendar">
+          <div class="swipe-handle"></div>
+          <header class="history-modal__header">
+            <h3>${day.date || "Kalender-Tag"}</h3>
+            <button class="history-modal__close" data-action="close">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </header>
+          <div class="history-modal__body">
+            <p>Temperatur: ${day.temp_avg?.toFixed(1) || "–"}°C</p>
+            <p>Niederschlag: ${day.precip?.toFixed(1) || "0"} mm</p>
+            <p>Sonne: ${day.sunshine?.toFixed(1) || "0"} h</p>
           </div>
         </div>
       `;
