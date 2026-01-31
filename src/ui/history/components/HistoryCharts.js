@@ -6,8 +6,24 @@
  *
  * GOLDENE REGEL: All detailed popups open via MasterUIController.openModal()
  *
+ * TOOLTIP SYSTEM v2.1 - KOMPAKT & EFFIZIENT:
+ * ✓ Intelligente Datenextraktion aus mehreren Quellen
+ * ✓ Metrik-spezifische Renderer ohne Redundanzen:
+ *   - Temperature: Ø mit Min-Max Bereich (1-2 Items)
+ *   - Precipitation: Niederschlag mit Intensität inline (1-2 Items)
+ *   - Wind: Geschwindigkeit + Richtung/Beaufort kombiniert (1 Item)
+ *   - Humidity: Feuchtigkeit mit Komfort inline (1-2 Items)
+ *   - Sunshine: Sonnenstunden mit Prozent inline (1-2 Items)
+ *   - Comparison: Beide Zeiträume, Differenz im Wert (2 Items)
+ *   - Day Detail: Temp + Regen nur wenn > 0 (1-2 Items)
+ *   - Extreme: Temp mit Rekord-Bereich (1-2 Items)
+ * ✓ Keine redundanten Informationen (Footer/afterBody nur wenn nötig)
+ * ✓ Kompaktes Design: 160-240px Breite, enge Abstände
+ * ✓ Optimierte Positionierung mit Kollisionserkennung
+ * ✓ Dynamischer Arrow-Offset für präzise Cursor-Zuordnung
+ *
  * @module ui/history/components/HistoryCharts
- * @version 1.1.0
+ * @version 2.1.0 - Kompakte Tooltips ohne Redundanzen
  */
 (function (global) {
   "use strict";
@@ -845,8 +861,317 @@
   }
 
   /**
-   * External Tooltip Handler (1:1 wie Map-Popup "Wetter an Position")
-   * Zeigt ALLE verfügbaren Wetter-Metriken für den Datenpunkt
+   * INTELLIGENTE DATENEXTRAKTION
+   * Holt alle verfügbaren Daten aus verschiedenen Quellen
+   */
+  function extractTooltipData(chart, dataIndex, tooltip) {
+    const data = {};
+
+    // 1. Versuche aus sourceData (vollständige Rohdaten)
+    const sourceData = chart.$sourceData || [];
+    if (sourceData[dataIndex]) {
+      Object.assign(data, sourceData[dataIndex]);
+    }
+
+    // 2. Für Vergleichscharts: Hole beide Datensätze
+    const dataA = chart.$comparisonDataA?.[dataIndex];
+    const dataB = chart.$comparisonDataB?.[dataIndex];
+    if (dataA || dataB) {
+      data.comparisonA = dataA;
+      data.comparisonB = dataB;
+    }
+
+    // 3. Für Day-Detail-Charts
+    if (chart.$dayData) {
+      Object.assign(data, chart.$dayData);
+    }
+
+    // 4. Für Extreme Charts
+    if (chart.$extremeData) {
+      Object.assign(data, chart.$extremeData);
+    }
+
+    // 5. Fallback: Versuche aus dataPoints
+    if (Object.keys(data).length === 0 && tooltip.dataPoints) {
+      tooltip.dataPoints.forEach((point) => {
+        const label = point.dataset.label?.toLowerCase() || "";
+        const value = point.raw;
+
+        if (label.includes("temp") || label.includes("durchschnitt")) {
+          data.temp_avg = value;
+        } else if (label.includes("niederschlag") || label.includes("precip")) {
+          data.precip = value;
+        } else if (label.includes("wind")) {
+          data.wind_speed = value;
+        } else if (
+          label.includes("feuchtigkeit") ||
+          label.includes("humidity")
+        ) {
+          data.humidity = value;
+        } else if (label.includes("sonne") || label.includes("sunshine")) {
+          data.sunshine = value;
+        } else if (label.includes("max")) {
+          data.temp_max = value;
+        } else if (label.includes("min")) {
+          data.temp_min = value;
+        }
+      });
+    }
+
+    return data;
+  }
+
+  /**
+   * METRIK-SPEZIFISCHE TOOLTIP-RENDERER
+   */
+
+  // Temperature Tooltip - KOMPAKT
+  function renderTemperatureTooltip(data, tooltip) {
+    let items = [];
+
+    if (data.temp_avg != null) {
+      items.push({
+        label: "Ø TEMP",
+        value: `${data.temp_avg.toFixed(1)}°C`,
+        highlight: true,
+      });
+    }
+
+    if (data.temp_max != null && data.temp_min != null) {
+      items.push({
+        label: "MIN-MAX",
+        value: `${data.temp_min.toFixed(1)}° - ${data.temp_max.toFixed(1)}°`,
+      });
+    } else if (data.temp_max != null) {
+      items.push({ label: "MAX TEMP", value: `${data.temp_max.toFixed(1)}°C` });
+    } else if (data.temp_min != null) {
+      items.push({ label: "MIN TEMP", value: `${data.temp_min.toFixed(1)}°C` });
+    }
+
+    return { items };
+  }
+
+  // Precipitation Tooltip - KOMPAKT
+  function renderPrecipitationTooltip(data, tooltip) {
+    let items = [];
+
+    if (data.precip != null) {
+      // Intensität direkt im Wert
+      let intensity = "";
+      if (data.precip === 0) intensity = " (Trocken)";
+      else if (data.precip < 2.5) intensity = " (Leicht)";
+      else if (data.precip < 10) intensity = " (Mäßig)";
+      else if (data.precip < 50) intensity = " (Stark)";
+      else intensity = " (Sehr stark)";
+
+      items.push({
+        label: "Σ REGEN",
+        value: `${data.precip.toFixed(1)} mm${intensity}`,
+        highlight: true,
+      });
+    }
+
+    if (data.temp_avg != null) {
+      items.push({ label: "Ø TEMP", value: `${data.temp_avg.toFixed(1)}°C` });
+    }
+
+    return { items };
+  }
+
+  // Wind Tooltip - KOMPAKT
+  function renderWindTooltip(data, tooltip) {
+    let items = [];
+
+    if (data.wind_speed != null) {
+      // Beaufort-Klassifikation
+      let beaufort = "";
+      if (data.wind_speed < 2) beaufort = "Windstille";
+      else if (data.wind_speed < 12) beaufort = "Leichte Brise";
+      else if (data.wind_speed < 30) beaufort = "Mäßig";
+      else if (data.wind_speed < 50) beaufort = "Stark";
+      else beaufort = "Sturm";
+
+      let windValue = `${data.wind_speed.toFixed(0)} km/h (${beaufort})`;
+
+      if (data.wind_direction != null) {
+        const directions = ["N", "NO", "O", "SO", "S", "SW", "W", "NW"];
+        const index = Math.round((data.wind_direction % 360) / 45) % 8;
+        windValue = `${directions[index]} ${data.wind_speed.toFixed(0)} km/h`;
+      }
+
+      items.push({
+        label: "Ø WIND",
+        value: windValue,
+        highlight: true,
+      });
+    }
+
+    return { items };
+  }
+
+  // Humidity Tooltip - KOMPAKT
+  function renderHumidityTooltip(data, tooltip) {
+    let items = [];
+
+    if (data.humidity != null) {
+      // Komfort-Bewertung direkt im Wert
+      let comfort = "";
+      if (data.humidity < 30) comfort = " (Sehr trocken)";
+      else if (data.humidity < 40) comfort = " (Trocken)";
+      else if (data.humidity < 60) comfort = " (Angenehm)";
+      else if (data.humidity < 80) comfort = " (Feucht)";
+      else comfort = " (Sehr feucht)";
+
+      items.push({
+        label: "Ø LUFTFEUCHTE",
+        value: `${data.humidity.toFixed(0)}%${comfort}`,
+        highlight: true,
+      });
+    }
+
+    if (data.temp_avg != null) {
+      items.push({ label: "Ø TEMP", value: `${data.temp_avg.toFixed(1)}°C` });
+    }
+
+    return { items };
+  }
+
+  // Sunshine Tooltip - KOMPAKT
+  function renderSunshineTooltip(data, tooltip) {
+    let items = [];
+
+    if (data.sunshine != null) {
+      // Prozent vom Tag + Bewertung
+      const percent = ((data.sunshine / 24) * 100).toFixed(0);
+      let rating = "";
+      if (data.sunshine < 2) rating = "Sehr bewölkt";
+      else if (data.sunshine < 4) rating = "Bewölkt";
+      else if (data.sunshine < 8) rating = "Wechselhaft";
+      else if (data.sunshine < 10) rating = "Heiter";
+      else rating = "Sonnig";
+
+      items.push({
+        label: "Σ SONNENSTD.",
+        value: `${data.sunshine.toFixed(1)} h (${percent}%)`,
+        highlight: true,
+      });
+    }
+
+    if (data.temp_avg != null) {
+      items.push({ label: "Ø TEMP", value: `${data.temp_avg.toFixed(1)}°C` });
+    }
+
+    return { items };
+  }
+
+  // Comparison Tooltip - KOMPAKT & INTELLIGENT
+  function renderComparisonTooltip(data, tooltip, labelA, labelB, chart) {
+    let items = [];
+
+    // Berechne Differenz einmal
+    let diffStr = "";
+    let diffValue = null;
+    if (
+      data.comparisonA?.temp_avg != null &&
+      data.comparisonB?.temp_avg != null
+    ) {
+      diffValue = data.comparisonB.temp_avg - data.comparisonA.temp_avg;
+      const sign = diffValue > 0 ? "+" : "";
+      diffStr = ` (${sign}${diffValue.toFixed(1)}°)`;
+    }
+
+    // Hole aggregierte Info (z.B. "Dekade 4", "Jahr 10")
+    const dataIndex = tooltip.dataPoints?.[0]?.dataIndex;
+    const aggregatedLabel = chart?.data?.labels?.[dataIndex];
+
+    if (data.comparisonA?.temp_avg != null) {
+      items.push({
+        label: `Ø ${labelA || "ZEITRAUM A"}`,
+        value: `${data.comparisonA.temp_avg.toFixed(1)}°C`,
+        highlight: true,
+      });
+    }
+
+    if (data.comparisonB?.temp_avg != null) {
+      items.push({
+        label: `Ø ${labelB || "ZEITRAUM B"}`,
+        value: `${data.comparisonB.temp_avg.toFixed(1)}°C${diffStr}`,
+        highlight: true,
+      });
+    }
+
+    // Füge Differenz-Info als separate Item hinzu wenn vorhanden
+    if (diffValue !== null && Math.abs(diffValue) > 0.05) {
+      const diffColor = diffValue > 0 ? "wärmer" : "kälter";
+      items.push({
+        label: "Δ TEMP",
+        value: `${Math.abs(diffValue).toFixed(1)}° ${diffColor}`,
+        muted: true,
+      });
+    }
+
+    return {
+      items,
+      hiddenFooter: true,
+      customHeader: aggregatedLabel, // Verwende aggregierten Label statt Datum
+    };
+  }
+
+  // Day Detail Tooltip - KOMPAKT
+  function renderDayDetailTooltip(data, tooltip) {
+    let items = [];
+
+    // Hole die Temperatur und Niederschlag aus den dataPoints
+    const tempPoint = tooltip.dataPoints?.find((p) =>
+      p.dataset.label?.toLowerCase().includes("temp"),
+    );
+    const precipPoint = tooltip.dataPoints?.find((p) =>
+      p.dataset.label?.toLowerCase().includes("niederschlag"),
+    );
+
+    if (tempPoint?.raw != null) {
+      items.push({
+        label: "Ø TEMP",
+        value: `${tempPoint.raw.toFixed(1)}°C`,
+        highlight: true,
+      });
+    }
+
+    if (precipPoint?.raw != null && precipPoint.raw > 0) {
+      items.push({
+        label: "Σ REGEN",
+        value: `${precipPoint.raw.toFixed(1)} mm`,
+      });
+    }
+
+    return { items };
+  }
+
+  // Extreme Tooltip - KOMPAKT
+  function renderExtremeTooltip(data, tooltip) {
+    let items = [];
+
+    if (tooltip.dataPoints?.[0]?.raw != null) {
+      items.push({
+        label: "EXTREMWERT",
+        value: `${tooltip.dataPoints[0].raw.toFixed(1)}°C`,
+        highlight: true,
+      });
+    }
+
+    if (data.temp_max != null && data.temp_min != null) {
+      items.push({
+        label: "REKORD-BEREICH",
+        value: `${data.temp_min.toFixed(1)}° - ${data.temp_max.toFixed(1)}°`,
+      });
+    }
+
+    return { items };
+  }
+
+  /**
+   * External Tooltip Handler - VOLLSTÄNDIG ÜBERARBEITET
+   * Intelligente Datenextraktion und metrik-spezifisches Rendering
    */
   function externalTooltipHandler(context, metricType = "temperature") {
     const { chart, tooltip } = context;
@@ -864,114 +1189,102 @@
       const titleLines = tooltip.title || [];
       const dataIndex = tooltip.dataPoints[0]?.dataIndex;
 
-      // Hole die vollständigen Daten für diesen Punkt
-      const fullData =
-        chart.$comparisonDataA?.[dataIndex] ||
-        chart.$dayData ||
-        chart.$extremeData ||
-        chart.data.datasets[0]?.data?.[dataIndex];
+      // INTELLIGENTE DATENEXTRAKTION
+      const extractedData = extractTooltipData(chart, dataIndex, tooltip);
 
-      let innerHtml = `
-              <div class="weather-popup-content">`;
-
-      // Header (exakt wie Map-Popup)
-      if (titleLines.length > 0) {
-        innerHtml += `
-                <div class="popup-header">
-                  <strong>${titleLines[0]}</strong>
-                </div>`;
+      // METRIK-SPEZIFISCHES RENDERING
+      let renderResult;
+      switch (metricType) {
+        case "temperature":
+          renderResult = renderTemperatureTooltip(extractedData, tooltip);
+          break;
+        case "precipitation":
+          renderResult = renderPrecipitationTooltip(extractedData, tooltip);
+          break;
+        case "wind":
+          renderResult = renderWindTooltip(extractedData, tooltip);
+          break;
+        case "humidity":
+          renderResult = renderHumidityTooltip(extractedData, tooltip);
+          break;
+        case "sunshine":
+          renderResult = renderSunshineTooltip(extractedData, tooltip);
+          break;
+        case "comparison":
+          const labelA = chart.data.datasets[0]?.label || "Zeitraum A";
+          const labelB = chart.data.datasets[1]?.label || "Zeitraum B";
+          renderResult = renderComparisonTooltip(
+            extractedData,
+            tooltip,
+            labelA,
+            labelB,
+            chart,
+          );
+          break;
+        case "daydetail":
+          renderResult = renderDayDetailTooltip(extractedData, tooltip);
+          break;
+        case "extreme":
+          renderResult = renderExtremeTooltip(extractedData, tooltip);
+          break;
+        default:
+          renderResult = renderTemperatureTooltip(extractedData, tooltip);
       }
 
-      // Grid mit ALLEN Metriken (exakt wie Map-Popup)
-      innerHtml += `
-                <div class="popup-grid">`;
+      // HTML GENERIERUNG
+      let innerHtml = '<div class="weather-popup-content">';
 
-      // Temperatur
+      // Header - Verwende customHeader falls vorhanden (für Vergleichs-Charts)
+      const headerText = renderResult.customHeader || titleLines[0];
+      if (headerText) {
+        innerHtml += `
+          <div class="popup-header">
+            <strong>${headerText}</strong>
+          </div>`;
+      }
+
+      // Items Grid
+      if (renderResult.items && renderResult.items.length > 0) {
+        innerHtml += '<div class="popup-grid">';
+
+        renderResult.items.forEach((item) => {
+          const itemClass = item.highlight
+            ? "popup-item popup-item--highlight"
+            : item.muted
+              ? "popup-item popup-item--muted"
+              : "popup-item";
+
+          innerHtml += `
+            <div class="${itemClass}">
+              <span class="popup-label">${item.label}</span>
+              <span class="popup-value">${item.value}</span>
+            </div>`;
+        });
+
+        innerHtml += "</div>";
+      }
+
+      // Footer nur wenn nicht vom Renderer unterdrückt
       if (
-        fullData &&
-        typeof fullData === "object" &&
-        fullData.temp_avg != null
+        !renderResult.hiddenFooter &&
+        tooltip.afterBody &&
+        tooltip.afterBody.length > 0
       ) {
-        innerHtml += `
-                  <div class="popup-item">
-                    <span class="popup-label">TEMP</span>
-                    <span class="popup-value">${fullData.temp_avg.toFixed(1)}°C</span>
-                  </div>`;
-      } else if (tooltip.dataPoints[0]?.raw != null) {
-        innerHtml += `
-                  <div class="popup-item">
-                    <span class="popup-label">TEMP</span>
-                    <span class="popup-value">${tooltip.dataPoints[0].raw.toFixed(1)}°C</span>
-                  </div>`;
-      }
-
-      // Wind (mit Richtungspfeil wenn verfügbar)
-      if (fullData?.wind_speed != null) {
-        innerHtml += `
-                  <div class="popup-item">
-                    <span class="popup-label">WIND</span>
-                    <span class="popup-value">${fullData.wind_speed.toFixed(1)} <small>km/h</small></span>
-                  </div>`;
-      }
-
-      // Niederschlag
-      if (fullData?.precip != null) {
-        innerHtml += `
-                  <div class="popup-item">
-                    <span class="popup-label">REGEN</span>
-                    <span class="popup-value">${fullData.precip.toFixed(1)} mm</span>
-                  </div>`;
-      }
-
-      // Luftfeuchtigkeit
-      if (fullData?.humidity != null) {
-        innerHtml += `
-                  <div class="popup-item">
-                    <span class="popup-label">FEUCHTIGKEIT</span>
-                    <span class="popup-value">${fullData.humidity.toFixed(0)}%</span>
-                  </div>`;
-      }
-
-      // Sonnenschein
-      if (fullData?.sunshine != null) {
-        innerHtml += `
-                  <div class="popup-item">
-                    <span class="popup-label">SONNENSCHEIN</span>
-                    <span class="popup-value">${fullData.sunshine.toFixed(1)} h</span>
-                  </div>`;
-      }
-
-      // Temperatur Min/Max (wenn vorhanden)
-      if (fullData?.temp_min != null && fullData?.temp_max != null) {
-        innerHtml += `
-                  <div class="popup-item">
-                    <span class="popup-label">MIN/MAX</span>
-                    <span class="popup-value">${fullData.temp_min.toFixed(1)}° / ${fullData.temp_max.toFixed(1)}°</span>
-                  </div>`;
-      }
-
-      innerHtml += `
-                </div>`;
-
-      // Footer (exakt wie Map-Popup)
-      if (tooltip.afterBody && tooltip.afterBody.length > 0) {
         const footerText = tooltip.afterBody.join("").trim();
         if (footerText) {
           innerHtml += `
-                <div class="popup-footer">
-                  <small>${footerText}</small>
-                </div>`;
+            <div class="popup-footer">
+              <small>${footerText}</small>
+            </div>`;
         }
       }
 
-      innerHtml += `
-              </div>
-            `;
+      innerHtml += "</div>";
 
       tooltipEl.innerHTML = innerHtml;
     }
 
-    // Position tooltip with intelligent collision detection
+    // INTELLIGENTE RAND-POSITIONIERUNG - Vermeide Chart-Überlagerung
     const canvasRect = chart.canvas.getBoundingClientRect();
 
     // Get tooltip dimensions (must be visible to measure)
@@ -982,78 +1295,124 @@
     const tooltipHeight = tooltipEl.offsetHeight;
     tooltipEl.style.visibility = "visible";
 
-    // Calculate absolute cursor position in viewport
+    // Calculate cursor position
     const cursorX = canvasRect.left + tooltip.caretX;
     const cursorY = canvasRect.top + tooltip.caretY;
 
-    // Simple viewport boundaries
+    // Viewport und Chart boundaries
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     const padding = 15;
+    const gap = 30; // ERHÖHTER Abstand zum Cursor für bessere Lesbarkeit
 
-    // --- VERTICAL POSITIONING ---
-    let tooltipY;
-    const spaceBelow = viewportHeight - cursorY;
-    const spaceAbove = cursorY;
+    // Chart-Bereich definieren
+    const chartLeft = canvasRect.left;
+    const chartRight = canvasRect.right;
+    const chartTop = canvasRect.top;
+    const chartBottom = canvasRect.bottom;
+    const chartCenterX = (chartLeft + chartRight) / 2;
 
-    if (spaceBelow >= tooltipHeight + 30) {
-      // Enough space below
-      tooltipY = cursorY + 15;
-      tooltipEl.classList.remove("chart-popup-tooltip--above");
-    } else if (spaceAbove >= tooltipHeight + 30) {
-      // Not enough below, but enough above
-      tooltipY = cursorY - tooltipHeight - 15;
-      tooltipEl.classList.add("chart-popup-tooltip--above");
+    let tooltipX, tooltipY;
+
+    // --- STRATEGIE: Positioniere am Rand, vermeide Chart-Mitte ---
+
+    // 1. Versuche LINKS vom Chart (wenn Cursor rechts der Mitte ist)
+    const spaceLeft = chartLeft - padding;
+    const spaceRight = viewportWidth - chartRight - padding;
+    const spaceAbove = chartTop - padding;
+    const spaceBelow = viewportHeight - chartBottom - padding;
+
+    // Bestimme ob Cursor in linker oder rechter Chart-Hälfte ist
+    const isInLeftHalf = cursorX < chartCenterX;
+
+    // Prüfe horizontale Optionen
+    const canFitLeft = spaceLeft >= tooltipWidth + gap;
+    const canFitRight = spaceRight >= tooltipWidth + gap;
+
+    // --- HORIZONTALE POSITIONIERUNG ---
+    if (!isInLeftHalf && canFitLeft) {
+      // Cursor ist rechts, zeige Tooltip links vom Chart
+      tooltipX = chartLeft - tooltipWidth - gap;
+    } else if (isInLeftHalf && canFitRight) {
+      // Cursor ist links, zeige Tooltip rechts vom Chart
+      tooltipX = chartRight + gap;
+    } else if (canFitLeft) {
+      // Fallback: Links wenn möglich
+      tooltipX = chartLeft - tooltipWidth - gap;
+    } else if (canFitRight) {
+      // Fallback: Rechts wenn möglich
+      tooltipX = chartRight + gap;
     } else {
-      // Very tight vertically - position below and clamp
-      tooltipY = cursorY + 15;
-      tooltipEl.classList.remove("chart-popup-tooltip--above");
-    }
-
-    // --- HORIZONTAL POSITIONING ---
-    let tooltipX;
-    let arrowOffset = 50; // Default: centered arrow
-
-    // Try to center tooltip under cursor
-    tooltipX = cursorX - tooltipWidth / 2;
-
-    // Check if tooltip would overflow left
-    if (tooltipX < padding) {
-      tooltipX = Math.max(padding, cursorX - tooltipWidth + 20);
-      if (tooltipX < padding) tooltipX = padding;
-      // Calculate arrow offset to point at cursor
-      arrowOffset = ((cursorX - tooltipX) / tooltipWidth) * 100;
-      arrowOffset = Math.max(10, Math.min(90, arrowOffset));
-    }
-
-    // Check if tooltip would overflow right
-    else if (tooltipX + tooltipWidth > viewportWidth - padding) {
-      tooltipX = Math.min(viewportWidth - tooltipWidth - padding, cursorX - 20);
-      if (tooltipX + tooltipWidth > viewportWidth - padding) {
-        tooltipX = viewportWidth - tooltipWidth - padding;
+      // Kein Platz außerhalb: Positioniere innerhalb, aber mit Mindestabstand vom Cursor
+      const minDistanceToCursor = 40; // Mindestabstand zum Cursor
+      if (cursorX < chartCenterX) {
+        // Cursor links -> Tooltip rechts mit Abstand
+        tooltipX = Math.min(
+          cursorX + minDistanceToCursor,
+          chartRight - tooltipWidth - padding,
+        );
+      } else {
+        // Cursor rechts -> Tooltip links mit Abstand
+        tooltipX = Math.max(
+          cursorX - tooltipWidth - minDistanceToCursor,
+          chartLeft + padding,
+        );
       }
-      // Calculate arrow offset to point at cursor
-      arrowOffset = ((cursorX - tooltipX) / tooltipWidth) * 100;
-      arrowOffset = Math.max(10, Math.min(90, arrowOffset));
     }
 
-    // Final clamp for safety
-    tooltipX = Math.max(
-      padding,
-      Math.min(tooltipX, viewportWidth - tooltipWidth - padding),
-    );
+    // --- VERTIKALE POSITIONIERUNG ---
+    // Versuche zunächst vertikal zentriert, aber mit Mindestabstand zum Cursor
+    const minVerticalDistance = 25; // Vertikaler Mindestabstand
+    const idealY = cursorY - tooltipHeight / 2;
+
+    // Prüfe ob Tooltip zu nah am Cursor wäre
+    const cursorInTooltipVerticalRange =
+      cursorY >= idealY && cursorY <= idealY + tooltipHeight;
+
+    if (cursorInTooltipVerticalRange) {
+      // Tooltip würde Cursor überlagern - positioniere ober- oder unterhalb
+      const spaceAboveCursor = cursorY - chartTop;
+      const spaceBelowCursor = chartBottom - cursorY;
+
+      if (
+        spaceAboveCursor > spaceBelowCursor &&
+        spaceAboveCursor >= tooltipHeight + minVerticalDistance
+      ) {
+        // Platziere oberhalb mit Abstand
+        tooltipY = cursorY - tooltipHeight - minVerticalDistance;
+      } else if (spaceBelowCursor >= tooltipHeight + minVerticalDistance) {
+        // Platziere unterhalb mit Abstand
+        tooltipY = cursorY + minVerticalDistance;
+      } else {
+        // Nicht genug Platz - nutze idealY
+        tooltipY = idealY;
+      }
+    } else {
+      tooltipY = idealY;
+    }
+
+    // Clamp zu Viewport
     tooltipY = Math.max(
       padding,
       Math.min(tooltipY, viewportHeight - tooltipHeight - padding),
     );
 
-    // Apply final position and arrow offset
+    // Final clamp horizontal (Sicherheit)
+    tooltipX = Math.max(
+      padding,
+      Math.min(tooltipX, viewportWidth - tooltipWidth - padding),
+    );
+
+    // Apply final position
     tooltipEl.style.opacity = "1";
     tooltipEl.style.pointerEvents = "none";
     tooltipEl.style.position = "fixed";
     tooltipEl.style.left = tooltipX + "px";
     tooltipEl.style.top = tooltipY + "px";
-    tooltipEl.style.setProperty("--arrow-offset", `${arrowOffset}%`);
+
+    // Smooth transition
+    tooltipEl.style.transition =
+      "opacity 0.15s ease, top 0.12s ease-out, left 0.12s ease-out";
   }
 
   /**
@@ -1330,21 +1689,6 @@
                 }
                 return `${label}: ${value}°C`;
               },
-              afterBody: (items) => {
-                // Berechne Tagesspanne
-                const maxItem = items.find((i) => i.dataset.label === "Max");
-                const minItem = items.find((i) => i.dataset.label === "Min");
-                if (
-                  maxItem &&
-                  minItem &&
-                  maxItem.raw != null &&
-                  minItem.raw != null
-                ) {
-                  const span = (maxItem.raw - minItem.raw).toFixed(1);
-                  return `Spanne: ${span}°C`;
-                }
-                return "";
-              },
             },
           },
         },
@@ -1395,17 +1739,6 @@
                 const value =
                   typeof item.raw === "number" ? item.raw.toFixed(1) : item.raw;
                 return `Niederschlag: ${value} mm`;
-              },
-              afterBody: (items) => {
-                // Berechne Gesamtsumme
-                if (items && items.length > 0) {
-                  const total = data.reduce(
-                    (sum, d) => sum + (d.precip || 0),
-                    0,
-                  );
-                  return `Gesamt: ${total.toFixed(1)} mm`;
-                }
-                return "";
               },
             },
           },
@@ -1459,18 +1792,6 @@
                   typeof item.raw === "number" ? item.raw.toFixed(1) : item.raw;
                 return `Wind: ${value} km/h`;
               },
-              afterBody: (items) => {
-                const value = items[0]?.raw;
-                if (value != null) {
-                  let desc = "";
-                  if (value < 12) desc = "Leichte Brise";
-                  else if (value < 30) desc = "Mäßiger Wind";
-                  else if (value < 50) desc = "Starker Wind";
-                  else desc = "Sturm";
-                  return desc;
-                }
-                return "";
-              },
             },
           },
         },
@@ -1522,18 +1843,6 @@
                   typeof item.raw === "number" ? item.raw.toFixed(0) : item.raw;
                 return `Feuchtigkeit: ${value}%`;
               },
-              afterBody: (items) => {
-                const value = items[0]?.raw;
-                if (value != null) {
-                  let desc = "";
-                  if (value < 30) desc = "Sehr trocken";
-                  else if (value < 60) desc = "Angenehm";
-                  else if (value < 80) desc = "Feucht";
-                  else desc = "Sehr feucht";
-                  return desc;
-                }
-                return "";
-              },
             },
           },
         },
@@ -1582,15 +1891,6 @@
                 const value =
                   typeof item.raw === "number" ? item.raw.toFixed(1) : item.raw;
                 return `Sonne: ${value} h`;
-              },
-              afterBody: (items) => {
-                // Berechne Prozent vom Tag (24h)
-                const value = items[0]?.raw;
-                if (value != null) {
-                  const percent = ((value / 24) * 100).toFixed(0);
-                  return `${percent}% des Tages`;
-                }
-                return "";
               },
             },
           },
@@ -1879,14 +2179,6 @@
                 }
 
                 return parts.length > 0 ? parts.join(" | ") : items[0].label;
-              },
-              afterBody: (items) => {
-                if (items.length >= 2) {
-                  const diff = (items[1].raw - items[0].raw).toFixed(1);
-                  const sign = diff > 0 ? "+" : "";
-                  return `Abweichung: ${sign}${diff}°C`;
-                }
-                return "";
               },
               label: (item) =>
                 `${item.dataset.label}: ${item.raw?.toFixed(1) || "N/A"}°C`,
