@@ -311,20 +311,41 @@
   }
 
   // ============================================
+  // GLOBALER APP-STANDORT HELPER
+  // ============================================
+  function getGlobalAppLocation() {
+    const appState = window.appState;
+    if (appState?.currentCity && appState?.currentCoordinates) {
+      return {
+        id: "global",
+        name: appState.currentCity,
+        lat: appState.currentCoordinates.lat || 52.52,
+        lon: appState.currentCoordinates.lon || 13.41,
+      };
+    }
+    // Fallback
+    return {
+      id: "fallback",
+      name: "Berlin",
+      lat: 52.52,
+      lon: 13.41,
+    };
+  }
+
+  // ============================================
   // STATE MANAGEMENT
   // ============================================
   class HistoryState {
     constructor() {
+      // Hole initialen Standort aus globalem appState
+      const initialLocation = getGlobalAppLocation();
+
       this._state = {
         currentTab: "analyse",
         currentMetric: "temperature",
         currentPeriod: "30",
-        currentLocation: {
-          id: "current",
-          name: "Aktueller Standort",
-          lat: 52.52,
-          lon: 13.41,
-        },
+        // Nutze den globalen App-Standort
+        currentLocation: initialLocation,
         comparisonPeriodA: "januar2025",
         comparisonPeriodB: "januar2026",
         customStartDate: null,
@@ -347,6 +368,26 @@
         lastError: null,
       };
       this._listeners = new Map();
+
+      // Registriere Listener für globale Standort-Änderungen
+      this._setupLocationListener();
+    }
+
+    /**
+     * Hört auf globale app:locationChanged Events
+     */
+    _setupLocationListener() {
+      document.addEventListener("app:locationChanged", (event) => {
+        const { lat, lon, label } = event.detail || {};
+        if (lat && lon) {
+          this.set("currentLocation", {
+            id: "global",
+            name: label || "Standort",
+            lat: lat,
+            lon: lon,
+          });
+        }
+      });
     }
 
     get(key) {
@@ -1484,6 +1525,19 @@
       const masterUI = getMasterUI();
       if (!masterUI) {
         console.error("[HistoryController] MasterUIController not available");
+        return;
+      }
+
+      // WICHTIG: Für "location" nutzen wir das globale Sheet
+      if (modalType === "location") {
+        if (masterUI.openSheet) {
+          masterUI.openSheet("location-picker");
+        } else if (masterUI.openModal) {
+          masterUI.openModal("location-picker");
+        }
+        console.log(
+          "[HistoryController] Globales Location-Picker-Sheet geöffnet",
+        );
         return;
       }
 
