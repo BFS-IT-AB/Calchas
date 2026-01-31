@@ -51,7 +51,7 @@ class MapComponent {
             "[MapComponent] received app:locationChanged",
             d.lat,
             d.lon,
-            d.label
+            d.label,
           );
           // If map instance exists, apply location immediately, otherwise queue it
           if (this.map && typeof this.setLocation === "function") {
@@ -84,7 +84,7 @@ class MapComponent {
       // Initialize Leaflet map
       this.map = L.map(this.containerId, { zoomControl: false }).setView(
         [51.505, -0.09],
-        10
+        10,
       );
 
       // Add OpenStreetMap base layer
@@ -94,7 +94,7 @@ class MapComponent {
           attribution: "&copy; OpenStreetMap contributors",
           maxZoom: 19,
           attributionControl: false, // Disable default attribution as requested by user
-        }
+        },
       ).addTo(this.map);
 
       // Add minimal custom attribution bottom-right if legally needed, but user asked to remove white credits.
@@ -161,26 +161,63 @@ class MapComponent {
             <div class="weather-popup-loading" id="${uniqueId}">
               <div class="spinner"></div> Lade Wetterdaten...
             </div>
-          `
+          `,
           )
           .openOn(this.map);
 
         try {
-          // Fetch data for this point. We'll use the existing API if possible or a direct fetch.
-          // Since we need "current location based correct weather data", let's use the weather service.
-          // Assuming WeatherDataService is global or we can fetch directly.
+          // Use WeatherDataService if available for consistent multi-source data
+          // Falls back to direct Open-Meteo fetch for reliability
+          let current = null;
+          let units = {
+            temperature_2m: "°C",
+            precipitation: "mm",
+            relative_humidity_2m: "%",
+            cloud_cover: "%",
+            wind_speed_10m: "km/h",
+          };
 
-          // Using BigDataCloud or OpenWeatherMap directly for point data
-          // FALLBACK: Use Open-Meteo as it is free and easy for point data if API key is an issue,
-          // but let's try to reuse app infrastructure if possible.
+          // Try WeatherDataService first (uses cache + multi-source)
+          if (
+            window.weatherDataService &&
+            window.weatherDataService.loadCurrentWeather
+          ) {
+            try {
+              const weatherData =
+                await window.weatherDataService.loadCurrentWeather(lat, lng);
+              if (weatherData && weatherData.temp !== null) {
+                current = {
+                  temperature_2m: weatherData.temp,
+                  relative_humidity_2m: weatherData.humidity,
+                  precipitation: weatherData.precip,
+                  cloud_cover: weatherData.clouds,
+                  visibility: weatherData.visibility
+                    ? weatherData.visibility * 1000
+                    : null,
+                  wind_speed_10m: weatherData.wind_speed,
+                  wind_direction_10m: weatherData.wind_direction,
+                };
+                console.log(
+                  "✅ [MapComponent] Weather from WeatherDataService",
+                );
+              }
+            } catch (serviceErr) {
+              console.warn(
+                "[MapComponent] WeatherDataService failed, using direct fetch:",
+                serviceErr.message,
+              );
+            }
+          }
 
-          // Let's emulate a quick fetch using Open-Meteo for reliability in this specific view
-          // as it returns all the requested metrics (temp, humidity, visibility, rain, cover).
-          const response = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,precipitation,rain,cloud_cover,visibility,wind_speed_10m,wind_direction_10m&wind_speed_unit=kmh`
-          );
-          const data = await response.json();
-          const current = data.current;
+          // Fallback: Direct Open-Meteo fetch
+          if (!current) {
+            const response = await fetch(
+              `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,precipitation,rain,cloud_cover,visibility,wind_speed_10m,wind_direction_10m&wind_speed_unit=kmh`,
+            );
+            const data = await response.json();
+            current = data.current;
+            units = data.current_units || units;
+          }
 
           if (current) {
             const content = `
@@ -191,41 +228,27 @@ class MapComponent {
                 <div class="popup-grid">
                   <div class="popup-item">
                     <span class="popup-label">Temp</span>
-                    <span class="popup-value">${current.temperature_2m}${
-                      data.current_units.temperature_2m
-                    }</span>
+                    <span class="popup-value">${current.temperature_2m}${units.temperature_2m}</span>
                   </div>
                   <div class="popup-item">
                     <span class="popup-label">Wind</span>
-                    <span class="popup-value">${
-                      current.wind_speed_10m
-                    } <small>km/h</small> <span style="display:inline-block; transform: rotate(${
-                      current.wind_direction_10m
-                    }deg)">↓</span></span>
+                    <span class="popup-value">${current.wind_speed_10m} <small>${units.wind_speed_10m}</small> <span style="display:inline-block; transform: rotate(${current.wind_direction_10m}deg)">↓</span></span>
                   </div>
                   <div class="popup-item">
                     <span class="popup-label">Regen</span>
-                    <span class="popup-value">${current.precipitation}${
-                      data.current_units.precipitation
-                    }</span>
+                    <span class="popup-value">${current.precipitation}${units.precipitation}</span>
                   </div>
                   <div class="popup-item">
                     <span class="popup-label">Feuchtigkeit</span>
-                    <span class="popup-value">${current.relative_humidity_2m}${
-                      data.current_units.relative_humidity_2m
-                    }</span>
+                    <span class="popup-value">${current.relative_humidity_2m}${units.relative_humidity_2m}</span>
                   </div>
                   <div class="popup-item">
                     <span class="popup-label">Wolken</span>
-                    <span class="popup-value">${current.cloud_cover}${
-                      data.current_units.cloud_cover
-                    }</span>
+                    <span class="popup-value">${current.cloud_cover}${units.cloud_cover}</span>
                   </div>
                   <div class="popup-item">
                     <span class="popup-label">Sichtweite</span>
-                    <span class="popup-value">${(
-                      current.visibility / 1000
-                    ).toFixed(1)} km</span>
+                    <span class="popup-value">${((current.visibility || 0) / 1000).toFixed(1)} km</span>
                   </div>
                 </div>
                 <div class="popup-footer">
@@ -251,7 +274,7 @@ class MapComponent {
           L.popup({ className, offset })
             .setLatLng([lat, lng])
             .setContent(
-              `<div class="weather-popup-error">Daten nicht verfügbar</div>`
+              `<div class="weather-popup-error">Daten nicht verfügbar</div>`,
             )
             .openOn(this.map);
         }
@@ -272,7 +295,7 @@ class MapComponent {
         this.setLocation(
           this._pendingLocation.lat,
           this._pendingLocation.lon,
-          this._pendingLocation.label || ""
+          this._pendingLocation.label || "",
         );
         this._pendingLocation = null;
       }
@@ -340,7 +363,7 @@ class MapComponent {
     const container = document.getElementById(this.containerId);
     if (container) {
       const placeholder = container.querySelector(
-        ".radar-view__map-placeholder"
+        ".radar-view__map-placeholder",
       );
       if (placeholder) {
         placeholder.style.display = "none";
@@ -376,7 +399,7 @@ class MapComponent {
         console.warn(
           "Invalid coordinates for setLocation",
           latitude,
-          longitude
+          longitude,
         );
         return this;
       }
@@ -410,8 +433,8 @@ class MapComponent {
       this.currentMarker = L.marker([lat, lon])
         .bindPopup(
           `<strong>${locationName}</strong><br>Lat: ${lat.toFixed(
-            4
-          )}, Lng: ${lon.toFixed(4)}`
+            4,
+          )}, Lng: ${lon.toFixed(4)}`,
         )
         .addTo(this.map);
 
@@ -452,10 +475,10 @@ class MapComponent {
                   const size = this.map.getSize();
                   const centerPoint = L.point(size.x / 2, size.y / 2);
                   const desiredPoint = centerPoint.add(
-                    L.point(this.anchorOffset.x, this.anchorOffset.y)
+                    L.point(this.anchorOffset.x, this.anchorOffset.y),
                   );
                   const newCenterLatLng = this.map.containerPointToLatLng(
-                    centerPoint.subtract(desiredPoint.subtract(centerPoint))
+                    centerPoint.subtract(desiredPoint.subtract(centerPoint)),
                   );
                   this.map.setView(newCenterLatLng, currentZoom, {
                     animate: false,
@@ -484,10 +507,10 @@ class MapComponent {
                 const size = this.map.getSize();
                 const centerPoint = L.point(size.x / 2, size.y / 2);
                 const desiredPoint = centerPoint.add(
-                  L.point(this.anchorOffset.x, this.anchorOffset.y)
+                  L.point(this.anchorOffset.x, this.anchorOffset.y),
                 );
                 const newCenterLatLng = this.map.containerPointToLatLng(
-                  centerPoint.subtract(desiredPoint.subtract(centerPoint))
+                  centerPoint.subtract(desiredPoint.subtract(centerPoint)),
                 );
                 this.map.setView(newCenterLatLng, 10, { animate: false });
               } else if (this.map && typeof this.map.setView === "function") {
@@ -521,7 +544,7 @@ class MapComponent {
   addWeatherOverlay(
     provider = "openstreetmap",
     apiKey = null,
-    layerType = "clouds"
+    layerType = "clouds",
   ) {
     if (!this.map) {
       console.warn("Map not initialized");
@@ -537,7 +560,7 @@ class MapComponent {
           const storedKey = localStorage.getItem("wetter_api_openweathermap");
           if (storedKey) {
             console.log(
-              "[MapComponent] Using stored OpenWeatherMap key for layer"
+              "[MapComponent] Using stored OpenWeatherMap key for layer",
             );
             apiKey = storedKey;
           }
@@ -575,7 +598,7 @@ class MapComponent {
           "[MapComponent] Adding OpenWeatherMap overlay:",
           layerType,
           "URL:",
-          layerUrl.substring(0, 80) + "..."
+          layerUrl.substring(0, 80) + "...",
         );
       } else if (provider === "rainviewer") {
         // Init RainViewer
@@ -583,7 +606,7 @@ class MapComponent {
         this.activeProvider = "rainviewer";
 
         layerUrl = this._buildRainViewerUrl(
-          this.currentTimestamp || Date.now()
+          this.currentTimestamp || Date.now(),
         );
         attribution = "RainViewer";
         // Ensure layerType is consistent, usually 'rain' or 'radar'
@@ -616,7 +639,7 @@ class MapComponent {
       console.log(
         `✅ Weather overlay added: ${provider} (${layerType}) using key: ${
           apiKey ? "Custom" : "Default"
-        }`
+        }`,
       );
     } catch (err) {
       console.error(`❌ Error adding weather overlay (${provider}):`, err);
@@ -649,8 +672,8 @@ class MapComponent {
       })
         .bindPopup(
           `<strong>⭐ ${name}</strong><br>Lat: ${latitude.toFixed(
-            4
-          )}, Lng: ${longitude.toFixed(4)}`
+            4,
+          )}, Lng: ${longitude.toFixed(4)}`,
         )
         .addTo(this.map);
 
@@ -916,7 +939,7 @@ class MapComponent {
     try {
       if (this.rainViewerCache.length > 0) return; // Already loaded
       const response = await fetch(
-        "https://api.rainviewer.com/public/weather-maps.json"
+        "https://api.rainviewer.com/public/weather-maps.json",
       );
       const data = await response.json();
       this.rainViewerCache = [
@@ -926,7 +949,7 @@ class MapComponent {
       if (data.host) this.rainViewerHost = data.host;
       console.log(
         "[MapComponent] RainViewer frames loaded:",
-        this.rainViewerCache.length
+        this.rainViewerCache.length,
       );
 
       // Regenerate RadarController frames now that data is available

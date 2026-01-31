@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🔧 Developer Dashboard | Calchas</title>
+    <link rel="stylesheet" href="../design-system.css" />
+    <link rel="stylesheet" href="../../style.css" />
+    <link rel="stylesheet" href="../../mobile.css" />
+    <link rel="stylesheet" href="dev-dashboard.css" />
+  </head>
+  <body data-view="dev-dashboard">
+    <!-- Navigation Header -->
+    <header class="dev-dashboard-header">
+      <div class="header-content">
+        <button class="back-button" onclick="history.back()">
+          <span>←</span> Zurück
+        </button>
+        <h1>🔧 Developer Dashboard</h1>
+        <div class="status-indicator">
+          <span class="status-dot" id="systemStatus"></span>
+          <span id="statusText">System OK</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dev-dashboard-container">
+      <!-- Info Card -->
+      <section class="dashboard-card info-card">
+        <h2>📋 Über dieses Dashboard</h2>
+        <p class="card-description">
+          Dieses <strong>Developer Dashboard</strong> ist eine versteckte Seite
+          für Entwickler und Debugging-Zwecke. Es wird in zukünftigen Versionen
+          erweitert und bietet umfassende Einblicke in das System.
+        </p>
+        <div class="feature-tag">🚧 In Entwicklung</div>
+      </section>
+
+      <!-- Planned Features -->
+      <section class="dashboard-card planned-features-card">
+        <h2>🎯 Geplante Features</h2>
+        <div class="features-grid">
+          <div class="feature-item">
+            <div class="feature-icon">🌐</div>
+            <h3>WeatherDataService Integration</h3>
+            <p>
+              Vollständige Integration des WeatherDataService in alle
+              App-Bereiche
+            </p>
+            <ul class="feature-list">
+              <li>
+                <strong>Home-Seite:</strong> Migration von
+                <code>fetchWeatherData()</code> zu WeatherDataService
+                <span class="status-badge pending">Geplant</span>
+              </li>
+              <li>
+                <strong>Health-Seite:</strong> Direkte
+                WeatherDataService-Nutzung statt appState
+                <span class="status-badge pending">Geplant</span>
+              </li>
+              <li>
+                <strong>Map-Seite:</strong> WeatherDataService für Popups
+                <span class="status-badge completed">✅ Fertig</span>
+              </li>
+              <li>
+                <strong>History-Seite:</strong> WeatherDataService für
+                Historische Daten
+                <span class="status-badge completed">✅ Fertig</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="feature-item">
+            <div class="feature-icon">📊</div>
+            <h3>API Monitoring</h3>
+            <p>
+              Echtzeit-Überwachung aller API-Aufrufe und Performance-Metriken
+            </p>
+            <ul class="feature-list">
+              <li>
+                Live-Status aller Datenquellen (Open-Meteo, BrightSky,
+                VisualCrossing, etc.)
+              </li>
+              <li>Response-Zeiten und Fehlerquoten</li>
+              <li>Cache-Hit-Ratio und TTL-Visualisierung</li>
+              <li>API-Quota-Tracking (z.B. VisualCrossing 1000 calls/day)</li>
+            </ul>
+          </div>
+
+          <div class="feature-item">
+            <div class="feature-icon">🔍</div>
+            <h3>Debug Tools</h3>
+            <p>Werkzeuge zum Testen und Debuggen von Funktionen</p>
+            <ul class="feature-list">
+              <li>Console Log Viewer (filterbarer Live-Stream)</li>
+              <li>API Request Inspector (alle Requests mit Headers/Body)</li>
+              <li>LocalStorage/Cache Manager</li>
+              <li>Performance Profiler</li>
+            </ul>
+          </div>
+
+          <div class="feature-item">
+            <div class="feature-icon">🧪</div>
+            <h3>Testing Suite</h3>
+            <p>Automatisierte Tests und manuelle Test-Panels</p>
+            <ul class="feature-list">
+              <li>WeatherDataService Unit Tests</li>
+              <li>API Fallback-Ketten testen</li>
+              <li>UI Component Tests</li>
+              <li>E2E Test-Runner</li>
+            </ul>
+          </div>
+
+          <div class="feature-item">
+            <div class="feature-icon">⚙️</div>
+            <h3>System Configuration</h3>
+            <p>Advanced Settings und Feature Flags</p>
+            <ul class="feature-list">
+              <li>Feature Flags (A/B Tests, Beta-Features)</li>
+              <li>Cache-TTL-Konfiguration</li>
+              <li>API-Prioritäten anpassen</li>
+              <li>Retry-Strategien konfigurieren</li>
+            </ul>
+          </div>
+
+          <div class="feature-item">
+            <div class="feature-icon">📈</div>
+            <h3>Analytics & Insights</h3>
+            <p>Nutzungsstatistiken und Datenanalyse</p>
+            <ul class="feature-list">
+              <li>User Journey Tracking</li>
+              <li>Feature Usage Heatmaps</li>
+              <li>Error Rate Dashboards</li>
+              <li>Performance Trends</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quick Actions -->
+      <section class="dashboard-card quick-actions-card">
+        <h2>⚡ Quick Actions</h2>
+        <div class="actions-grid">
+          <button class="action-button" onclick="clearAllCaches()">
+            <span>🗑️</span>
+            <span>Cache leeren</span>
+          </button>
+          <button class="action-button" onclick="testAllAPIs()">
+            <span>🧪</span>
+            <span>APIs testen</span>
+          </button>
+          <button class="action-button" onclick="exportLogs()">
+            <span>📥</span>
+            <span>Logs exportieren</span>
+          </button>
+          <button class="action-button" onclick="resetSettings()">
+            <span>🔄</span>
+            <span>Settings zurücksetzen</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Current Status -->
+      <section class="dashboard-card status-card">
+        <h2>📡 Aktueller System-Status</h2>
+        <div class="status-grid">
+          <div class="status-item">
+            <span class="status-label">WeatherDataService</span>
+            <span class="status-value" id="wdsStatus">Laden...</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Cache Service</span>
+            <span class="status-value" id="cacheStatus">Laden...</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">API Key Manager</span>
+            <span class="status-value" id="apiKeyStatus">Laden...</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Geladene Module</span>
+            <span class="status-value" id="moduleCount">Laden...</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Scripts -->
+    <script src="dev-dashboard.js"></script>
+  </body>
+</html>

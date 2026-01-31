@@ -132,6 +132,17 @@
             "privacy",
           )}
         </div>
+
+        <!-- Developer Section (Hidden) -->
+        <div class="about-developer">
+          ${renderAboutRow(
+            "code",
+            "🔧 Developer Dashboard",
+            "Debug & Monitoring Tools",
+            "#a78bfa",
+            "devdashboard",
+          )}
+        </div>
       </div>
     `;
 
@@ -227,6 +238,9 @@
         break;
       case "privacy":
         showPrivacyModal();
+        break;
+      case "devdashboard":
+        window.location.href = "../dev-dashboard/dev-dashboard.html";
         break;
     }
   }

@@ -272,5 +272,18 @@ const historyCacheService = new HistoryCacheService();
 // Auto-cleanup expired entries on load
 historyCacheService.clearExpired();
 
+// Global registration for non-module access
+if (typeof window !== "undefined") {
+  window.historyCacheService = historyCacheService;
+  window.HistoryCacheService = HistoryCacheService;
+}
+
+// ES Module exports (when used as module)
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = historyCacheService;
+  module.exports.HistoryCacheService = HistoryCacheService;
+}
+
+// Export for ES modules
 export default historyCacheService;
 export { HistoryCacheService };
