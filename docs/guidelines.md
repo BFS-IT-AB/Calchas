@@ -27,7 +27,7 @@ Hinweis (intern): Diese Leitlinie ist ausschließlich für Entwickler/Contributo
 - **PWA:** Installierbar, Offline-Cache (Service Worker), Push-Benachrichtigungen.
 - **Personalisierung:** Favoriten, Dark/Light Mode, API-Key-Management.
 
-**Aktuelle Version:** 0.2.0 (Status: Production Ready)
+**Aktuelle Version:** 0.7.0-alpha (Status: Alpha Release)
 
 ---
 

@@ -61,7 +61,7 @@
           <div class="stats-grid">
             <div class="stat-card">
               <div class="stat-card__icon">🚀</div>
-              <div class="stat-card__value">v1.0</div>
+              <div class="stat-card__value">v0.7.0-alpha</div>
               <div class="stat-card__label">Aktuelle Version</div>
             </div>
             <div class="stat-card">
@@ -107,13 +107,13 @@
 
           <!-- Collapsible Version Items -->
           <div class="collapsible-list">
-            <!-- Version 1.0 -->
+            <!-- Version 0.7.0-alpha -->
             <div class="collapsible-item collapsible-item--live">
               <button class="collapsible-header" data-collapsible="v1">
                 <div class="collapsible-header__left">
                   <span class="collapsible-icon">🚀</span>
                   <div>
-                    <h3>Version 1.0</h3>
+                    <h3>v0.7.0-alpha</h3>
                     <span class="collapsible-subtitle">LIVE HEUTE</span>
                   </div>
                 </div>
@@ -131,13 +131,13 @@
               </div>
             </div>
 
-            <!-- Version 2.0 -->
+            <!-- Version 0.10.0-beta -->
             <div class="collapsible-item collapsible-item--planned">
               <button class="collapsible-header" data-collapsible="v2">
                 <div class="collapsible-header__left">
                   <span class="collapsible-icon">🔮</span>
                   <div>
-                    <h3>Version 2.0</h3>
+                    <h3>v0.10.0-beta</h3>
                     <span class="collapsible-subtitle">3-6 Monate</span>
                   </div>
                 </div>
@@ -162,13 +162,13 @@
               </div>
             </div>
 
-            <!-- Version 3.0 -->
+            <!-- Version 1.0.0-stable -->
             <div class="collapsible-item collapsible-item--vision">
               <button class="collapsible-header" data-collapsible="v3">
                 <div class="collapsible-header__left">
                   <span class="collapsible-icon">✨</span>
                   <div>
-                    <h3>Version 3.0</h3>
+                    <h3>v1.0.0-stable</h3>
                     <span class="collapsible-subtitle">VISION</span>
                   </div>
                 </div>

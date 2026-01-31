@@ -24,20 +24,20 @@
 
 (function (global) {
   // App Version - Ändere diese Zeile für neue Releases
-  const APP_VERSION = "1.0.0";
+  const APP_VERSION = "0.7.0-alpha";
 
   // Changelog Einträge - Neueste Version zuerst!
   const CHANGELOG = [
     {
-      version: "1.0.0",
-      date: "02.02.2026",
+      version: "0.7.0-alpha",
+      date: "01.02.2026",
       isLatest: true,
-      title: "🎉 Erster offizieller Release von Calchas - BFS-IT OpenDay 2026",
+      title: "🚧 Alpha-Release: Die Basis steht!",
       changes: [
         {
           emoji: "🚀",
           type: "Added",
-          text: "Launch von Calchas v1.0: Die moderne PWA für präzise Wetterdaten.",
+          text: "Launch von Calchas v0.7.0-alpha: Die moderne PWA für präzise Wetterdaten.",
         },
         {
           emoji: "📡",
