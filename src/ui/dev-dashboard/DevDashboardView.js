@@ -16,170 +16,400 @@
     }
 
     container.innerHTML = `
-      <!-- Info Card -->
-      <section class="dashboard-card info-card">
-        <div class="dev-dashboard-view-header">
-          <h2>🔧 Developer Dashboard</h2>
-          <div class="status-indicator">
-            <span class="status-dot" id="systemStatus"></span>
-            <span id="statusText">System OK</span>
+      <!-- Top Navigation Bar -->
+      <nav class="dev-nav">
+        <button class="dev-nav__tab dev-nav__tab--active" data-tab="overview">
+          <span class="dev-nav__icon material-symbols-outlined" aria-hidden="true">dashboard</span>
+          <span class="dev-nav__label">Übersicht</span>
+        </button>
+        <button class="dev-nav__tab" data-tab="roadmap">
+          <span class="dev-nav__icon material-symbols-outlined" aria-hidden="true">map</span>
+          <span class="dev-nav__label">Roadmap</span>
+        </button>
+        <button class="dev-nav__tab" data-tab="tools">
+          <span class="dev-nav__icon material-symbols-outlined" aria-hidden="true">construction</span>
+          <span class="dev-nav__label">Tools</span>
+        </button>
+        <button class="dev-nav__tab" data-tab="status">
+          <span class="dev-nav__icon material-symbols-outlined" aria-hidden="true">sensors</span>
+          <span class="dev-nav__label">Status</span>
+        </button>
+      </nav>
+
+      <!-- Tab Content Container -->
+      <div class="dev-tabs-content">
+
+        <!-- OVERVIEW TAB -->
+        <div class="dev-tab-panel dev-tab-panel--active" data-panel="overview">
+          <section class="dashboard-card hero-card">
+            <div class="dev-dashboard-view-header">
+              <h2>🔧 Developer Dashboard</h2>
+              <div class="status-indicator">
+                <span class="status-dot" id="systemStatus"></span>
+                <span id="statusText">System OK</span>
+              </div>
+            </div>
+            <div class="hero-content">
+              <p class="hero-quote">"Calchas ist nicht fertig – es ist der Anfang"</p>
+              <p class="hero-description">
+                Technische Einblicke, Debug-Tools und Produkt-Roadmap auf einen Blick.
+              </p>
+            </div>
+          </section>
+
+          <!-- Quick Stats Grid -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-card__icon">🚀</div>
+              <div class="stat-card__value">v1.0</div>
+              <div class="stat-card__label">Aktuelle Version</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__icon">✅</div>
+              <div class="stat-card__value">5/5</div>
+              <div class="stat-card__label">Core Features</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__icon">📊</div>
+              <div class="stat-card__value" id="moduleCount">-</div>
+              <div class="stat-card__label">Module geladen</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__icon">⚡</div>
+              <div class="stat-card__value" id="cacheStatus">-</div>
+              <div class="stat-card__label">Cache Status</div>
+            </div>
+          </div>
+
+          <!-- Quick Actions Compact -->
+          <section class="dashboard-card">
+            <h3>⚡ Quick Actions</h3>
+            <div class="quick-actions-compact">
+              <button class="action-btn action-btn--danger" onclick="window.DevDashboard?.clearAllCaches()">
+                <span>🗑️</span> Cache leeren
+              </button>
+              <button class="action-btn action-btn--primary" onclick="window.DevDashboard?.testAllAPIs()">
+                <span>🧪</span> APIs testen
+              </button>
+              <button class="action-btn action-btn--secondary" onclick="window.DevDashboard?.exportLogs()">
+                <span>📥</span> Logs exportieren
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <!-- ROADMAP TAB -->
+        <div class="dev-tab-panel" data-panel="roadmap">
+          <section class="dashboard-card">
+            <h2>🗺️ Produkt-Roadmap</h2>
+            <p class="card-description">Unsere Vision in drei Versionen</p>
+          </section>
+
+          <!-- Collapsible Version Items -->
+          <div class="collapsible-list">
+            <!-- Version 1.0 -->
+            <div class="collapsible-item collapsible-item--live">
+              <button class="collapsible-header" data-collapsible="v1">
+                <div class="collapsible-header__left">
+                  <span class="collapsible-icon">🚀</span>
+                  <div>
+                    <h3>Version 1.0</h3>
+                    <span class="collapsible-subtitle">LIVE HEUTE</span>
+                  </div>
+                </div>
+                <span class="collapsible-chevron">›</span>
+              </button>
+              <div class="collapsible-content">
+                <p><strong>Status:</strong> Alle Core-Features verfügbar und nutzbar</p>
+                <div class="feature-chips-wrap">
+                  <span class="chip chip--success">✅ Multi-API-Backbone</span>
+                  <span class="chip chip--success">✅ PWA (Offline-fähig)</span>
+                  <span class="chip chip--success">✅ Health-Intelligence</span>
+                  <span class="chip chip--success">✅ Radar & Karte</span>
+                  <span class="chip chip--success">✅ Historische Daten</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Version 2.0 -->
+            <div class="collapsible-item collapsible-item--planned">
+              <button class="collapsible-header" data-collapsible="v2">
+                <div class="collapsible-header__left">
+                  <span class="collapsible-icon">🔮</span>
+                  <div>
+                    <h3>Version 2.0</h3>
+                    <span class="collapsible-subtitle">3-6 Monate</span>
+                  </div>
+                </div>
+                <span class="collapsible-chevron">›</span>
+              </button>
+              <div class="collapsible-content">
+                <div class="feature-box">
+                  <h4>🤖 KI-gestützte Prognosen</h4>
+                  <ul>
+                    <li>TensorFlow.js Integration für ML-basierte Vorhersagen</li>
+                    <li>Historische Präzisionsanalyse pro Standort</li>
+                    <li>Dynamische API-Gewichtung in Echtzeit</li>
+                  </ul>
+                </div>
+                <div class="feature-box">
+                  <h4>🌍 Erweiterte Internationalisierung</h4>
+                  <ul>
+                    <li>100% Deutsch & Englisch Abdeckung</li>
+                    <li>🇫🇷 Französisch, 🇪🇸 Spanisch, 🇹🇷 Türkisch</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Version 3.0 -->
+            <div class="collapsible-item collapsible-item--vision">
+              <button class="collapsible-header" data-collapsible="v3">
+                <div class="collapsible-header__left">
+                  <span class="collapsible-icon">✨</span>
+                  <div>
+                    <h3>Version 3.0</h3>
+                    <span class="collapsible-subtitle">VISION</span>
+                  </div>
+                </div>
+                <span class="collapsible-chevron">›</span>
+              </button>
+              <div class="collapsible-content">
+                <div class="feature-box">
+                  <h4>🏠 Smart-Home-Integration</h4>
+                  <ul>
+                    <li>Direkte Kommunikation mit Gebäudesteuerung</li>
+                    <li>Automatische Jalousien-Steuerung basierend auf Prognosen</li>
+                    <li>Integration: Home Assistant, MQTT, Zigbee</li>
+                  </ul>
+                </div>
+                <div class="feature-box">
+                  <h4>👥 Community-Features</h4>
+                  <ul>
+                    <li>Nutzer teilen lokale Wetter-Beobachtungen</li>
+                    <li>Crowdsourced Hyper-Local Weather Intelligence</li>
+                    <li>Echtzeit-Validierung durch Community-Daten</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <p class="card-description">
-          Dieses <strong>Developer Dashboard</strong> ist eine versteckte Seite
-          für Entwickler und Debugging-Zwecke. Es wird in zukünftigen Versionen
-          erweitert und bietet umfassende Einblicke in das System.
-        </p>
-        <div class="feature-tag">🚧 In Entwicklung</div>
-      </section>
 
-      <!-- Planned Features -->
-      <section class="dashboard-card planned-features-card">
-        <h2>🎯 Geplante Features</h2>
-        <div class="features-grid">
-          <div class="feature-item">
-            <div class="feature-icon">🌐</div>
-            <h3>WeatherDataService Integration</h3>
-            <p>
-              Vollständige Integration des WeatherDataService in alle
-              App-Bereiche
-            </p>
-            <ul class="feature-list">
-              <li>
-                <strong>Home-Seite:</strong> Migration von
-                <code>fetchWeatherData()</code> zu WeatherDataService
-                <span class="status-badge pending">Geplant</span>
-              </li>
-              <li>
-                <strong>Health-Seite:</strong> Direkte
-                WeatherDataService-Nutzung statt appState
-                <span class="status-badge pending">Geplant</span>
-              </li>
-              <li>
-                <strong>Map-Seite:</strong> WeatherDataService für Popups
-                <span class="status-badge completed">✅ Fertig</span>
-              </li>
-              <li>
-                <strong>History-Seite:</strong> WeatherDataService für
-                Historische Daten
-                <span class="status-badge completed">✅ Fertig</span>
-              </li>
-            </ul>
+        <!-- TOOLS TAB -->
+        <div class="dev-tab-panel" data-panel="tools">
+          <section class="dashboard-card">
+            <h2>🛠️ Developer Tools</h2>
+            <p class="card-description">Debugging, Monitoring und Entwickler-Funktionen</p>
+          </section>
+
+          <!-- Tool Cards Grid -->
+          <div class="tool-cards">
+            <div class="tool-card">
+              <div class="tool-card__header">
+                <span class="tool-card__icon">🌐</span>
+                <h3>WeatherDataService</h3>
+              </div>
+              <div class="tool-card__status">
+                <div class="tool-status-item">
+                  <span>Home-Seite Migration</span>
+                  <span class="chip chip--warning">Geplant</span>
+                </div>
+                <div class="tool-status-item">
+                  <span>Health-Seite WDS</span>
+                  <span class="chip chip--warning">Geplant</span>
+                </div>
+                <div class="tool-status-item">
+                  <span>Map Popups</span>
+                  <span class="chip chip--success">✅ Fertig</span>
+                </div>
+                <div class="tool-status-item">
+                  <span>Historical Data</span>
+                  <span class="chip chip--success">✅ Fertig</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="tool-card">
+              <div class="tool-card__header">
+                <span class="tool-card__icon">📊</span>
+                <h3>API Monitoring</h3>
+              </div>
+              <ul class="tool-card__list">
+                <li>Live-Status aller Datenquellen</li>
+                <li>Response-Zeiten & Fehlerquoten</li>
+                <li>Cache-Hit-Ratio Visualisierung</li>
+                <li>API-Quota-Tracking</li>
+              </ul>
+            </div>
+
+            <div class="tool-card">
+              <div class="tool-card__header">
+                <span class="tool-card__icon">🔍</span>
+                <h3>Debug Tools</h3>
+              </div>
+              <ul class="tool-card__list">
+                <li>Console Log Viewer (Live)</li>
+                <li>API Request Inspector</li>
+                <li>LocalStorage/Cache Manager</li>
+                <li>Performance Profiler</li>
+              </ul>
+            </div>
+
+            <div class="tool-card">
+              <div class="tool-card__header">
+                <span class="tool-card__icon">🧪</span>
+                <h3>Testing Suite</h3>
+              </div>
+              <ul class="tool-card__list">
+                <li>WeatherDataService Unit Tests</li>
+                <li>API Fallback-Ketten testen</li>
+                <li>UI Component Tests</li>
+                <li>E2E Test-Runner</li>
+              </ul>
+            </div>
           </div>
 
-          <div class="feature-item">
-            <div class="feature-icon">📊</div>
-            <h3>API Monitoring</h3>
-            <p>
-              Echtzeit-Überwachung aller API-Aufrufe und Performance-Metriken
-            </p>
-            <ul class="feature-list">
-              <li>
-                Live-Status aller Datenquellen (Open-Meteo, BrightSky,
-                VisualCrossing, etc.)
-              </li>
-              <li>Response-Zeiten und Fehlerquoten</li>
-              <li>Cache-Hit-Ratio und TTL-Visualisierung</li>
-              <li>API-Quota-Tracking (z.B. VisualCrossing 1000 calls/day)</li>
-            </ul>
-          </div>
-
-          <div class="feature-item">
-            <div class="feature-icon">🔍</div>
-            <h3>Debug Tools</h3>
-            <p>Werkzeuge zum Testen und Debuggen von Funktionen</p>
-            <ul class="feature-list">
-              <li>Console Log Viewer (filterbarer Live-Stream)</li>
-              <li>API Request Inspector (alle Requests mit Headers/Body)</li>
-              <li>LocalStorage/Cache Manager</li>
-              <li>Performance Profiler</li>
-            </ul>
-          </div>
-
-          <div class="feature-item">
-            <div class="feature-icon">🧪</div>
-            <h3>Testing Suite</h3>
-            <p>Automatisierte Tests und manuelle Test-Panels</p>
-            <ul class="feature-list">
-              <li>WeatherDataService Unit Tests</li>
-              <li>API Fallback-Ketten testen</li>
-              <li>UI Component Tests</li>
-              <li>E2E Test-Runner</li>
-            </ul>
-          </div>
-
-          <div class="feature-item">
-            <div class="feature-icon">⚙️</div>
-            <h3>System Configuration</h3>
-            <p>Advanced Settings und Feature Flags</p>
-            <ul class="feature-list">
-              <li>Feature Flags (A/B Tests, Beta-Features)</li>
-              <li>Cache-TTL-Konfiguration</li>
-              <li>API-Prioritäten anpassen</li>
-              <li>Retry-Strategien konfigurieren</li>
-            </ul>
-          </div>
-
-          <div class="feature-item">
-            <div class="feature-icon">📈</div>
-            <h3>Analytics & Insights</h3>
-            <p>Nutzungsstatistiken und Datenanalyse</p>
-            <ul class="feature-list">
-              <li>User Journey Tracking</li>
-              <li>Feature Usage Heatmaps</li>
-              <li>Error Rate Dashboards</li>
-              <li>Performance Trends</li>
-            </ul>
-          </div>
+          <!-- Developer Actions -->
+          <section class="dashboard-card">
+            <h3>⚡ Developer Actions</h3>
+            <div class="actions-grid">
+              <button class="action-btn action-btn--danger" onclick="window.DevDashboard?.clearAllCaches()">
+                <span>🗑️</span> Cache leeren
+              </button>
+              <button class="action-btn action-btn--primary" onclick="window.DevDashboard?.testAllAPIs()">
+                <span>🧪</span> APIs testen
+              </button>
+              <button class="action-btn action-btn--secondary" onclick="window.DevDashboard?.exportLogs()">
+                <span>📥</span> Logs exportieren
+              </button>
+              <button class="action-btn action-btn--warning" onclick="window.DevDashboard?.resetSettings()">
+                <span>🔄</span> Settings zurücksetzen
+              </button>
+            </div>
+          </section>
         </div>
-      </section>
 
-      <!-- Quick Actions -->
-      <section class="dashboard-card quick-actions-card">
-        <h2>⚡ Quick Actions</h2>
-        <div class="actions-grid">
-          <button class="action-button" onclick="window.DevDashboard?.clearAllCaches()">
-            <span>🗑️</span>
-            <span>Cache leeren</span>
-          </button>
-          <button class="action-button" onclick="window.DevDashboard?.testAllAPIs()">
-            <span>🧪</span>
-            <span>APIs testen</span>
-          </button>
-          <button class="action-button" onclick="window.DevDashboard?.exportLogs()">
-            <span>📥</span>
-            <span>Logs exportieren</span>
-          </button>
-          <button class="action-button" onclick="window.DevDashboard?.resetSettings()">
-            <span>🔄</span>
-            <span>Settings zurücksetzen</span>
-          </button>
-        </div>
-      </section>
+        <!-- STATUS TAB -->
+        <div class="dev-tab-panel" data-panel="status">
+          <section class="dashboard-card">
+            <h2>📡 System Status</h2>
+            <p class="card-description">Live-Monitoring aller Services und Module</p>
+          </section>
 
-      <!-- Current Status -->
-      <section class="dashboard-card status-card">
-        <h2>📡 Aktueller System-Status</h2>
-        <div class="status-grid">
-          <div class="status-item">
-            <span class="status-label">WeatherDataService</span>
-            <span class="status-value" id="wdsStatus">Laden...</span>
+          <!-- Status Cards -->
+          <div class="status-cards">
+            <div class="status-card status-card--ok">
+              <div class="status-card__header">
+                <span class="status-card__icon">🌐</span>
+                <h3>WeatherDataService</h3>
+              </div>
+              <div class="status-card__value" id="wdsStatus">Laden...</div>
+            </div>
+
+            <div class="status-card status-card--ok">
+              <div class="status-card__header">
+                <span class="status-card__icon">💾</span>
+                <h3>Cache Service</h3>
+              </div>
+              <div class="status-card__value" id="cacheStatusDetail">Laden...</div>
+            </div>
+
+            <div class="status-card status-card--ok">
+              <div class="status-card__header">
+                <span class="status-card__icon">🔑</span>
+                <h3>API Key Manager</h3>
+              </div>
+              <div class="status-card__value" id="apiKeyStatus">Laden...</div>
+            </div>
+
+            <div class="status-card status-card--ok">
+              <div class="status-card__header">
+                <span class="status-card__icon">📦</span>
+                <h3>Module Loader</h3>
+              </div>
+              <div class="status-card__value" id="moduleCountDetail">Laden...</div>
+            </div>
           </div>
-          <div class="status-item">
-            <span class="status-label">Cache Service</span>
-            <span class="status-value" id="cacheStatus">Laden...</span>
-          </div>
-          <div class="status-item">
-            <span class="status-label">API Key Manager</span>
-            <span class="status-value" id="apiKeyStatus">Laden...</span>
-          </div>
-          <div class="status-item">
-            <span class="status-label">Geladene Module</span>
-            <span class="status-value" id="moduleCount">Laden...</span>
-          </div>
+
+          <!-- API Status List -->
+          <section class="dashboard-card">
+            <h3>🌐 API Status</h3>
+            <div class="api-status-list" id="apiStatusList">
+              <div class="api-status-item">
+                <span class="api-status-dot api-status-dot--loading"></span>
+                <span>Lade Status...</span>
+              </div>
+            </div>
+          </section>
         </div>
-      </section>
+
+      </div>
     `;
+
+    // Add tab switching functionality
+    setTimeout(() => {
+      const tabButtons = document.querySelectorAll(".dev-nav__tab");
+      const tabPanels = document.querySelectorAll(".dev-tab-panel");
+
+      // Ripple effect function (same as BottomNav)
+      function createRipple(event, button) {
+        const circle = document.createElement("span");
+        const diameter = Math.max(button.clientWidth, button.clientHeight);
+        const radius = diameter / 2;
+        const rect = button.getBoundingClientRect();
+
+        circle.style.width = circle.style.height = `${diameter}px`;
+        circle.style.left = `${event.clientX - rect.left - radius}px`;
+        circle.style.top = `${event.clientY - rect.top - radius}px`;
+        circle.classList.add("ripple");
+
+        // Remove existing ripples
+        const existingRipple = button.querySelector(".ripple");
+        if (existingRipple) {
+          existingRipple.remove();
+        }
+
+        button.appendChild(circle);
+
+        // Remove ripple after animation
+        setTimeout(() => circle.remove(), 600);
+      }
+
+      tabButtons.forEach((button) => {
+        button.addEventListener("click", (event) => {
+          const targetTab = button.dataset.tab;
+
+          // Create ripple effect
+          createRipple(event, button);
+
+          // Update active tab
+          tabButtons.forEach((btn) =>
+            btn.classList.remove("dev-nav__tab--active"),
+          );
+          button.classList.add("dev-nav__tab--active");
+
+          // Show target panel
+          tabPanels.forEach((panel) => {
+            panel.classList.remove("dev-tab-panel--active");
+            if (panel.dataset.panel === targetTab) {
+              panel.classList.add("dev-tab-panel--active");
+            }
+          });
+        });
+      });
+
+      // Add collapsible functionality
+      const collapsibleHeaders = document.querySelectorAll(
+        ".collapsible-header",
+      );
+      collapsibleHeaders.forEach((header) => {
+        header.addEventListener("click", () => {
+          const item = header.closest(".collapsible-item");
+          item.classList.toggle("collapsible-item--expanded");
+        });
+      });
+    }, 100);
 
     // Initialize the dev dashboard functionality
     if (global.DevDashboard && global.DevDashboard.init) {

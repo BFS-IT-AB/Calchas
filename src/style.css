@@ -8629,7 +8629,7 @@ body.dark-mode .source-compare-card {
     0 4px 16px rgba(99, 140, 255, 0.25),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
   /* Active button gets more space for label */
-  flex: 1.5 1 0;
+  flex: 1.7 1 0;
   padding: 10px 12px;
 }
 
@@ -8666,7 +8666,7 @@ body.dark-mode .source-compare-card {
 
 .bottom-nav__button--active .bottom-nav__label {
   opacity: 1;
-  max-width: 70px;
+  max-width: 120px;
 }
 
 /* Dev Dashboard Button - Special styling */
@@ -8760,15 +8760,17 @@ body.dark-mode .source-compare-card {
 
   .bottom-nav__button--active {
     padding: 8px 8px;
+    flex: 1.8 1 0; /* Increased flex for small screens */
   }
 
   .bottom-nav__icon {
     font-size: 1.05rem;
   }
 
-  .bottom-nav__label {
+  /* Specific rule for active label to prevent overriding the hidden state of inactive labels */
+  .bottom-nav__button--active .bottom-nav__label {
     font-size: 0.55rem;
-    max-width: 50px;
+    max-width: 80px; /* Increased from 50px */
     letter-spacing: 0.1px;
   }
 }
@@ -8787,16 +8789,17 @@ body.dark-mode .source-compare-card {
 
   .bottom-nav__button--active {
     padding: 6px 6px;
-    flex: 1.3 1 0;
+    flex: 2 1 0; /* Increased to allow label to fit */
   }
 
   .bottom-nav__icon {
     font-size: 1rem;
   }
 
-  .bottom-nav__label {
+  /* Specific rule for active label */
+  .bottom-nav__button--active .bottom-nav__label {
     font-size: 0.5rem;
-    max-width: 40px;
+    max-width: 60px; /* Increased from 40px */
   }
 }
 
