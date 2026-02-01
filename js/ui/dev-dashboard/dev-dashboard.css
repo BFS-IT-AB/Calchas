@@ -1845,27 +1845,541 @@
 
 /* Responsive adjustments for new elements */
 @media (max-width: 600px) {
+  /* ==================== Navigation ==================== */
+  .dev-nav {
+    padding: 6px 8px;
+    margin: 0.5rem;
+    top: 8px;
+    gap: 2px;
+  }
+
+  .dev-nav__tab {
+    padding: 8px 6px;
+    font-size: 0.65rem;
+    gap: 3px;
+    min-width: 60px;
+  }
+
+  .dev-nav__tab--active {
+    padding: 8px 10px;
+    flex: 2 1 0;
+  }
+
+  .dev-nav__icon {
+    font-size: 16px;
+  }
+
+  .dev-nav__ripple {
+    display: none;
+  }
+
+  /* ==================== Container & Cards ==================== */
+  .dev-dashboard-container {
+    padding: 0.5rem;
+  }
+
+  .dev-tab-panel {
+    padding: 12px 0;
+  }
+
+  .dashboard-card {
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+  }
+
+  .dashboard-card h2 {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+  }
+
+  .dev-subtitle {
+    font-size: 0.8rem;
+  }
+
+  /* ==================== System Status ==================== */
+  .system-status-badge {
+    padding: 6px 12px;
+    font-size: 11px;
+    gap: 6px;
+  }
+
+  .system-status-badge .status-dot {
+    width: 6px;
+    height: 6px;
+  }
+
+  /* ==================== Info Grids ==================== */
+  .dev-info-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .dev-info-card {
+    border-radius: 10px;
+  }
+
+  .dev-info-header {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .dev-info-icon {
+    font-size: 20px;
+  }
+
+  .dev-info-header h3 {
+    font-size: 13px;
+  }
+
+  .dev-info-content {
+    padding: 12px;
+  }
+
+  .dev-info-row {
+    padding: 6px 0;
+    font-size: 12px;
+  }
+
+  /* ==================== Action Buttons ==================== */
+  .dev-actions-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .dev-action-btn {
+    padding: 10px 14px;
+    font-size: 13px;
+    gap: 6px;
+  }
+
+  .dev-action-icon {
+    font-size: 16px;
+  }
+
+  .dev-action-text {
+    font-size: 12px;
+  }
+
+  /* ==================== Modules Grid ==================== */
+  .dev-modules-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .dev-module-item {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+
+  .dev-module-status {
+    font-size: 14px;
+  }
+
+  .dev-module-name {
+    font-size: 12px;
+  }
+
+  /* ==================== Service Worker ==================== */
+  .dev-sw-info {
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .dev-sw-info .dev-info-row {
+    padding: 8px 0;
+  }
+
+  /* ==================== Cache Grid ==================== */
+  .dev-cache-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .dev-cache-card {
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .dev-cache-name {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .dev-cache-size {
+    font-size: 11px;
+  }
+
+  .dev-cache-delete {
+    top: 10px;
+    right: 10px;
+    padding: 3px 6px;
+    font-size: 12px;
+  }
+
+  .dev-cache-list {
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .dev-cache-list-header {
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+  }
+
+  .dev-cache-list-header h4 {
+    font-size: 13px;
+  }
+
+  .dev-cache-list-header span {
+    font-size: 11px;
+  }
+
+  .dev-cache-entry {
+    padding: 6px 10px;
+    font-size: 11px;
+    margin-bottom: 3px;
+  }
+
+  /* ==================== API Cards ==================== */
+  .dev-api-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .dev-api-card {
+    padding: 12px;
+    gap: 10px;
+    border-radius: 10px;
+  }
+
+  .dev-api-icon {
+    font-size: 24px;
+  }
+
+  .dev-api-name {
+    font-size: 13px;
+    margin-bottom: 3px;
+  }
+
+  .dev-api-url {
+    font-size: 10px;
+  }
+
+  .dev-api-status {
+    font-size: 18px;
+  }
+
+  .dev-api-test-form {
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+  }
+
+  .dev-form-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .dev-form-row label {
+    font-size: 12px;
+  }
+
+  .dev-form-row input {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  /* ==================== Storage Tables ==================== */
+  .dev-storage-stats {
+    flex-direction: column;
+    gap: 12px;
+    padding: 10px;
+    margin-bottom: 12px;
+  }
+
+  .dev-storage-stat {
+    font-size: 12px;
+  }
+
+  .dev-storage-stat strong {
+    font-size: 14px;
+  }
+
+  .dev-table {
+    font-size: 11px;
+  }
+
+  .dev-table th,
+  .dev-table td {
+    padding: 8px 6px;
+  }
+
+  .dev-table-actions button {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  /* ==================== Console & Logs ==================== */
+  .dev-console {
+    max-height: 250px;
+    border-radius: 8px;
+  }
+
+  .dev-console-entry {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  .dev-console-time {
+    font-size: 10px;
+    min-width: 60px;
+  }
+
+  .dev-console-icon {
+    font-size: 14px;
+  }
+
+  /* ==================== Performance Metrics ==================== */
+  .dev-perf-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .dev-perf-card {
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .dev-perf-label {
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+
+  .dev-perf-value {
+    font-size: 18px;
+  }
+
+  .dev-perf-unit {
+    font-size: 12px;
+  }
+
+  /* ==================== Error Tracking ==================== */
+  .dev-error-list {
+    border-radius: 8px;
+  }
+
+  .dev-error-item {
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+  }
+
+  .dev-error-header {
+    margin-bottom: 6px;
+  }
+
+  .dev-error-type {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .dev-error-time {
+    font-size: 10px;
+  }
+
+  .dev-error-message {
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  .dev-error-stack {
+    font-size: 10px;
+    padding: 8px;
+  }
+
+  /* ==================== Charts & Graphs ==================== */
+  .dev-chart-container {
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+  }
+
+  .dev-chart-header h3 {
+    font-size: 13px;
+  }
+
+  .dev-chart-legend {
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .dev-chart-legend-item {
+    font-size: 11px;
+    gap: 4px;
+  }
+
+  .dev-chart-legend-color {
+    width: 10px;
+    height: 10px;
+  }
+
+  /* ==================== Network Monitor ==================== */
+  .dev-network-list {
+    border-radius: 8px;
+  }
+
+  .dev-network-item {
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+  }
+
+  .dev-network-method {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .dev-network-url {
+    font-size: 11px;
+  }
+
+  .dev-network-status {
+    font-size: 11px;
+  }
+
+  .dev-network-time {
+    font-size: 10px;
+  }
+
+  /* ==================== Capability Grid ==================== */
   .dev-capability-grid {
     grid-template-columns: 1fr;
+    gap: 10px;
   }
 
+  .dev-capability-card {
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .dev-capability-header {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .dev-capability-icon {
+    font-size: 20px;
+  }
+
+  .dev-capability-title {
+    font-size: 13px;
+  }
+
+  .dev-capability-status {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .dev-capability-value {
+    font-size: 12px;
+  }
+
+  /* ==================== Simulation Controls ==================== */
   .dev-simulation-grid {
     grid-template-columns: 1fr;
+    gap: 10px;
   }
 
+  .dev-simulation-card {
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .dev-simulation-header {
+    margin-bottom: 10px;
+  }
+
+  .dev-simulation-header h3 {
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+
+  .dev-simulation-desc {
+    font-size: 11px;
+  }
+
+  .dev-simulation-btn {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+
+  /* ==================== Error Stats ==================== */
   .dev-error-stats {
     grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
   }
 
+  .dev-error-stat-card {
+    padding: 10px;
+    border-radius: 8px;
+  }
+
+  .dev-error-stat-icon {
+    font-size: 18px;
+  }
+
+  .dev-error-stat-value {
+    font-size: 20px;
+  }
+
+  .dev-error-stat-label {
+    font-size: 10px;
+  }
+
+  /* ==================== Quick Stats ==================== */
   .dev-quick-stats {
     flex-direction: column;
+    gap: 10px;
   }
 
+  .dev-quick-stat {
+    padding: 10px 12px;
+    border-radius: 8px;
+  }
+
+  .dev-quick-stat-icon {
+    font-size: 18px;
+  }
+
+  .dev-quick-stat-value {
+    font-size: 18px;
+  }
+
+  .dev-quick-stat-label {
+    font-size: 11px;
+  }
+
+  /* ==================== Toggle Items ==================== */
   .dev-toggle-item {
     padding: 10px 12px;
+    border-radius: 8px;
   }
 
-  /* Roadmap Mobile Optimierung */
+  .dev-toggle-label {
+    font-size: 12px;
+  }
+
+  .dev-toggle-desc {
+    font-size: 10px;
+  }
+
+  /* ==================== Roadmap Mobile Optimierung ==================== */
   .collapsible-list {
     gap: 0.75rem;
   }
@@ -1963,12 +2477,116 @@
     margin-top: 0.5rem;
   }
 
-  /* Dashboard Card Spacing */
-  .dashboard-card h2 {
-    font-size: 1.25rem;
+  /* ==================== Contributors ==================== */
+  .contributors-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 
-  .dev-subtitle {
-    font-size: 0.85rem;
+  .contributor-card {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .contributor-avatar {
+    width: 50px;
+    height: 50px;
+  }
+
+  .contributor-info h3 {
+    font-size: 14px;
+  }
+
+  .contributor-role {
+    font-size: 11px;
+  }
+
+  .contributor-stats {
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .contributor-stat {
+    font-size: 11px;
+  }
+
+  .contributor-stat-value {
+    font-size: 16px;
+  }
+
+  /* ==================== Badges & Tags ==================== */
+  .dev-badge {
+    padding: 4px 8px;
+    font-size: 11px;
+    border-radius: 10px;
+  }
+
+  .dev-tag {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+
+  /* ==================== Tooltips & Hints ==================== */
+  .dev-hint {
+    font-size: 11px;
+    padding: 8px 10px;
+    border-radius: 6px;
+  }
+
+  .dev-warning-box {
+    padding: 10px 12px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+
+  /* ==================== Code Blocks ==================== */
+  .dev-code-block {
+    padding: 10px;
+    font-size: 11px;
+    border-radius: 6px;
+  }
+
+  pre {
+    font-size: 11px;
+    padding: 8px;
+  }
+
+  code {
+    font-size: 11px;
+    padding: 2px 4px;
+  }
+
+  /* ==================== Scrollbars ==================== */
+  .dev-dashboard-container::-webkit-scrollbar,
+  .dev-console::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  /* ==================== Modal Adjustments ==================== */
+  .dev-modal {
+    margin: 10px;
+    border-radius: 12px;
+  }
+
+  .dev-modal-content {
+    padding: 12px;
+  }
+
+  .dev-modal-header {
+    padding: 12px;
+  }
+
+  .dev-modal-title {
+    font-size: 16px;
+  }
+
+  /* ==================== Loading States ==================== */
+  .dev-skeleton {
+    border-radius: 6px;
+  }
+
+  .dev-spinner {
+    width: 24px;
+    height: 24px;
   }
 }
