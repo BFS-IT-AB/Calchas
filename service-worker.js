@@ -43,7 +43,7 @@ const urlsToCache = [
   "/js/ui/shared/features.js",
   "/manifest.json",
   "/assets/icons/icon-192.png",
-  "/assets/icons/icon-512.png",
+  "/assets/icons/icon-384.png",
   "/assets/icons/apple-touch-icon.png",
 ];
 
