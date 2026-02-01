@@ -159,6 +159,15 @@
                     <li>🇫🇷 Französisch, 🇪🇸 Spanisch, 🇹🇷 Türkisch</li>
                   </ul>
                 </div>
+                <div class="feature-box">
+                  <h4>⚕️ Health-Personalisierung</h4>
+                  <ul>
+                    <li>Hauttyp-Einstellung (Fitzpatrick-Skala 1-6)</li>
+                    <li>Migräne-Sensitivität konfigurieren</li>
+                    <li>Personalisierte UV- & Vitamin-D-Berechnungen</li>
+                    <li>Individuelle Health-Score-Gewichtung</li>
+                  </ul>
+                </div>
               </div>
             </div>
 

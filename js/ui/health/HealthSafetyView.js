@@ -1151,6 +1151,16 @@
           <h3>${tm("hourlyForecast", "Stündlicher UV-Verlauf")}</h3>
           <div class="chart-wrapper"><div class="hourly-bars">${hourlyUv}</div></div>
         </div>
+
+        <!-- Skin Type Info -->
+        <div class="detail-card" style="background:rgba(138,180,255,0.05);border-left:3px solid #8ab4ff">
+          <h3 style="color:#8ab4ff;font-size:13px;margin:0 0 6px">ℹ️ Hauttyp-Berechnung</h3>
+          <p style="font-size:12px;color:rgba(255,255,255,0.6);line-height:1.5;margin:0">
+            Die Eigenschutzzeit basiert auf <strong style="color:#8ab4ff">Hauttyp 2 (Hell)</strong>.
+            Für präzisere UV-Berechnungen kannst du in Zukunft deinen individuellen
+            Hauttyp in den Einstellungen hinterlegen (Fitzpatrick-Skala 1-6).
+          </p>
+        </div>
       </div>
     `;
   }
@@ -1627,6 +1637,16 @@
               <span style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:400">Danach eincremen</span>
             </div>
           </div>
+        </div>
+
+        <!-- Skin Type Info -->
+        <div class="detail-card" style="background:rgba(138,180,255,0.05);border-left:3px solid #8ab4ff">
+          <h3 style="color:#8ab4ff;font-size:13px;margin:0 0 6px">ℹ️ Hauttyp-Berechnung</h3>
+          <p style="font-size:12px;color:rgba(255,255,255,0.6);line-height:1.5;margin:0">
+            Aktuell wird <strong style="color:#8ab4ff">Hauttyp 2 (Hell)</strong> als Standard verwendet.
+            Für präzisere UV- und Vitamin-D-Berechnungen kannst du in Zukunft deinen individuellen
+            Hauttyp in den Einstellungen hinterlegen (Fitzpatrick-Skala 1-6).
+          </p>
         </div>
       </div>
     `;
