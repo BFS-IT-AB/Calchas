@@ -34,19 +34,21 @@
     // Fallback: Lade Version aus manifest.json + extrahiere BUILD_ID aus Cache-Namen
     try {
       const manifest = await fetch("/manifest.json").then((r) => r.json());
-      
+
       // Versuche BUILD_ID aus Cache-Namen zu extrahieren
       let buildId = "unknown";
       try {
         const cacheNames = await caches.keys();
-        const calchaskCache = cacheNames.find(name => name.startsWith('calchas-'));
+        const calchaskCache = cacheNames.find((name) =>
+          name.startsWith("calchas-"),
+        );
         if (calchasCache) {
-          buildId = calchasCache.replace('calchas-', '');
+          buildId = calchasCache.replace("calchas-", "");
         }
       } catch (e) {
         console.warn("[Version] Could not extract BUILD_ID from cache:", e);
       }
-      
+
       return {
         appVersion: manifest.version || "unknown",
         buildId: buildId,
