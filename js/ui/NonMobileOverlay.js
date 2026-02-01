@@ -302,11 +302,15 @@
   function showEmailModal() {
     const content = `
       <div class="email-modal__content">
-        <p>Für Kontaktanfragen, Feedback oder Support erreichst du uns unter:</p>
+        <div class="email-modal__dev-badge">
+          <span class="material-symbols-outlined">construction</span>
+          <span>In Entwicklung</span>
+        </div>
+        <p>Unsere E-Mail-Adresse ist bereits registriert:</p>
         <div class="email-modal__address">
           <a href="mailto:team@calchas.dev">team@calchas.dev</a>
         </div>
-        <p class="email-modal__hint">Wir freuen uns auf deine Nachricht!</p>
+        <p class="email-modal__hint">⚠️ Der E-Mail-Server befindet sich noch im Aufbau – Nachrichten können aktuell nicht empfangen werden.</p>
       </div>
     `;
 
