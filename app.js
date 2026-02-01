@@ -4053,10 +4053,6 @@ function initializeFeatureModules() {
     weatherAlerts = new WeatherAlerts("weather-alerts");
   }
 
-  if (typeof HistoricalChart === "function") {
-    historicalChart = new HistoricalChart("historical-chart");
-  }
-
   const initialSeed =
     appState?.renderData?.locationDetails ||
     appState?.currentCoordinates ||
@@ -4221,9 +4217,6 @@ function syncExtendedPanels(locationLike) {
   }
   if (weatherAlerts) {
     weatherAlerts.fetchAlerts(lat, lon, label);
-  }
-  if (historicalChart) {
-    historicalChart.fetchAndRender(lat, lon, label);
   }
   // Fetch health alerts for the Health page
   if (window.HealthSafetyView && window.HealthSafetyView.fetchHealthAlerts) {

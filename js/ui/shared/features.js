@@ -434,10 +434,10 @@ class WeatherMap {
 
       if (!this.overlayEventsBound) {
         this.map.on("overlayadd", (event) =>
-          this._handleOverlayAdd(event.layer)
+          this._handleOverlayAdd(event.layer),
         );
         this.map.on("overlayremove", (event) =>
-          this._handleOverlayRemove(event.layer)
+          this._handleOverlayRemove(event.layer),
         );
         this.overlayEventsBound = true;
       }
@@ -472,7 +472,7 @@ class WeatherMap {
             this.noticeEl.textContent = message;
           }
           const radarConfig = this.overlayConfigs.find(
-            (entry) => entry.key === "radar"
+            (entry) => entry.key === "radar",
           );
           if (radarConfig) {
             this._updateLegendEntry(radarConfig, "error", message);
@@ -501,14 +501,14 @@ class WeatherMap {
           <button type="button" class="map-layer-btn" data-layer="${
             config.key
           }" title="${config.label}" aria-label="${
-          config.label
-        }" aria-pressed="false">
+            config.label
+          }" aria-pressed="false">
             <span class="map-layer-btn-icon">${config.icon || "•"}</span>
             <span class="map-layer-btn-label">${
               config.shortLabel || config.label
             }</span>
           </button>
-        `
+        `,
       )
       .join("");
     this._toolbarHandler = (event) => {
@@ -653,7 +653,7 @@ class WeatherMap {
 
   _highlightToolbarSelectionByOverlay(overlayKey) {
     const toolbarEntry = this.toolbarConfigs.find(
-      (entry) => entry.overlayKey === overlayKey
+      (entry) => entry.overlayKey === overlayKey,
     );
     if (toolbarEntry) {
       this._highlightToolbarSelection(toolbarEntry.key);
@@ -922,7 +922,7 @@ class WeatherMap {
   _locateUserPosition() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       this._announceNotice(
-        "Geolokalisierung wird von diesem Gerät nicht unterstützt."
+        "Geolokalisierung wird von diesem Gerät nicht unterstützt.",
       );
       return false;
     }
@@ -948,7 +948,7 @@ class WeatherMap {
         enableHighAccuracy: true,
         timeout: 8000,
         maximumAge: 120000,
-      }
+      },
     );
     return true;
   }
@@ -965,7 +965,7 @@ class WeatherMap {
       });
       if (!response.ok) {
         throw new Error(
-          `Reverse-Geocoding fehlgeschlagen (${response.status})`
+          `Reverse-Geocoding fehlgeschlagen (${response.status})`,
         );
       }
       const payload = await response.json();
@@ -1007,7 +1007,7 @@ class WeatherMap {
           inspector.removeAttribute("tabindex");
         }
       },
-      { once: true }
+      { once: true },
     );
   }
 
@@ -1019,7 +1019,7 @@ class WeatherMap {
     this.radarControlsEl.addEventListener("click", this._radarControlHandler);
     this.radarControlsEl.addEventListener(
       "pointerdown",
-      this._radarTimelineHandler
+      this._radarTimelineHandler,
     );
   }
 
@@ -1062,7 +1062,7 @@ class WeatherMap {
 
     this.rainViewerFrameIndex = Math.min(
       Math.max(this.rainViewerFrameIndex, 0),
-      activeFrames.length - 1
+      activeFrames.length - 1,
     );
 
     const activeFrame = this._getActiveRainViewerFrame();
@@ -1136,7 +1136,7 @@ class WeatherMap {
       this.noticeEl.textContent = message || "RainViewer nicht verfügbar.";
     }
     const radarConfig = this.overlayConfigs.find(
-      (entry) => entry.key === "radar"
+      (entry) => entry.key === "radar",
     );
     if (radarConfig) {
       this._updateLegendEntry(radarConfig, "warning", message);
@@ -1160,13 +1160,13 @@ class WeatherMap {
       this.refreshOverlays();
     }
     const radarConfig = this.overlayConfigs.find(
-      (entry) => entry.key === "radar"
+      (entry) => entry.key === "radar",
     );
     if (radarConfig) {
       this._updateLegendEntry(
         radarConfig,
         "warning",
-        message || "RainViewer Fallback (statische Tiles)"
+        message || "RainViewer Fallback (statische Tiles)",
       );
       this._renderOverlayLegend();
       this._syncToolbarAvailability();
@@ -1321,7 +1321,7 @@ class WeatherMap {
     if (!frames.length) return null;
     const index = Math.min(
       Math.max(this.rainViewerFrameIndex, 0),
-      frames.length - 1
+      frames.length - 1,
     );
     return frames[index];
   }
@@ -1373,8 +1373,8 @@ class WeatherMap {
       frame.type === "past"
         ? "Rückblick"
         : frame.type === "infrared"
-        ? "Satellit"
-        : "Vorhersage";
+          ? "Satellit"
+          : "Vorhersage";
     const diffMinutes = Math.round((frame.time - Date.now()) / 60000);
     let relative = "jetzt";
     if (diffMinutes > 0) {
@@ -1401,11 +1401,11 @@ class WeatherMap {
     const past = this._normalizeRainViewerFrames(payload?.radar?.past, "past");
     const nowcast = this._normalizeRainViewerFrames(
       payload?.radar?.nowcast,
-      "nowcast"
+      "nowcast",
     );
     const satellite = this._normalizeRainViewerFrames(
       payload?.satellite?.infrared,
-      "infrared"
+      "infrared",
     );
     if (!past.length && !nowcast.length && !satellite.length) {
       throw new Error("Kein Radar-Frame verfügbar");
@@ -1527,7 +1527,7 @@ class WeatherMap {
 
     this.toolbarConfigs.forEach((config) => {
       const btn = this.toolbarEl.querySelector(
-        `.map-layer-btn[data-layer="${config.key}"]`
+        `.map-layer-btn[data-layer="${config.key}"]`,
       );
       if (!btn) return;
       if (!config.overlayKey) {
@@ -1575,7 +1575,7 @@ class WeatherMap {
     const entries = Object.entries(overlays);
     if (!entries.length) return;
     const preferred = entries.find(([label]) =>
-      label.toLowerCase().includes("radar")
+      label.toLowerCase().includes("radar"),
     );
     const [, layer] = preferred || entries[0];
     if (layer && !this.map.hasLayer(layer)) {
@@ -1651,21 +1651,21 @@ class WeatherMap {
     if (this.radarControlsEl && this._radarControlHandler) {
       this.radarControlsEl.removeEventListener(
         "click",
-        this._radarControlHandler
+        this._radarControlHandler,
       );
       this._radarControlHandler = null;
     }
     if (this.radarControlsEl && this._radarTimelineHandler) {
       this.radarControlsEl.removeEventListener(
         "pointerdown",
-        this._radarTimelineHandler
+        this._radarTimelineHandler,
       );
       this._radarTimelineHandler = null;
     }
     if (this.quickActionsEl && this._quickActionHandler) {
       this.quickActionsEl.removeEventListener(
         "click",
-        this._quickActionHandler
+        this._quickActionHandler,
       );
       this._quickActionHandler = null;
     }
@@ -1864,7 +1864,7 @@ class MapDataInspector {
         timezone: "auto",
       }).toString();
       const airUrl = new URL(
-        "https://air-quality-api.open-meteo.com/v1/air-quality"
+        "https://air-quality-api.open-meteo.com/v1/air-quality",
       );
       airUrl.search = new URLSearchParams({
         latitude: roundedLat,
@@ -1883,7 +1883,7 @@ class MapDataInspector {
         weather,
         air,
         roundedLat,
-        roundedLon
+        roundedLon,
       );
       this.cache.set(cacheKey, {
         data: normalized,
@@ -1966,7 +1966,7 @@ class MapDataInspector {
         value: `${this._formatValue(
           data.precipitation,
           "mm/h",
-          2
+          2,
         )} (${this._formatValue(data.precipitationProbability, "%")})`,
       },
       {
@@ -2041,7 +2041,7 @@ class MapDataInspector {
             <span>${metric.label}</span>
             <em>${metric.value}</em>
           </li>
-        `
+        `,
       )
       .join("");
     this.outputEl.innerHTML = `
@@ -2090,7 +2090,7 @@ class MapDataInspector {
           <span>Regen: ${this._formatValue(
             data.precipitation,
             " mm/h",
-            2
+            2,
           )}</span>
         </div>
         <div class="map-hover-row secondary">
@@ -2366,7 +2366,7 @@ class HistoricalChart {
       const end = endDate.toISOString().split("T")[0];
 
       const response = await fetch(
-        `https://archive-api.open-meteo.com/v1/archive?latitude=${safeLat}&longitude=${safeLon}&start_date=${start}&end_date=${end}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`
+        `https://archive-api.open-meteo.com/v1/archive?latitude=${safeLat}&longitude=${safeLon}&start_date=${start}&end_date=${end}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`,
       );
 
       if (!response.ok) {
@@ -2422,7 +2422,7 @@ class HistoricalChart {
     if (!this.chartLib) {
       container.insertAdjacentHTML(
         "beforeend",
-        '<p class="historical-error">Chart.js nicht geladen</p>'
+        '<p class="historical-error">Chart.js nicht geladen</p>',
       );
       return;
     }
@@ -2497,14 +2497,14 @@ class HistoricalChart {
     const summaryHtml = this._renderHistoricalSummary(
       stats,
       data.meta || {},
-      rangeLabel
+      rangeLabel,
     );
     const monthlyHtml = this._renderMonthlyComparison(breakdown.monthlyBuckets);
     const trendHtml = this._renderYearTrend(breakdown.yearTrend);
     const tableHtml = this._renderHistoricalTable(chartEntries, stats);
     container.insertAdjacentHTML(
       "beforeend",
-      summaryHtml + monthlyHtml + trendHtml + tableHtml
+      summaryHtml + monthlyHtml + trendHtml + tableHtml,
     );
   }
 
@@ -2542,16 +2542,16 @@ class HistoricalChart {
     const validMin = entries.filter((entry) => typeof entry.min === "number");
     const warmest = validMax.reduce(
       (acc, entry) => (!acc || entry.max > acc.max ? entry : acc),
-      null
+      null,
     );
     const coldest = validMin.reduce(
       (acc, entry) => (!acc || entry.min < acc.min ? entry : acc),
-      null
+      null,
     );
     const wettest = entries.reduce(
       (acc, entry) =>
         !acc || (entry.rain || 0) > (acc.rain || 0) ? entry : acc,
-      null
+      null,
     );
 
     const average = (list, key) => {
@@ -2652,10 +2652,10 @@ class HistoricalChart {
             <small>Min ${
               this._formatValue(bucket.avgMin, " degC", 1) || "--"
             } · Regen ${
-          this._formatValue(bucket.totalRain, " mm", 1) || "--"
-        }</small>
+              this._formatValue(bucket.totalRain, " mm", 1) || "--"
+            }</small>
           </article>
-        `
+        `,
       )
       .join("");
 
@@ -2674,7 +2674,7 @@ class HistoricalChart {
     const trendBuckets = buckets.slice(-12);
     if (!trendBuckets.length) return "";
     const sparkline = this._renderTrendSparkline(
-      trendBuckets.map((bucket) => bucket.avgTemp)
+      trendBuckets.map((bucket) => bucket.avgTemp),
     );
     const rows = trendBuckets
       .map(
@@ -2686,7 +2686,7 @@ class HistoricalChart {
             }</strong>
             <em>${this._formatValue(bucket.totalRain, " mm", 1) || "--"}</em>
           </li>
-        `
+        `,
       )
       .join("");
 
@@ -2706,7 +2706,8 @@ class HistoricalChart {
     const sanitized = series
       .map((value, index) => ({ value, index }))
       .filter(
-        (entry) => typeof entry.value === "number" && !Number.isNaN(entry.value)
+        (entry) =>
+          typeof entry.value === "number" && !Number.isNaN(entry.value),
       );
     if (!sanitized.length) {
       return '<div class="trend-sparkline trend-sparkline--empty">Keine Trenddaten</div>';
@@ -2750,7 +2751,7 @@ class HistoricalChart {
     const hasRange = meta && meta.range && meta.range.start && meta.range.end;
     const fallbackRange = hasRange
       ? `${this._formatDate(meta.range.start)}  ${this._formatDate(
-          meta.range.end
+          meta.range.end,
         )}`
       : "letzte Tage";
     const rangeText = rangeOverride || fallbackRange;
@@ -2783,7 +2784,7 @@ class HistoricalChart {
           <small>${
             stats.coldest
               ? `Kaeltester Tag: ${stats.coldest.label} (${fmt(
-                  stats.coldest.min
+                  stats.coldest.min,
                 )})`
               : ""
           }</small>
@@ -2876,7 +2877,7 @@ class Analytics {
   loadEvents() {
     try {
       return JSON.parse(
-        localStorage.getItem("wetter_analytics_events") || "[]"
+        localStorage.getItem("wetter_analytics_events") || "[]",
       );
     } catch (error) {
       console.warn("Analytics load failed", error);
@@ -2888,7 +2889,7 @@ class Analytics {
     try {
       localStorage.setItem(
         "wetter_analytics_events",
-        JSON.stringify(this.events)
+        JSON.stringify(this.events),
       );
     } catch (error) {
       console.warn("Analytics save failed", error);
@@ -2923,7 +2924,7 @@ class Analytics {
         exportDate: new Date().toISOString(),
       },
       null,
-      2
+      2,
     );
   }
 
@@ -3012,7 +3013,6 @@ if (globalWindow) {
   globalWindow.WeatherMap = WeatherMap;
   globalWindow.MapDataInspector = MapDataInspector;
   globalWindow.WeatherAlerts = WeatherAlerts;
-  globalWindow.HistoricalChart = HistoricalChart;
   globalWindow.Analytics = Analytics;
 }
 
