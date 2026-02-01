@@ -565,7 +565,7 @@ self.addEventListener("message", (event) => {
     event.ports[0].postMessage({
       appVersion: APP_VERSION,
       buildId: BUILD_ID,
-      cacheVersion: CACHE_NAME
+      cacheVersion: CACHE_NAME,
     });
   }
 
