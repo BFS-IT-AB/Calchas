@@ -1939,8 +1939,30 @@
           .register("service-worker.js")
           .then((reg) => {
             console.log("✅ Service Worker registriert:", reg);
-            // Force update check
+            
+            // Force update check bei jedem Seitenaufruf
             reg.update();
+            
+            // Automatischer Reload bei neuem Service Worker
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              console.log("🔄 Neuer Service Worker gefunden, Update wird vorbereitet...");
+              
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log("✨ Neue App-Version verfügbar! Seite wird neu geladen...");
+                  // Warte 1 Sekunde, dann reload
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 1000);
+                }
+              });
+            });
+            
+            // Check alle 60 Sekunden nach Updates (während App offen ist)
+            setInterval(() => {
+              reg.update();
+            }, 60 * 1000);
           })
           .catch((err) => {
             console.warn("⚠️ Service Worker Registrierung fehlgeschlagen:", err);

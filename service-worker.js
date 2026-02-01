@@ -2,7 +2,7 @@
 // Ermöglicht Offline-Funktionalität, Caching und Push-Notifications
 
 const APP_VERSION = "0.1.1-alpha"; // SemVer - manuell bei Releases ändern
-const CACHE_NAME = "calchas-2026-02-01-2005"; // Timestamp - bei jedem Deploy
+const CACHE_NAME = "calchas-2026-02-01-2018"; // Timestamp - bei jedem Deploy
 const BUILD_ID = CACHE_NAME.replace("calchas-", ""); // Extrahiert Timestamp
 const HEALTH_CACHE_NAME = "calchas-health-data"; // Separate cache for health data
 const HEALTH_CACHE_TTL = 30 * 60 * 1000; // 30 Minuten TTL für Health-Daten
@@ -299,12 +299,29 @@ self.addEventListener("fetch", (event) => {
     return; // Lass den Browser das normal handhaben
   }
 
-  // Mehrstufige Offline-Strategie: Network → Current Cache → Old Caches → 503
+  // Aggressive Network-First Strategie mit Cache-Busting für App Updates
   event.respondWith(
     (async () => {
       try {
-        // 1. Versuche Netzwerk
-        const networkResponse = await fetch(request);
+        // 1. Versuche Netzwerk mit Cache-Busting für kritische Dateien
+        const reqUrl = new URL(request.url);
+        const isAppShellFile = reqUrl.origin === self.location.origin && 
+          (reqUrl.pathname.endsWith('.js') || 
+           reqUrl.pathname.endsWith('.css') || 
+           reqUrl.pathname.endsWith('.html') ||
+           reqUrl.pathname === '/' ||
+           reqUrl.pathname === '/index.html');
+        
+        // Für App Shell: Immer mit no-cache Header fetchen
+        const fetchOptions = isAppShellFile ? {
+          cache: 'no-cache',  // Bypass browser cache
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        } : {};
+        
+        const networkResponse = await fetch(request.clone(), fetchOptions);
 
         // Speichere erfolgreiche Responses im Cache
         if (
@@ -313,13 +330,16 @@ self.addEventListener("fetch", (event) => {
           networkResponse.type !== "error"
         ) {
           try {
-            const reqUrl = new URL(request.url);
             if (
               (reqUrl.protocol === "http:" || reqUrl.protocol === "https:") &&
               reqUrl.origin === self.location.origin
             ) {
               const cache = await caches.open(CACHE_NAME);
               await cache.put(reqUrl.href, networkResponse.clone());
+              
+              if (isAppShellFile) {
+                console.log(`Service Worker: Updated cache for ${reqUrl.pathname}`);
+              }
             }
           } catch (cacheErr) {
             console.warn(

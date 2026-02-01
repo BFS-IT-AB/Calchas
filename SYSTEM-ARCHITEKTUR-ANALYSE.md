@@ -1,8 +1,8 @@
 # 🏗️ Calchas System-Architektur - Vollständige Analyse
 
 > **Erstellt:** 01.02.2026
-> **Aktualisiert:** 01.02.2026 (v0.7.1-alpha)
-> **Version:** 0.7.1-alpha
+> **Aktualisiert:** 01.02.2026 (v0.1.1-alpha)
+> **Version:** 0.1.1-alpha
 > **Zweck:** Detaillierte Dokumentation der gesamten Caching-, Service-Worker-, Versions- und Changelog-Architektur
 
 ---
@@ -146,9 +146,9 @@ npm run version-sync
 
 ### 📚 Weitere Guides
 
-- Detaillierter Workflow → [VERSION-MANAGEMENT.md](VERSION-MANAGEMENT.md)
-- Git Hook Setup → [GIT-HOOKS-SETUP.md](GIT-HOOKS-SETUP.md)
+- Gesamte Dokumentation → [DOCUMENTATION.md](DOCUMENTATION.md)
 - Changelog pflegen → [Abschnitt 6](#6-changelog-system)
+- TimeRangeSystem → [dev/docs/TimeRangeSystem-ANLEITUNG.md](dev/docs/TimeRangeSystem-ANLEITUNG.md)
 
 ---
 
@@ -159,9 +159,9 @@ npm run version-sync
 Calchas verwendet ein **Dual-Versioning-System** mit zwei unabhängigen Versionsnummern:
 
 ```
-APP_VERSION  = "0.7.1-alpha"        (SemVer - Semantic Versioning)
-BUILD_ID     = "2026-02-01-1819"     (Timestamp - Build-Zeitstempel)
-CACHE_NAME   = "calchas-2026-02-01-1819"  (Cache-Identifier)
+APP_VERSION  = "0.1.1-alpha"        (SemVer - Semantic Versioning)
+BUILD_ID     = "2026-02-01-1840"     (Timestamp - Build-Zeitstempel)
+CACHE_NAME   = "calchas-2026-02-01-1840"  (Cache-Identifier)
 ```
 
 #### Zweck der Versionen:
@@ -180,7 +180,7 @@ CACHE_NAME   = "calchas-2026-02-01-1819"  (Cache-Identifier)
 {
   "name": "Calchas - Aktuelle Wetterdaten",
   "short_name": "Calchas",
-  "version": "0.7.1-alpha",  ← EINZIGE Stelle, wo Version gepflegt wird
+  "version": "0.1.1-alpha",  ← EINZIGE Stelle, wo Version gepflegt wird
   "description": "Calchas mit Open-Meteo und BrightSky Integration...",
   "start_url": "/",
   "scope": "/",
@@ -254,9 +254,9 @@ npm run version-sync
 
 ```
 ✓ Version synchronization complete:
-  App Version: 0.7.1-alpha
-  Build ID: 2026-02-01-1819
-  Cache Name: calchas-2026-02-01-1819
+  App Version: 0.1.1-alpha
+  Build ID: 2026-02-01-1840
+  Cache Name: calchas-2026-02-01-1840
 
 ✓ service-worker.js updated
 ```
@@ -280,21 +280,21 @@ npm run version-sync
 
 ### 2.1 Struktur & Konstanten
 
-**Datei:** `service-worker.js` (1015 Zeilen) - **Erweitert in v0.7.1-alpha**
+**Datei:** `service-worker.js` (1015 Zeilen) - **Erweitert in v0.1.1-alpha**
 
 ```javascript
 // ═══════════════════════════════════════════════════════════
 // KONSTANTEN (werden durch sync-version.js synchronisiert)
 // ═══════════════════════════════════════════════════════════
 
-const APP_VERSION = "0.7.1-alpha"; // SemVer
-const CACHE_NAME = "calchas-2026-02-01-1819"; // Timestamp-basiert
+const APP_VERSION = "0.1.1-alpha"; // SemVer
+const CACHE_NAME = "calchas-2026-02-01-1840"; // Timestamp-basiert
 const BUILD_ID = CACHE_NAME.replace("calchas-", ""); // Extrahiert Timestamp
 const HEALTH_CACHE_NAME = "calchas-health-data"; // Separate Health-Daten
 const HEALTH_CACHE_TTL = 30 * 60 * 1000; // 30 Minuten TTL für Health-Daten
 
 // ═══════════════════════════════════════════════════════════
-// CACHE-ASSETS (App Shell) - VOLLSTÄNDIG ERWEITERT v0.7.1
+// CACHE-ASSETS (App Shell) - VOLLSTÄNDIG ERWEITERT v0.1.1
 // Von ~40 auf 150+ Dateien
 // ═══════════════════════════════════════════════════════════
 
@@ -444,20 +444,11 @@ const urlsToCache = [
 ];
 ```
 
-**Änderungen in v0.7.1-alpha:**
+**Änderungen in v0.1.1-alpha:**
 
 - ✅ `urlsToCache` erweitert: **~40 → 150+ Dateien**
 - ✅ `HEALTH_CACHE_TTL` Konstante hinzugefügt
 - ✅ Vollständige Abdeckung aller API-, UI-, Modal-, Map-Dateien
-  "/js/ui/day-detail/day-detail.js",
-  "/js/ui/day-detail/day-detail.css",
-  "/js/ui/day-detail/day-detail.html",
-  "/js/ui/shared/features.js",
-  "/manifest.json",
-  "/assets/icons/icon-192.png",
-  "/assets/icons/icon-384.png",
-  "/assets/icons/apple-touch-icon.png",
-  ];
 
 ````
 
@@ -730,7 +721,7 @@ self.addEventListener("notificationclick", (event) => {
 Calchas verwendet **zwei separate Caches**:
 
 ```javascript
-const CACHE_NAME = "calchas-2026-02-01-1815"; // App Shell + Assets
+const CACHE_NAME = "calchas-2026-02-01-1840"; // App Shell + Assets
 const HEALTH_CACHE_NAME = "calchas-health-data"; // Health Intelligence Daten
 ```
 
@@ -1192,8 +1183,8 @@ async function renderAboutSheet() {
 
 ```
 Calchas
-v0.7.0-alpha
-Build: 01.02.26 18:15
+v0.1.1-alpha
+Build: 01.02.26 18:40
 ```
 
 ### 5.2 Version-Kommunikationsfluss
@@ -1212,7 +1203,7 @@ sequenceDiagram
 
     alt Service Worker nicht verfügbar
         UI->>M: fetch("/manifest.json")
-        M-->>UI: { version: "0.7.0-alpha" }
+        M-->>UI: { version: "0.1.1-alpha" }
         UI->>UI: Fallback-Anzeige
     end
 ```
@@ -1432,7 +1423,7 @@ npm run version-sync
 
 # 4. Commit
 git add changelog.js manifest.json service-worker.js
-git commit -m "chore: bump version to v0.7.1-alpha"
+git commit -m "chore: bump version to v0.1.2-alpha"
 ```
 
 ---
@@ -1566,7 +1557,7 @@ sequenceDiagram
 
     H->>SW: Aktualisiert CACHE_NAME
     H->>G: git add service-worker.js
-    H-->>Dev: ✓ Version: 0.7.0-alpha, Build: 2026-02-01-1815
+    H-->>Dev: ✓ Version: 0.1.1-alpha, Build: 2026-02-01-1840
     G->>G: Commit fortsetzen
 ```
 
@@ -1607,7 +1598,7 @@ sequenceDiagram
     participant B as Browser
 
     Dev->>Dev: npm run version-sync
-    Note over Dev: CACHE_NAME = "calchas-2026-02-01-1815"
+    Note over Dev: CACHE_NAME = "calchas-2026-02-01-1840"
 
     Dev->>B: Deploy (neue Version)
     B->>SWN: Install Event
@@ -1693,14 +1684,14 @@ sequenceDiagram
 ```bash
 # 1. manifest.json bearbeiten
 vim manifest.json
-# "version": "0.7.1-alpha"
+# "version": "0.1.2-alpha"
 
 # 2. Version synchronisieren
 npm run version-sync
 
 # 3. Committen (Hook läuft automatisch)
 git add manifest.json
-git commit -m "chore: bump version to v0.7.1-alpha"
+git commit -m "chore: bump version to v0.1.2-alpha"
 ```
 
 #### ❌ DON'T:
@@ -1960,23 +1951,23 @@ User öffnet App → About-Modal zeigt neue Version
 | Datei                          | Zeilen | Zweck                                                           |
 | ------------------------------ | ------ | --------------------------------------------------------------- |
 | `manifest.json`                | 92     | Source of Truth für Version                                     |
-| `service-worker.js`            | 1015   | PWA Cache & Background Sync + Diagnostics (v0.7.1)              |
+| `service-worker.js`            | 1015   | PWA Cache & Background Sync + Diagnostics (v0.1.1)              |
 | `js/ui/settings/AboutSheet.js` | 812    | About-Modal + Version-Anzeige                                   |
-| `js/config/changelog.js`       | 167    | Changelog-Konfiguration + Validation (v0.7.1)                   |
-| `js/utils/cache.js`            | 379    | Client-Side Cache Manager + QuotaExceededError Handler (v0.7.1) |
-| `dev/tools/sync-version.js`    | 117    | Version-Sync-Tool + Validation (v0.7.1)                         |
-| `.git/hooks/pre-commit`        | 66     | Bash Pre-Commit Hook (Universal v0.7.1)                         |
+| `js/config/changelog.js`       | 167    | Changelog-Konfiguration + Validation (v0.1.1)                   |
+| `js/utils/cache.js`            | 379    | Client-Side Cache Manager + QuotaExceededError Handler (v0.1.1) |
+| `dev/tools/sync-version.js`    | 117    | Version-Sync-Tool + Validation (v0.1.1)                         |
+| `.git/hooks/pre-commit`        | 66     | Bash Pre-Commit Hook (Universal v0.1.1)                         |
 | `.git/hooks/pre-commit.ps1`    | 45     | PowerShell Pre-Commit Hook                                      |
 
 ### 13.2 Dokumentation
 
-- [VERSION-MANAGEMENT.md](VERSION-MANAGEMENT.md) - Versions-Workflow
-- [GIT-HOOKS-SETUP.md](GIT-HOOKS-SETUP.md) - Git-Hook-Installation
+- [DOCUMENTATION.md](DOCUMENTATION.md) - Vollständige Entwicklerdokumentation
 - [README.md](README.md) - Projekt-Übersicht
+- [dev/docs/TimeRangeSystem-ANLEITUNG.md](dev/docs/TimeRangeSystem-ANLEITUNG.md) - TimeRange Feature Guide
 
 ---
 
-## 14. v0.7.1-alpha Changelog
+## 14. v0.1.1-alpha Changelog
 
 ### 🎯 Hauptänderungen
 
@@ -2029,7 +2020,7 @@ User öffnet App → About-Modal zeigt neue Version
 
 #### Changelog (`js/config/changelog.js`)
 
-- **v0.7.1-alpha Entry:** 8 Changes dokumentiert
+- **v0.1.1-alpha Entry:** 8 Changes dokumentiert
 - **Validation Funktion:**
   - `validateChangelog()`: Prüft ob genau 1x `isLatest: true`
   - Auto-Validation bei Load
@@ -2042,9 +2033,9 @@ User öffnet App → About-Modal zeigt neue Version
 
 ---
 
-### 📊 Vergleich v0.7.0 → v0.7.1
+### 📊 Vergleich v0.1.0 → v0.1.1
 
-| Metrik                    | v0.7.0  | v0.7.1       | Änderung  |
+| Metrik                    | v0.1.0  | v0.1.1       | Änderung  |
 | ------------------------- | ------- | ------------ | --------- |
 | `urlsToCache` Einträge    | ~40     | 150+         | **+275%** |
 | Service Worker Zeilen     | 637     | 1015         | +378      |
@@ -2057,4 +2048,4 @@ User öffnet App → About-Modal zeigt neue Version
 
 ---
 
-**Ende der Analyse** | Version 1.1 (v0.7.1-alpha) | 01.02.2026
+**Ende der Analyse** | Version 1.1 (v0.1.1-alpha) | 01.02.2026
