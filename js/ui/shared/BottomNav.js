@@ -66,6 +66,9 @@
 
   function setActive(viewId) {
     if (!viewId) return;
+
+    // Store previous view for cleanup
+    const previousView = currentView;
     currentView = viewId;
 
     const navButtons = document.querySelectorAll(
@@ -112,15 +115,24 @@
       scrollContainer.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    // CLEANUP: Beim Verlassen des History-Tabs Observer disconnecten
-    if (viewId !== "history" && global.HistoryCharts?.cleanupObservers) {
-      console.log("[BottomNav] Leaving History → Cleanup Observers");
-      global.HistoryCharts.cleanupObservers();
-    }
+    // CLEANUP: Beim Verlassen des History-Tabs Observer disconnecten und Tooltips entfernen
+    if (previousView === "history" && viewId !== "history") {
+      console.log("[BottomNav] Leaving History → Cleanup Observers & Tooltips");
 
-    // CLEANUP: Charts zerstören beim Verlassen
-    if (viewId !== "history" && global.HistoryCharts?.destroyAll) {
-      global.HistoryCharts.destroyAll();
+      // Remove all tooltips immediately
+      if (global.HistoryCharts?.removeAllTooltips) {
+        global.HistoryCharts.removeAllTooltips();
+      }
+
+      // Cleanup observers
+      if (global.HistoryCharts?.cleanupObservers) {
+        global.HistoryCharts.cleanupObservers();
+      }
+
+      // Destroy charts
+      if (global.HistoryCharts?.destroyAll) {
+        global.HistoryCharts.destroyAll();
+      }
     }
 
     // Trigger History render when switching to history tab

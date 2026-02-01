@@ -822,8 +822,25 @@
       });
       this.instances.clear();
       this._dataStore.clear();
+
+      // Remove all tooltips from DOM
+      this.removeAllTooltips();
+
       if (count > 0) {
         console.log(`🗑️ [HistoryCharts] Destroyed all ${count} charts`);
+      }
+    }
+
+    /**
+     * Remove all chart tooltips from DOM
+     */
+    removeAllTooltips() {
+      const tooltips = document.querySelectorAll(".chart-popup-tooltip");
+      tooltips.forEach((tooltip) => {
+        tooltip.remove();
+      });
+      if (tooltips.length > 0) {
+        console.log(`🗑️ [HistoryCharts] Removed ${tooltips.length} tooltips`);
       }
     }
 
@@ -2635,6 +2652,35 @@
   const chartManager = new ChartManager();
 
   // ============================================
+  // CLEANUP EVENT LISTENERS
+  // ============================================
+  // Remove tooltips when navigating away or losing focus
+  function setupTooltipCleanupListeners() {
+    // Clean tooltips on visibility change (tab switch, minimize)
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        chartManager.removeAllTooltips();
+      }
+    });
+
+    // Clean tooltips on page navigation (before unload)
+    window.addEventListener("beforeunload", () => {
+      chartManager.removeAllTooltips();
+    });
+
+    // Clean tooltips when switching away from history tab
+    // This catches custom tab switching in the app
+    document.addEventListener("tabchange", (e) => {
+      if (e.detail?.from === "history" || e.detail?.previousTab === "history") {
+        chartManager.removeAllTooltips();
+      }
+    });
+  }
+
+  // Initialize cleanup listeners once
+  setupTooltipCleanupListeners();
+
+  // ============================================
   // PUBLIC API
   // ============================================
   global.HistoryCharts = {
@@ -2643,6 +2689,7 @@
       chartManager.create(canvasId, config, sourceData),
     destroy: (canvasId) => chartManager.destroy(canvasId),
     destroyAll: () => chartManager.destroyAll(),
+    removeAllTooltips: () => chartManager.removeAllTooltips(),
     has: (canvasId) => chartManager.has(canvasId),
     get: (canvasId) => chartManager.get(canvasId),
     getData: (canvasId) => chartManager.getData(canvasId),
