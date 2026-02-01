@@ -21,7 +21,7 @@ Calchas ist eine moderne, mobile Wetter-App als Progressive Web App (PWA). Sie b
 - Radar‑Ansicht mit Layern (Niederschlag, Temperatur, Wind, Wolken)
 - Regionale Wetterwarnungen (MeteoAlarm/CAP)
 - Historische Ansichten und Trends
-- Favoriten, Einheiten‑Umschalter (°C/°F, km/h/m/s/mph)
+- Favoriten und Verlauf
 - Offen, offline und installierbar (PWA) – keine Registrierung
 
 ## Installieren (PWA)
@@ -36,7 +36,7 @@ Nach der Installation läuft Calchas im eigenen Fenster und funktioniert auch of
 ## Nutzung
 
 - Standort wählen, „Heute“ ansehen, durch Stunden & Tage scrollen.
-- Radar‑Tab für Karten, Health‑Tab für Empfehlungen, Einstellungen für Theme, Einheiten und Sprache.
+- Radar‑Tab für Karten, Health‑Tab für Empfehlungen.
 
 ## Screenshots
 
