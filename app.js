@@ -709,7 +709,7 @@ async function initAppShell(appState) {
 
   if (window.AboutSheet && window.AboutSheet.renderAboutSheet) {
     try {
-      window.AboutSheet.renderAboutSheet(appState);
+      await window.AboutSheet.renderAboutSheet(appState);
     } catch (e) {
       console.warn("AboutSheet Initialisierung fehlgeschlagen", e);
     }

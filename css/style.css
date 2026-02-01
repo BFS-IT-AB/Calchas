@@ -4071,6 +4071,17 @@ body.mobile-app #legacy-content {
 .about-badge--version {
   background: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.about-badge--version .build-id {
+  font-size: 9px;
+  font-family: "Consolas", "Monaco", monospace;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 400;
 }
 
 .about-badge--changelog {

@@ -61,9 +61,9 @@
           global.HomeLocationSheet.renderHomeSheet(appState);
         }
       },
-      "sheet-settings-about": () => {
+      "sheet-settings-about": async () => {
         if (global.AboutSheet?.renderAboutSheet) {
-          global.AboutSheet.renderAboutSheet(appState);
+          await global.AboutSheet.renderAboutSheet(appState);
         }
       },
       "sheet-settings-background": () => {

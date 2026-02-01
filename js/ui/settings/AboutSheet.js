@@ -2,6 +2,8 @@
  * AboutSheet.js - Über Calchas Modal
  * Komplett neu gestaltet nach Design-Vorlage
  */
+import { getVersionInfo, formatBuildId } from "../../utils/version.js";
+
 (function (global) {
   // SVG Icons
   const ICONS = {
@@ -24,17 +26,17 @@
   const DISCORD_URL = "https://discord.gg/KaeDPazvck";
   const WEBSITE_URL = "https://calchas.dev";
 
-  function renderAboutSheet() {
+  async function renderAboutSheet() {
     const container = document.getElementById("settings-about-body");
     if (!container) {
       console.warn("[AboutSheet] Container nicht gefunden");
       return;
     }
 
-    const latestRelease = global.CHANGELOG?.[0];
-    const version = latestRelease
-      ? latestRelease.version
-      : global.APP_VERSION || "1.0.0";
+    // Lade echte Version vom Service Worker
+    const versionInfo = await getVersionInfo();
+    const version = versionInfo.appVersion;
+    const buildId = formatBuildId(versionInfo.buildId);
 
     container.innerHTML = `
       <div class="about-settings">
@@ -46,7 +48,10 @@
           <div class="about-header__info">
             <h2 class="about-header__name">Calchas</h2>
             <div class="about-header__badges">
-              <span class="about-badge about-badge--version">v${version}</span>
+              <span class="about-badge about-badge--version" id="version-display">
+                v${version}
+                <span class="build-id">Build: ${buildId}</span>
+              </span>
               <button class="about-badge about-badge--refresh" type="button" data-action="refresh" title="Nach Updates suchen">${
                 ICONS.refresh
               }</button>
