@@ -2,7 +2,7 @@
 // Ermöglicht Offline-Funktionalität, Caching und Push-Notifications
 
 const APP_VERSION = "0.7.0-alpha"; // SemVer - manuell bei Releases ändern
-const CACHE_NAME = "calchas-2026-02-01-1753"; // Timestamp - bei jedem Deploy
+const CACHE_NAME = "calchas-2026-02-01-1658"; // Timestamp - bei jedem Deploy
 const BUILD_ID = CACHE_NAME.replace("calchas-", ""); // Extrahiert Timestamp
 const HEALTH_CACHE_NAME = "calchas-health-data"; // Separate cache for health data
 const urlsToCache = [

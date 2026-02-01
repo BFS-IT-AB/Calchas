@@ -1,6 +1,7 @@
 {
   "name": "Calchas - Aktuelle Wetterdaten",
   "short_name": "Calchas",
+  "version": "0.7.0-alpha",
   "description": "Calchas mit Open-Meteo und BrightSky Integration für aktuelle Wetterdaten und Vorhersagen. Optimiert für Smartphones.",
   "start_url": "/",
   "scope": "/",

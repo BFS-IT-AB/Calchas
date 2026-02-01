@@ -13,6 +13,8 @@
     "test:browser": "http-server dev/tests/ -p 9000",
     "lint": "eslint js/ --fix",
     "build": "echo 'Production-ready structure - no build needed'",
+    "version-sync": "node dev/tools/sync-version.js",
+    "pre-deploy": "npm run version-sync && git add service-worker.js",
     "predeploy": "npm test && npm run lint"
   },
   "dependencies": {
