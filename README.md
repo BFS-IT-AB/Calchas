@@ -1,6 +1,7 @@
 # Calchas
 
-![Version](https://img.shields.io/badge/version-v0.7.0--alpha-orange)
+![Version](https://img.shields.io/badge/version-v0.1.1--alpha-orange)
+![Status](https://img.shields.io/badge/status-alpha-yellow)
 
 Calchas ist eine moderne, mobile Wetter-App als Progressive Web App (PWA). Sie bietet verlässliche Vorhersagen, Radar-Karten, Tages‑Insights, Historie und hilfreiche Health‑Tipps – alles offline‑fähig und ohne Konto.
 

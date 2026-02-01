@@ -159,9 +159,9 @@ npm run version-sync
 Calchas verwendet ein **Dual-Versioning-System** mit zwei unabhängigen Versionsnummern:
 
 ```
-APP_VERSION  = "0.7.1-alpha"        (SemVer - Semantic Versioning)
-BUILD_ID     = "2026-02-01-1819"     (Timestamp - Build-Zeitstempel)
-CACHE_NAME   = "calchas-2026-02-01-1819"  (Cache-Identifier)
+APP_VERSION  = "0.1.1-alpha"        (SemVer - Semantic Versioning)
+BUILD_ID     = "2026-02-01-1840"     (Timestamp - Build-Zeitstempel)
+CACHE_NAME   = "calchas-2026-02-01-1840"  (Cache-Identifier)
 ```
 
 #### Zweck der Versionen:
@@ -1957,16 +1957,16 @@ User öffnet App → About-Modal zeigt neue Version
 
 ### 13.1 Wichtige Dateien
 
-| Datei                          | Zeilen | Zweck                         |
-| ------------------------------ | ------ | ----------------------------- |
-| `manifest.json`                | 92     | Source of Truth für Version   |
-| `service-worker.js`            | 1015   | PWA Cache & Background Sync + Diagnostics (v0.7.1) |
-| `js/ui/settings/AboutSheet.js` | 812    | About-Modal + Version-Anzeige |
-| `js/config/changelog.js`       | 167    | Changelog-Konfiguration + Validation (v0.7.1) |
+| Datei                          | Zeilen | Zweck                                                           |
+| ------------------------------ | ------ | --------------------------------------------------------------- |
+| `manifest.json`                | 92     | Source of Truth für Version                                     |
+| `service-worker.js`            | 1015   | PWA Cache & Background Sync + Diagnostics (v0.7.1)              |
+| `js/ui/settings/AboutSheet.js` | 812    | About-Modal + Version-Anzeige                                   |
+| `js/config/changelog.js`       | 167    | Changelog-Konfiguration + Validation (v0.7.1)                   |
 | `js/utils/cache.js`            | 379    | Client-Side Cache Manager + QuotaExceededError Handler (v0.7.1) |
-| `dev/tools/sync-version.js`    | 117    | Version-Sync-Tool + Validation (v0.7.1) |
-| `.git/hooks/pre-commit`        | 66     | Bash Pre-Commit Hook (Universal v0.7.1) |
-| `.git/hooks/pre-commit.ps1`    | 45     | PowerShell Pre-Commit Hook    |
+| `dev/tools/sync-version.js`    | 117    | Version-Sync-Tool + Validation (v0.7.1)                         |
+| `.git/hooks/pre-commit`        | 66     | Bash Pre-Commit Hook (Universal v0.7.1)                         |
+| `.git/hooks/pre-commit.ps1`    | 45     | PowerShell Pre-Commit Hook                                      |
 
 ### 13.2 Dokumentation
 
@@ -1981,6 +1981,7 @@ User öffnet App → About-Modal zeigt neue Version
 ### 🎯 Hauptänderungen
 
 #### Service Worker (`service-worker.js`)
+
 - **urlsToCache:** Erweitert von ~40 auf **150+ Dateien**
   - Alle API-Layer Files (`aqi.js`, `sunriseSunset.js`, etc.)
   - Alle UI-Modals (`ModalController.js`, `DetailSheets/*`)
@@ -2012,6 +2013,7 @@ User öffnet App → About-Modal zeigt neue Version
   - `CLEAR_ALL_CACHES`: Testing Support
 
 #### CacheManager (`js/utils/cache.js`)
+
 - **QuotaExceededError Handler:**
   - `_handleQuotaExceeded()` Methode
   - Löscht älteste 25% der Einträge automatisch
@@ -2019,18 +2021,21 @@ User öffnet App → About-Modal zeigt neue Version
   - Analytics Event: `cache_quota_cleanup`
 
 #### Version-Sync (`dev/tools/sync-version.js`)
+
 - **Try-Catch:** Alle File-Reads mit Error Handling
 - **SemVer Validation:** Warnung bei nicht-konformem Format
 - **Regex Verification:** Prüft ob Replacement erfolgreich war
 - **Changelog Check:** Warnt wenn `changelog.js` andere Version hat
 
 #### Changelog (`js/config/changelog.js`)
+
 - **v0.7.1-alpha Entry:** 8 Changes dokumentiert
 - **Validation Funktion:**
   - `validateChangelog()`: Prüft ob genau 1x `isLatest: true`
   - Auto-Validation bei Load
 
 #### Git Hook (`.git/hooks/pre-commit`)
+
 - **Universal Script:** Platform Auto-Detection (GNU/BSD sed)
 - **Validierung:** SemVer Regex Check
 - **Robustes Error Handling:** Exit Codes, Color Output
@@ -2039,16 +2044,16 @@ User öffnet App → About-Modal zeigt neue Version
 
 ### 📊 Vergleich v0.7.0 → v0.7.1
 
-| Metrik | v0.7.0 | v0.7.1 | Änderung |
-|--------|--------|--------|----------|
-| `urlsToCache` Einträge | ~40 | 150+ | **+275%** |
-| Service Worker Zeilen | 637 | 1015 | +378 |
-| Offline-Fallback Stufen | 1 | 5 | +4 |
-| Health Cache TTL | ❌ | 30min | ✅ |
-| Diagnostics API | ❌ | 3 Commands | ✅ |
-| Quota Error Handling | ❌ | Auto-Cleanup | ✅ |
-| Version-Sync Validation | ❌ | ✅ | ✅ |
-| Git Hook Platform-Support | Windows | Universal | ✅ |
+| Metrik                    | v0.7.0  | v0.7.1       | Änderung  |
+| ------------------------- | ------- | ------------ | --------- |
+| `urlsToCache` Einträge    | ~40     | 150+         | **+275%** |
+| Service Worker Zeilen     | 637     | 1015         | +378      |
+| Offline-Fallback Stufen   | 1       | 5            | +4        |
+| Health Cache TTL          | ❌      | 30min        | ✅        |
+| Diagnostics API           | ❌      | 3 Commands   | ✅        |
+| Quota Error Handling      | ❌      | Auto-Cleanup | ✅        |
+| Version-Sync Validation   | ❌      | ✅           | ✅        |
+| Git Hook Platform-Support | Windows | Universal    | ✅        |
 
 ---
 
