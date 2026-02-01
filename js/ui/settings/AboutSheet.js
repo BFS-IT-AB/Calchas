@@ -313,8 +313,29 @@
         showContributorsModal();
         break;
       case "discord":
-        window.open(DISCORD_URL, "_blank", "noopener,noreferrer");
+        showDiscordModal();
         break;
+        // ============ DISCORD MODAL ============
+
+        function showDiscordModal() {
+          const content = `
+            <div class="discord-modal__content">
+              <div class="discord-modal__dev-badge">
+                <span class="material-symbols-outlined">construction</span>
+                <span>In Entwicklung</span>
+              </div>
+              <p>Du kannst unserem Discord-Server bereits beitreten:</p>
+              <div class="discord-modal__link">
+                <a href="${DISCORD_URL}" target="_blank" rel="noopener noreferrer">
+                  <span class="material-symbols-outlined">open_in_new</span>
+                  Discord-Server beitreten
+                </a>
+              </div>
+              <p class="discord-modal__hint">⚠️ Der Server befindet sich noch im Aufbau – aktuell ist dort noch nicht viel los.</p>
+            </div>
+          `;
+          createModal("about-discord-modal", "Discord Community", content);
+        }
       case "thirdparty":
         showThirdPartyModal();
         break;

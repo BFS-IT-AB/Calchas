@@ -248,8 +248,8 @@
         }
         break;
       case "discord":
-        console.log("[NonMobileOverlay] Öffne Discord");
-        window.open(DISCORD_URL, "_blank", "noopener,noreferrer");
+        console.log("[NonMobileOverlay] Öffne Discord Modal");
+        showDiscordModal();
         break;
       case "thirdparty":
         console.log("[NonMobileOverlay] Öffne Drittanbieter Modal");
@@ -318,6 +318,36 @@
       window.AboutSheet.createModal(
         "overlay-email-modal",
         "Kontakt – Calchas Team",
+        content,
+      );
+    }
+  }
+
+  /**
+   * Discord Modal
+   */
+  function showDiscordModal() {
+    const content = `
+      <div class="discord-modal__content">
+        <div class="discord-modal__dev-badge">
+          <span class="material-symbols-outlined">construction</span>
+          <span>In Entwicklung</span>
+        </div>
+        <p>Du kannst unserem Discord-Server bereits beitreten:</p>
+        <div class="discord-modal__link">
+          <a href="${DISCORD_URL}" target="_blank" rel="noopener noreferrer">
+            <span class="material-symbols-outlined">open_in_new</span>
+            Discord-Server beitreten
+          </a>
+        </div>
+        <p class="discord-modal__hint">⚠️ Der Server befindet sich noch im Aufbau – aktuell ist dort noch nicht viel los.</p>
+      </div>
+    `;
+
+    if (window.AboutSheet?.createModal) {
+      window.AboutSheet.createModal(
+        "overlay-discord-modal",
+        "Discord Community",
         content,
       );
     }

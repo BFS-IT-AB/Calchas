@@ -364,6 +364,73 @@
   border-left: 3px solid rgba(255, 152, 0, 0.5);
 }
 
+/* Discord Modal Styles */
+.discord-modal__content {
+  padding: 0;
+}
+
+.discord-modal__dev-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 152, 0, 0.15);
+  border: 1px solid rgba(255, 152, 0, 0.3);
+  border-radius: 20px;
+  color: #ffb74d;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.discord-modal__dev-badge .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.discord-modal__content p {
+  margin: 0 0 20px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.discord-modal__link {
+  padding: 20px;
+  background: rgba(88, 101, 242, 0.15);
+  border-radius: 12px;
+  text-align: center;
+  margin: 0 0 20px;
+}
+
+.discord-modal__link a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #5865f2;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.discord-modal__link a:hover {
+  color: #7289da;
+}
+
+.discord-modal__link .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.discord-modal__hint {
+  margin: 0 !important;
+  font-size: 14px !important;
+  color: rgba(255, 152, 0, 0.9) !important;
+  background: rgba(255, 152, 0, 0.08);
+  padding: 12px 16px;
+  border-radius: 8px;
+  border-left: 3px solid rgba(255, 152, 0, 0.5);
+}
+
 /* Dark Scrollbar für Overlay */
 .non-mobile-overlay::-webkit-scrollbar {
   width: 10px;
