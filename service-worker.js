@@ -1,7 +1,7 @@
 // Service Worker für Calchas
 // Ermöglicht Offline-Funktionalität, Caching und Push-Notifications
 
-const CACHE_NAME = "calchas-v12"; // Version erhöht für Production-Ready-Struktur
+const CACHE_NAME = "calchas-v0.8.1-alpha"; // Icon-Update: PNG statt SVG data-URIs
 const HEALTH_CACHE_NAME = "calchas-health-data"; // Separate cache for health data
 const urlsToCache = [
   "/",
@@ -42,6 +42,9 @@ const urlsToCache = [
   "/js/ui/day-detail/day-detail.html",
   "/js/ui/shared/features.js",
   "/manifest.json",
+  "/assets/icons/icon-192.png",
+  "/assets/icons/icon-512.png",
+  "/assets/icons/apple-touch-icon.png",
 ];
 
 // Installation
