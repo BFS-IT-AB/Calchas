@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Non-Mobile Overlay Test</title>
+    <link rel="stylesheet" href="../src/ui/non-mobile-overlay.css" />
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family: "Segoe UI", system-ui, sans-serif;
+      }
+      .test-info {
+        background: #f0f0f0;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+      }
+      .test-log {
+        background: #2a2a2a;
+        color: #00ff00;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: "Courier New", monospace;
+        font-size: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+        margin-top: 20px;
+      }
+      .test-log div {
+        margin: 3px 0;
+      }
+      .test-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      .test-buttons button {
+        padding: 10px 20px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="test-info">
+      <h1>🧪 Non-Mobile Overlay Test</h1>
+      <p>Diese Seite testet das Non-Mobile Overlay separat.</p>
+
+      <div class="test-buttons">
+        <button id="show-overlay">Overlay anzeigen</button>
+        <button id="clear-log">Log löschen</button>
+      </div>
+
+      <div class="test-log" id="test-log">
+        <div>Test-Log initialisiert...</div>
+      </div>
+    </div>
+
+    <!-- AboutSheet wird benötigt für Modals -->
+    <script src="../src/config/changelog.js"></script>
+    <script src="../src/ui/settings/AboutSheet.js"></script>
+    <script src="../src/utils/deviceDetection.js"></script>
+    <script src="../src/ui/NonMobileOverlay.js"></script>
+
+    <script>
+      // Log-Funktion
+      function log(message, color = "#00ff00") {
+        const logEl = document.getElementById("test-log");
+        const time = new Date().toLocaleTimeString();
+        const div = document.createElement("div");
+        div.style.color = color;
+        div.textContent = `[${time}] ${message}`;
+        logEl.appendChild(div);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      // Überschreibe console.log für Tests
+      const originalLog = console.log;
+      console.log = function (...args) {
+        originalLog.apply(console, args);
+        log(args.join(" "));
+      };
+
+      const originalError = console.error;
+      console.error = function (...args) {
+        originalError.apply(console, args);
+        log("ERROR: " + args.join(" "), "#ff0000");
+      };
+
+      // Test-Buttons
+      document.getElementById("show-overlay").addEventListener("click", () => {
+        log("=== Zeige Overlay ===", "#ffff00");
+
+        if (
+          window.NonMobileOverlay &&
+          window.NonMobileOverlay.showNonMobileOverlay
+        ) {
+          window.NonMobileOverlay.showNonMobileOverlay();
+        } else {
+          log("ERROR: NonMobileOverlay nicht verfügbar!", "#ff0000");
+        }
+      });
+
+      document.getElementById("clear-log").addEventListener("click", () => {
+        document.getElementById("test-log").innerHTML =
+          "<div>Log gelöscht...</div>";
+      });
+
+      // Initial Info
+      log("=== Test-Seite geladen ===", "#00ffff");
+      log("DeviceDetection verfügbar: " + !!window.DeviceDetection);
+      log("NonMobileOverlay verfügbar: " + !!window.NonMobileOverlay);
+      log("AboutSheet verfügbar: " + !!window.AboutSheet);
+      log("CHANGELOG verfügbar: " + !!window.CHANGELOG);
+    </script>
+  </body>
+</html>

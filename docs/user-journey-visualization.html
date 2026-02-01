@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calchas - User Journey Visualisierung</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px 20px;
+        min-height: 100vh;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 50px;
+        font-size: 36px;
+      }
+      .journey-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 30px;
+        margin-top: 30px;
+      }
+      .journey-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 30px;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        transition: transform 0.3s;
+      }
+      .journey-card:hover {
+        transform: translateY(-5px);
+      }
+      .device-icon {
+        font-size: 64px;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .device-title {
+        font-size: 24px;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 15px;
+      }
+      .status {
+        text-align: center;
+        padding: 10px;
+        border-radius: 10px;
+        font-weight: 600;
+        margin-bottom: 20px;
+      }
+      .status.supported {
+        background: rgba(76, 175, 80, 0.3);
+        color: #4caf50;
+      }
+      .status.not-supported {
+        background: rgba(255, 82, 82, 0.3);
+        color: #ff5252;
+      }
+      .flow-step {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        border-left: 4px solid rgba(255, 255, 255, 0.5);
+      }
+      .flow-step-number {
+        font-weight: 700;
+        color: #ffd700;
+        margin-right: 8px;
+      }
+      .features-list {
+        margin-top: 20px;
+        list-style: none;
+      }
+      .features-list li {
+        padding: 8px 0;
+        padding-left: 25px;
+        position: relative;
+      }
+      .features-list li:before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: #4caf50;
+        font-weight: 700;
+      }
+      .features-list.blocked li:before {
+        content: "✗";
+        color: #ff5252;
+      }
+      .arrow {
+        text-align: center;
+        font-size: 32px;
+        margin: 20px 0;
+        opacity: 0.5;
+      }
+      .info-box {
+        background: rgba(255, 255, 255, 0.15);
+        padding: 20px;
+        border-radius: 15px;
+        margin: 30px 0;
+        border: 2px dashed rgba(255, 255, 255, 0.3);
+      }
+      .info-box h3 {
+        margin-bottom: 10px;
+        color: #ffd700;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>📱 Calchas User Journey</h1>
+
+      <div class="info-box">
+        <h3>🎯 Implementierungsziel</h3>
+        <p>
+          Calchas soll ausschließlich auf Smartphones vollständig funktionieren.
+          Auf Tablets und Desktop-Geräten wird ein informatives Overlay mit
+          Links zu wichtigen Ressourcen angezeigt.
+        </p>
+      </div>
+
+      <div class="journey-grid">
+        <!-- Smartphone Journey -->
+        <div class="journey-card">
+          <div class="device-icon">📱</div>
+          <h2 class="device-title">Smartphone</h2>
+          <div class="status supported">✅ VOLLSTÄNDIG UNTERSTÜTZT</div>
+
+          <div class="flow-step">
+            <span class="flow-step-number">1.</span>
+            Benutzer öffnet App im Browser
+          </div>
+          <div class="flow-step">
+            <span class="flow-step-number">2.</span>
+            DeviceDetection.isSmartphone() → TRUE
+          </div>
+          <div class="flow-step">
+            <span class="flow-step-number">3.</span>
+            App initialisiert normal
+          </div>
+          <div class="flow-step">
+            <span class="flow-step-number">4.</span>
+            Alle Features verfügbar
+          </div>
+
+          <ul class="features-list">
+            <li>Wetter-Ansichten</li>
+            <li>Radar & Karten</li>
+            <li>Historie</li>
+            <li>Health & Safety</li>
+            <li>Einstellungen</li>
+            <li>PWA-Installation</li>
+          </ul>
+        </div>
+
+        <!-- Tablet Journey -->
+        <div class="journey-card">
+          <div class="device-icon">📲</div>
+          <h2 class="device-title">Tablet</h2>
+          <div class="status not-supported">⚠️ EINGESCHRÄNKTER ZUGRIFF</div>
+
+          <div class="flow-step">
+            <span class="flow-step-number">1.</span>
+            Benutzer öffnet App im Browser
+          </div>
+          <div class="flow-step">
+            <span class="flow-step-number">2.</span>
+            DeviceDetection.isSmartphone() → FALSE
+          </div>
+          <div class="flow-step">
+            <span class="flow-step-number">3.</span>
+            App-Initialisierung wird übersprungen
+          </div>
+          <div class="flow-step">
+            <span class="flow-step-number">4.</span>
+            NonMobileOverlay wird angezeigt
+          </div>
+
+          <ul class="features-list blocked">
+            <li>Wetter-Ansichten</li>
+            <li>Radar & Karten</li>
+            <li>Historie</li>
+            <li>Health & Safety</li>
+          </ul>
+
+          <div
+            style="
+              margin-top: 15px;
+              padding-top: 15px;
+              border-top: 1px solid rgba(255, 255, 255, 0.2);
+            "
+          >
+            <strong>Verfügbar im Overlay:</strong>
+          </div>
+          <ul class="features-list">
+            <li>Info über Smartphone-Optimierung</li>
+            <li>Lizenz & Changelog</li>
+            <li>Kontakt & Links</li>
+            <li>Mitwirkende</li>
+            <li>Discord Community</li>
+            <li>Rechtliches</li>
+          </ul>
+        </div>
+
+        <!-- Desktop Journey -->
+        <div class="journey-card">
+          <div class="device-icon">🖥️</div>
+          <h2 class="device-title">Desktop</h2>
+          <div class="status not-supported">⚠️ EINGESCHRÄNKTER ZUGRIFF</div>
+
+          <div class="flow-step">
+            <span class="flow-step-number">1.</span>
+            Benutzer öffnet App im Browser
+          </div>
+          <div class="flow-step">
+            <span class="flow-step-number">2.</span>
+            DeviceDetection.isSmartphone() → FALSE
+          </div>
+          <div class="flow-step">
+            <span class="flow-step-number">3.</span>
+            App-Initialisierung wird übersprungen
+          </div>
+          <div class="flow-step">
+            <span class="flow-step-number">4.</span>
+            NonMobileOverlay wird angezeigt
+          </div>
+
+          <ul class="features-list blocked">
+            <li>Wetter-Ansichten</li>
+            <li>Radar & Karten</li>
+            <li>Historie</li>
+            <li>Health & Safety</li>
+          </ul>
+
+          <div
+            style="
+              margin-top: 15px;
+              padding-top: 15px;
+              border-top: 1px solid rgba(255, 255, 255, 0.2);
+            "
+          >
+            <strong>Verfügbar im Overlay:</strong>
+          </div>
+          <ul class="features-list">
+            <li>Info über Smartphone-Optimierung</li>
+            <li>Lizenz & Changelog</li>
+            <li>Kontakt & Links</li>
+            <li>Mitwirkende</li>
+            <li>Discord Community</li>
+            <li>Rechtliches</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="info-box" style="margin-top: 50px">
+        <h3>🔍 Erkennungslogik</h3>
+        <p><strong>Als Smartphone erkannt wird ein Gerät wenn:</strong></p>
+        <ul style="margin-left: 20px; margin-top: 10px">
+          <li>Bildschirmbreite ≤ 768px UND</li>
+          <li>Touch-Support vorhanden UND</li>
+          <li>Mobile User Agent Pattern ODER Portrait-Orientierung</li>
+          <li>ABER NICHT: Tablet User Agent Pattern</li>
+        </ul>
+      </div>
+
+      <div class="info-box">
+        <h3>📦 Technische Details</h3>
+        <p><strong>Komponenten:</strong></p>
+        <ul style="margin-left: 20px; margin-top: 10px">
+          <li>
+            <code>src/utils/deviceDetection.js</code> - Gerätetyp-Erkennung
+          </li>
+          <li><code>src/ui/NonMobileOverlay.js</code> - Overlay-Komponente</li>
+          <li><code>src/ui/non-mobile-overlay.css</code> - Styling</li>
+          <li><code>src/app.js</code> - Prüfung bei initApp()</li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

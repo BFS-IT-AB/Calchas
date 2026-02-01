@@ -731,5 +731,15 @@
     });
   }
 
-  global.AboutSheet = { renderAboutSheet };
+  global.AboutSheet = {
+    renderAboutSheet,
+    showLicenseModal,
+    showChangelog,
+    showAllChangelog,
+    showContributorsModal,
+    showThirdPartyModal,
+    showTermsModal,
+    showPrivacyModal,
+    createModal,
+  };
 })(window);

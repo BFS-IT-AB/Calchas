@@ -4293,6 +4293,23 @@ function resolveLocationInput(locationLike) {
 function initApp() {
   console.log("🚀 Initialisiere Calchas...");
 
+  // Geräteprüfung: Nur auf Smartphones vollständig funktionsfähig
+  if (window.DeviceDetection && !window.DeviceDetection.isDeviceSupported()) {
+    console.log(
+      "📱 Gerät wird nicht vollständig unterstützt - zeige Info-Overlay",
+    );
+
+    // Zeige Non-Mobile Overlay
+    if (window.NonMobileOverlay) {
+      window.NonMobileOverlay.showNonMobileOverlay();
+    }
+
+    // Verhindere normale App-Initialisierung
+    return;
+  }
+
+  console.log("✅ Smartphone erkannt - starte normale App-Initialisierung");
+
   setupMobileViewportWatcher();
   setupSettingsNavigation();
   // Scroll-basiertes Verstecken der App-Bar wurde entfernt - App-Bar bleibt fixiert
