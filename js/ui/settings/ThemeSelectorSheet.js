@@ -5,10 +5,17 @@
 (function (global) {
   const THEME_OPTIONS = [
     {
+      value: "dark",
+      icon: "🌙",
+      title: "Dunkel",
+      subtitle: "Dunkles Layout für nachts",
+    },
+    {
       value: "system",
       icon: "🖥️",
       title: "System",
-      subtitle: "Folgt dem Gerätemodus",
+      subtitle: "Folgt dem Gerätemodus (in Entwicklung)",
+      disabled: true,
     },
     {
       value: "light",
@@ -16,12 +23,6 @@
       title: "Hell",
       subtitle: "Helles Layout mit hohem Kontrast (in Entwicklung)",
       disabled: true,
-    },
-    {
-      value: "dark",
-      icon: "🌙",
-      title: "Dunkel",
-      subtitle: "Dunkles Layout für nachts",
     },
   ];
 
@@ -55,7 +56,7 @@
   }
 
   function initTheme() {
-    const value = localStorage.getItem("wetter_theme") || "system";
+    const value = localStorage.getItem("wetter_theme") || "dark";
     const prefersDark = _systemMediaQuery.matches;
     const isDark = value === "dark" || (value === "system" && prefersDark);
     const root = document.documentElement;
@@ -86,7 +87,7 @@
     const current =
       appState?.settings?.theme ||
       localStorage.getItem("wetter_theme") ||
-      "system";
+      "dark";
 
     container.innerHTML = `
       <div class="theme-settings">
