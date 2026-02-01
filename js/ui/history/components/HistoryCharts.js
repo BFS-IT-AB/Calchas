@@ -294,6 +294,51 @@
     constructor() {
       this.instances = new Map();
       this._dataStore = new Map(); // Store associated data for click handlers
+      this._setupScrollListener();
+    }
+
+    /**
+     * Setup scroll listener to hide tooltips when scrolling
+     */
+    _setupScrollListener() {
+      let scrollTimeout;
+      const hideTooltips = () => {
+        const tooltips = document.querySelectorAll(".chart-popup-tooltip");
+        tooltips.forEach((tooltip) => {
+          tooltip.style.opacity = "0";
+          tooltip.style.pointerEvents = "none";
+        });
+      };
+
+      // Listen to scroll events on the main scroll container
+      const scrollHandler = () => {
+        hideTooltips();
+
+        // Clear existing timeout
+        if (scrollTimeout) {
+          clearTimeout(scrollTimeout);
+        }
+
+        // Hide tooltips immediately when scrolling starts
+        scrollTimeout = setTimeout(() => {
+          // Keep tooltips hidden for a bit after scrolling stops
+        }, 100);
+      };
+
+      // Find the scroll container
+      const scrollContainer =
+        document.querySelector(".app-main-views") ||
+        document.querySelector(".history-view") ||
+        window;
+
+      if (scrollContainer) {
+        scrollContainer.addEventListener("scroll", scrollHandler, {
+          passive: true,
+        });
+        console.log(
+          "📜 [HistoryCharts] Scroll listener attached to hide tooltips",
+        );
+      }
     }
 
     /**
