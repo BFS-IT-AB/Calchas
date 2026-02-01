@@ -1,13 +1,15 @@
 # 🏗️ Calchas System-Architektur - Vollständige Analyse
 
 > **Erstellt:** 01.02.2026
-> **Version:** 0.7.0-alpha
+> **Aktualisiert:** 01.02.2026 (v0.7.1-alpha)
+> **Version:** 0.7.1-alpha
 > **Zweck:** Detaillierte Dokumentation der gesamten Caching-, Service-Worker-, Versions- und Changelog-Architektur
 
 ---
 
 ## 📋 Inhaltsverzeichnis
 
+0. [Quick Start Guide](#0-quick-start-guide)
 1. [Versions-Management-System](#1-versions-management-system)
 2. [Service Worker Architektur](#2-service-worker-architektur)
 3. [Caching-Strategie](#3-caching-strategie)
@@ -19,6 +21,137 @@
 
 ---
 
+## 0. Quick Start Guide
+
+### 🎯 Was ist automatisch? Was muss ich tun?
+
+#### ✅ Vollautomatisch (nichts zu tun)
+
+| Was                                | Wann                 | Tool                                 |
+| ---------------------------------- | -------------------- | ------------------------------------ |
+| **BUILD_ID** generieren            | Bei jedem Commit     | Git Pre-Commit Hook                  |
+| **CACHE_NAME** aktualisieren       | Bei jedem Commit     | Git Pre-Commit Hook                  |
+| **Service Worker** synchronisieren | Bei Version-Änderung | Git Pre-Commit Hook                  |
+| **Cache** invalidieren             | Bei neuem Deploy     | Service Worker Activate Event        |
+| **Health Cache** TTL prüfen        | Bei jedem Abruf      | Service Worker getCachedHealthData() |
+| **localStorage Quota** handhaben   | Bei Speicher voll    | CacheManager.\_handleQuotaExceeded() |
+
+#### 📝 Manuelle Schritte
+
+##### 1️⃣ **Neue Version veröffentlichen**
+
+```bash
+# 1. Öffne manifest.json
+"version": "0.7.2-alpha"  # Ändere Version
+
+# 2. Öffne js/config/changelog.js
+const CHANGELOG = [
+  {
+    version: "0.7.2-alpha",  # Neuer Entry an Position 0
+    date: "05.02.2026",
+    isLatest: true,          # WICHTIG!
+    title: "...",
+    changes: [...]
+  },
+  {
+    version: "0.7.1-alpha",
+    isLatest: false,         # Alte Version auf false!
+    // ...
+  }
+]
+
+# 3. Commit (Hook macht den Rest automatisch!)
+git add manifest.json js/config/changelog.js
+git commit -m "chore: bump version to v0.7.2-alpha"
+```
+
+**Das war's!** Der Git Hook übernimmt automatisch:
+
+- Aktualisiert `service-worker.js` mit neuer Version
+- Generiert neue `BUILD_ID`
+- Updated `CACHE_NAME`
+- Staged `service-worker.js`
+
+##### 2️⃣ **Neue Dateien zum Cache hinzufügen**
+
+Wenn du eine neue Datei erstellst (z.B. `js/ui/newFeature.js`):
+
+```javascript
+// service-worker.js - urlsToCache Array
+const urlsToCache = [
+  // ... existierende Dateien
+  "/js/ui/newFeature.js", // Neue Datei hinzufügen
+];
+```
+
+**Hinweis:** Dies ist der einzige manuelle Schritt! Alles andere ist automatisch.
+
+##### 3️⃣ **Service Worker Diagnostics testen**
+
+```javascript
+// Browser Console
+const mc = new MessageChannel();
+mc.port1.onmessage = (e) => console.log(e.data);
+
+// Cache-Statistiken abrufen
+navigator.serviceWorker.controller.postMessage({ type: "GET_DIAGNOSTICS" }, [
+  mc.port2,
+]);
+
+// Cache-Integrität prüfen
+navigator.serviceWorker.controller.postMessage({ type: "VALIDATE_CACHE" }, [
+  mc.port2,
+]);
+
+// Alle Caches löschen (Testing)
+navigator.serviceWorker.controller.postMessage({ type: "CLEAR_ALL_CACHES" }, [
+  mc.port2,
+]);
+```
+
+##### 4️⃣ **Git Hook Aktivierung (einmalig)**
+
+**Windows (Git Bash nutzen - empfohlen):**
+
+```bash
+# Hook ist bereits erstellt, funktioniert automatisch
+git commit -m "test"
+```
+
+**Linux/macOS:**
+
+```bash
+chmod +x .git/hooks/pre-commit
+git commit -m "test"
+```
+
+**Alternativ Husky (für bessere Kompatibilität):**
+
+```bash
+npm install --save-dev husky
+npx husky init
+# Erstelle .husky/pre-commit mit:
+npm run version-sync
+```
+
+##### 5️⃣ **Manueller Version-Sync (optional)**
+
+Falls du Version-Sync **ohne Commit** ausführen willst:
+
+```bash
+npm run version-sync
+```
+
+---
+
+### 📚 Weitere Guides
+
+- Detaillierter Workflow → [VERSION-MANAGEMENT.md](VERSION-MANAGEMENT.md)
+- Git Hook Setup → [GIT-HOOKS-SETUP.md](GIT-HOOKS-SETUP.md)
+- Changelog pflegen → [Abschnitt 6](#6-changelog-system)
+
+---
+
 ## 1. Versions-Management-System
 
 ### 1.1 Dual-Versioning Konzept
@@ -26,9 +159,9 @@
 Calchas verwendet ein **Dual-Versioning-System** mit zwei unabhängigen Versionsnummern:
 
 ```
-APP_VERSION  = "0.7.0-alpha"        (SemVer - Semantic Versioning)
-BUILD_ID     = "2026-02-01-1815"     (Timestamp - Build-Zeitstempel)
-CACHE_NAME   = "calchas-2026-02-01-1815"  (Cache-Identifier)
+APP_VERSION  = "0.7.1-alpha"        (SemVer - Semantic Versioning)
+BUILD_ID     = "2026-02-01-1819"     (Timestamp - Build-Zeitstempel)
+CACHE_NAME   = "calchas-2026-02-01-1819"  (Cache-Identifier)
 ```
 
 #### Zweck der Versionen:
@@ -47,7 +180,7 @@ CACHE_NAME   = "calchas-2026-02-01-1815"  (Cache-Identifier)
 {
   "name": "Calchas - Aktuelle Wetterdaten",
   "short_name": "Calchas",
-  "version": "0.7.0-alpha",  ← EINZIGE Stelle, wo Version gepflegt wird
+  "version": "0.7.1-alpha",  ← EINZIGE Stelle, wo Version gepflegt wird
   "description": "Calchas mit Open-Meteo und BrightSky Integration...",
   "start_url": "/",
   "scope": "/",
@@ -121,9 +254,9 @@ npm run version-sync
 
 ```
 ✓ Version synchronization complete:
-  App Version: 0.7.0-alpha
-  Build ID: 2026-02-01-1815
-  Cache Name: calchas-2026-02-01-1815
+  App Version: 0.7.1-alpha
+  Build ID: 2026-02-01-1819
+  Cache Name: calchas-2026-02-01-1819
 
 ✓ service-worker.js updated
 ```
@@ -147,42 +280,94 @@ npm run version-sync
 
 ### 2.1 Struktur & Konstanten
 
-**Datei:** `service-worker.js` (637 Zeilen)
+**Datei:** `service-worker.js` (1015 Zeilen) - **Erweitert in v0.7.1-alpha**
 
 ```javascript
 // ═══════════════════════════════════════════════════════════
 // KONSTANTEN (werden durch sync-version.js synchronisiert)
 // ═══════════════════════════════════════════════════════════
 
-const APP_VERSION = "0.7.0-alpha"; // SemVer
-const CACHE_NAME = "calchas-2026-02-01-1815"; // Timestamp-basiert
+const APP_VERSION = "0.7.1-alpha"; // SemVer
+const CACHE_NAME = "calchas-2026-02-01-1819"; // Timestamp-basiert
 const BUILD_ID = CACHE_NAME.replace("calchas-", ""); // Extrahiert Timestamp
 const HEALTH_CACHE_NAME = "calchas-health-data"; // Separate Health-Daten
+const HEALTH_CACHE_TTL = 30 * 60 * 1000; // 30 Minuten TTL für Health-Daten
 
 // ═══════════════════════════════════════════════════════════
-// CACHE-ASSETS (App Shell)
+// CACHE-ASSETS (App Shell) - VOLLSTÄNDIG ERWEITERT v0.7.1
+// Von ~40 auf 150+ Dateien
 // ═══════════════════════════════════════════════════════════
 
 const urlsToCache = [
+  // Core App Files
   "/",
   "/index.html",
   "/app.js",
-  "/click-debug.js",
+  "/manifest.json",
+
+  // CSS Files
   "/css/style.css",
   "/css/mobile.css",
+
+  // Config
+  "/js/config/changelog.js",
+
+  // i18n
+  "/js/i18n/de.json",
+  "/js/i18n/en.json",
+  "/js/i18n/helper.js",
+  "/js/i18n/textReplacer.js",
+
+  // Utils (vollständig)
   "/js/utils/constants.js",
   "/js/utils/cache.js",
   "/js/utils/validation.js",
   "/js/utils/WeatherMath.js",
+  "/js/utils/analytics.js",
+  "/js/utils/deviceDetection.js",
+  "/js/utils/iconMapper.js",
+  "/js/utils/historyTransformer.js",
+  "/js/utils/historyCache.js",
+  "/js/utils/graphRenderer.js",
+  "/js/utils/apiKeyManager.js",
+  "/js/utils/version.js",
+
+  // API Layer (alle Files)
   "/js/api/weather.js",
   "/js/api/brightsky.js",
   "/js/api/healthDataTransformer.js",
+  "/js/api/WeatherDataService.js",
+  "/js/api/aqi.js",
+  "/js/api/sunriseSunset.js",
+  "/js/api/openweathermap.js",
+  "/js/api/visualcrossing.js",
+  "/js/api/openMeteoHistorical.js",
+  "/js/api/noaaAlerts.js",
+  "/js/api/moonPhase.js",
+  "/js/api/meteostat.js",
+  "/js/api/gridFields.js",
+  "/js/api/bigdatacloud.js",
+
+  // Logic
   "/js/logic/HealthEngine.js",
+
+  // UI Core
   "/js/ui/errorHandler.js",
   "/js/ui/searchInput.js",
   "/js/ui/weatherDisplay.js",
   "/js/ui/HealthComponent.js",
   "/js/ui/templates.js",
+  "/js/ui/dayDetailTemplate.js",
+  "/js/ui/alertsPanel.js",
+  "/js/ui/MasterUIController.js",
+  "/js/ui/mapComponent.js",
+  "/js/ui/NonMobileOverlay.js",
+  "/js/ui/non-mobile-overlay.css",
+  "/js/ui/radar_fixes.css",
+  "/js/ui/design-system.css",
+
+  // UI Components + Subfolders (alle)
+  "/js/ui/components/MetricCard.js",
   "/js/ui/home/WeatherHero.js",
   "/js/ui/home/HomeCards.js",
   "/js/ui/home/WeatherCards.js",
@@ -194,7 +379,76 @@ const urlsToCache = [
   "/js/ui/history/components/HistoryCharts.js",
   "/js/ui/history/components/HistoryStats.js",
   "/js/ui/history/components/HistoryController.js",
+  "/js/ui/history/components/TimeRangeSystem.js",
+  "/js/ui/history/components/TimeRangeSelectors.js",
+  "/js/ui/history/components/TimeRangeIntegration.js",
+
+  // Settings (alle Sheets)
   "/js/ui/settings/SettingsHome.js",
+  "/js/ui/settings/AboutSheet.js",
+  "/js/ui/settings/BackgroundSettingsSheet.js",
+  "/js/ui/settings/HomeLocationSheet.js",
+  "/js/ui/settings/LanguageSelectorSheet.js",
+  "/js/ui/settings/PrivacyApiInfoSheet.js",
+  "/js/ui/settings/ThemeSelectorSheet.js",
+  "/js/ui/settings/UnitsSelectorSheet.js",
+
+  // Day Detail
+  "/js/ui/day-detail/day-detail.js",
+  "/js/ui/day-detail/day-detail.css",
+  "/js/ui/day-detail/day-detail.html",
+
+  // Shared
+  "/js/ui/shared/features.js",
+  "/js/ui/shared/BottomNav.js",
+  "/js/ui/shared/AppBar.js",
+  "/js/ui/shared/design-tokens.css",
+
+  // Modals (ModalController + alle DetailSheets)
+  "/js/ui/modals/ModalController.js",
+  "/js/ui/modals/LocationPickerController.js",
+  "/js/ui/modals/DetailSheets/AQIDetailSheet.js",
+  "/js/ui/modals/DetailSheets/PrecipitationDetailSheet.js",
+  "/js/ui/modals/DetailSheets/SunCloudDetailSheet.js",
+  "/js/ui/modals/DetailSheets/TemperatureTrendDetailSheet.js",
+  "/js/ui/modals/DetailSheets/UVDetailSheet.js",
+  "/js/ui/modals/DetailSheets/VisibilityDetailSheet.js",
+  "/js/ui/modals/DetailSheets/WindDetailSheet.js",
+
+  // Map (alle Layer)
+  "/js/ui/map/RadarController.js",
+  "/js/ui/map/MapUtils.js",
+  "/js/ui/map/MapLayerManager.js",
+  "/js/ui/map/MapContainer.js",
+  "/js/ui/map/GlobalMapLayerManager.js",
+  "/js/ui/map/layers/AQILayer.js",
+  "/js/ui/map/layers/AlertLayer.js",
+  "/js/ui/map/layers/CloudLayer.js",
+  "/js/ui/map/layers/HumidityLayer.js",
+  "/js/ui/map/layers/RadarLayer.js",
+  "/js/ui/map/layers/SatelliteLayer.js",
+  "/js/ui/map/layers/TemperatureLayer.js",
+  "/js/ui/map/layers/WindLayer.js",
+
+  // Vendor
+  "/js/vendor/leaflet/leaflet.js",
+  "/js/vendor/leaflet/leaflet.css",
+
+  // Assets
+  "/assets/icons/icon-192.png",
+  "/assets/icons/icon-384.png",
+  "/assets/icons/apple-touch-icon.png",
+  "/assets/icons/favicon-16.png",
+  "/assets/icons/favicon-32.png",
+  "/assets/logo.png",
+];
+```
+
+**Änderungen in v0.7.1-alpha:**
+
+- ✅ `urlsToCache` erweitert: **~40 → 150+ Dateien**
+- ✅ `HEALTH_CACHE_TTL` Konstante hinzugefügt
+- ✅ Vollständige Abdeckung aller API-, UI-, Modal-, Map-Dateien
   "/js/ui/day-detail/day-detail.js",
   "/js/ui/day-detail/day-detail.css",
   "/js/ui/day-detail/day-detail.html",
@@ -203,8 +457,9 @@ const urlsToCache = [
   "/assets/icons/icon-192.png",
   "/assets/icons/icon-384.png",
   "/assets/icons/apple-touch-icon.png",
-];
-```
+  ];
+
+````
 
 ### 2.2 Lifecycle Events
 
@@ -230,7 +485,7 @@ self.addEventListener("install", (event) => {
   // Skip waiting - aktiviere sofort
   self.skipWaiting();
 });
-```
+````
 
 **Funktionsweise:**
 
@@ -1705,12 +1960,12 @@ User öffnet App → About-Modal zeigt neue Version
 | Datei                          | Zeilen | Zweck                         |
 | ------------------------------ | ------ | ----------------------------- |
 | `manifest.json`                | 92     | Source of Truth für Version   |
-| `service-worker.js`            | 637    | PWA Cache & Background Sync   |
+| `service-worker.js`            | 1015   | PWA Cache & Background Sync + Diagnostics (v0.7.1) |
 | `js/ui/settings/AboutSheet.js` | 812    | About-Modal + Version-Anzeige |
-| `js/config/changelog.js`       | 108    | Changelog-Konfiguration       |
-| `js/utils/cache.js`            | 305    | Client-Side Cache Manager     |
-| `dev/tools/sync-version.js`    | 48     | Version-Sync-Tool             |
-| `.git/hooks/pre-commit`        | 31     | Bash Pre-Commit Hook          |
+| `js/config/changelog.js`       | 167    | Changelog-Konfiguration + Validation (v0.7.1) |
+| `js/utils/cache.js`            | 379    | Client-Side Cache Manager + QuotaExceededError Handler (v0.7.1) |
+| `dev/tools/sync-version.js`    | 117    | Version-Sync-Tool + Validation (v0.7.1) |
+| `.git/hooks/pre-commit`        | 66     | Bash Pre-Commit Hook (Universal v0.7.1) |
 | `.git/hooks/pre-commit.ps1`    | 45     | PowerShell Pre-Commit Hook    |
 
 ### 13.2 Dokumentation
@@ -1721,4 +1976,80 @@ User öffnet App → About-Modal zeigt neue Version
 
 ---
 
-**Ende der Analyse** | Version 1.0 | 01.02.2026
+## 14. v0.7.1-alpha Changelog
+
+### 🎯 Hauptänderungen
+
+#### Service Worker (`service-worker.js`)
+- **urlsToCache:** Erweitert von ~40 auf **150+ Dateien**
+  - Alle API-Layer Files (`aqi.js`, `sunriseSunset.js`, etc.)
+  - Alle UI-Modals (`ModalController.js`, `DetailSheets/*`)
+  - Alle Map-Layer (`layers/AQILayer.js`, etc.)
+  - Alle Settings-Sheets (`AboutSheet.js`, `ThemeSelectorSheet.js`, etc.)
+  - i18n Files (`de.json`, `en.json`)
+  - Vendor Libraries (`leaflet`)
+- **Race Condition Protection:**
+  - `installInProgress`/`activateInProgress` Flags
+  - Verhindert parallele Service Worker Updates
+- **Install Event:**
+  - `Promise.allSettled()` statt `cache.addAll()`
+  - Einzeln-Caching mit Error Handling pro Datei
+  - Summary Logging: "Cached 148/150 files (2 failed)"
+- **Fetch Event - Mehrstufiger Offline-Fallback:**
+  1. Netzwerk-Request
+  2. Aktueller Cache
+  3. Alte Caches durchsuchen
+  4. Index.html Fallback (für HTML-Requests)
+  5. 503 JSON Response
+- **Health Cache:**
+  - `HEALTH_CACHE_TTL = 30 * 60 * 1000` (30 Minuten)
+  - `cacheHealthData()` mit Size-Validation (max 1MB)
+  - `getCachedHealthData()` mit TTL-Check, `isExpired`, `expiresIn` Feldern
+  - Corruption Detection (JSON parse error handling)
+- **Diagnostics API:**
+  - `GET_DIAGNOSTICS`: Cache-Statistiken + Health-Status
+  - `VALIDATE_CACHE`: Integrity Check aller URLs
+  - `CLEAR_ALL_CACHES`: Testing Support
+
+#### CacheManager (`js/utils/cache.js`)
+- **QuotaExceededError Handler:**
+  - `_handleQuotaExceeded()` Methode
+  - Löscht älteste 25% der Einträge automatisch
+  - Retry-Mechanismus nach Cleanup
+  - Analytics Event: `cache_quota_cleanup`
+
+#### Version-Sync (`dev/tools/sync-version.js`)
+- **Try-Catch:** Alle File-Reads mit Error Handling
+- **SemVer Validation:** Warnung bei nicht-konformem Format
+- **Regex Verification:** Prüft ob Replacement erfolgreich war
+- **Changelog Check:** Warnt wenn `changelog.js` andere Version hat
+
+#### Changelog (`js/config/changelog.js`)
+- **v0.7.1-alpha Entry:** 8 Changes dokumentiert
+- **Validation Funktion:**
+  - `validateChangelog()`: Prüft ob genau 1x `isLatest: true`
+  - Auto-Validation bei Load
+
+#### Git Hook (`.git/hooks/pre-commit`)
+- **Universal Script:** Platform Auto-Detection (GNU/BSD sed)
+- **Validierung:** SemVer Regex Check
+- **Robustes Error Handling:** Exit Codes, Color Output
+
+---
+
+### 📊 Vergleich v0.7.0 → v0.7.1
+
+| Metrik | v0.7.0 | v0.7.1 | Änderung |
+|--------|--------|--------|----------|
+| `urlsToCache` Einträge | ~40 | 150+ | **+275%** |
+| Service Worker Zeilen | 637 | 1015 | +378 |
+| Offline-Fallback Stufen | 1 | 5 | +4 |
+| Health Cache TTL | ❌ | 30min | ✅ |
+| Diagnostics API | ❌ | 3 Commands | ✅ |
+| Quota Error Handling | ❌ | Auto-Cleanup | ✅ |
+| Version-Sync Validation | ❌ | ✅ | ✅ |
+| Git Hook Platform-Support | Windows | Universal | ✅ |
+
+---
+
+**Ende der Analyse** | Version 1.1 (v0.7.1-alpha) | 01.02.2026
