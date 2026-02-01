@@ -23,13 +23,13 @@ Calchas ist eine moderne, mobile Wetter-App als Progressive Web App (PWA). Sie b
 - Historische Ansichten und Trends
 - Favoriten, Einheiten‑Umschalter (°C/°F, km/h/m/s/mph)
 - Offen, offline und installierbar (PWA) – keine Registrierung
-- Mehrsprachig: Deutsch und Englisch; Dark/Light Theme
 
 ## Installieren (PWA)
 
+-https://app.calchas.dev aufrufen
+
 - Android (Chrome): Webseite öffnen → Menü → „Zum Startbildschirm hinzufügen“.
 - iOS (Safari): Webseite öffnen → Teilen → „Zum Home‑Bildschirm“.
-- Desktop (Chrome/Edge): Webseite öffnen → „App installieren“ in der Adressleiste.
 
 Nach der Installation läuft Calchas im eigenen Fenster und funktioniert auch offline (nach dem ersten Laden).
 

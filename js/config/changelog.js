@@ -78,7 +78,7 @@
     },
     {
       version: "0.1.0-alpha",
-      date: "31.01.2026",
+      date: "25.01.2026",
       isLatest: false,
       title: "🚧 Entwicklungsversion - Interne Tests",
       changes: [

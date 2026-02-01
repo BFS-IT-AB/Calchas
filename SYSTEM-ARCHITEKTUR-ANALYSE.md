@@ -42,19 +42,19 @@
 
 ```bash
 # 1. Öffne manifest.json
-"version": "0.7.2-alpha"  # Ändere Version
+"version": "0.1.1-alpha"  # Ändere Version
 
 # 2. Öffne js/config/changelog.js
 const CHANGELOG = [
   {
-    version: "0.7.2-alpha",  # Neuer Entry an Position 0
+    version: "0.1.1-alpha",  # Neuer Entry an Position 0
     date: "05.02.2026",
     isLatest: true,          # WICHTIG!
     title: "...",
     changes: [...]
   },
   {
-    version: "0.7.1-alpha",
+    version: "0.1.0-alpha",
     isLatest: false,         # Alte Version auf false!
     // ...
   }
@@ -62,7 +62,7 @@ const CHANGELOG = [
 
 # 3. Commit (Hook macht den Rest automatisch!)
 git add manifest.json js/config/changelog.js
-git commit -m "chore: bump version to v0.7.2-alpha"
+git commit -m "chore: bump version to v0.1.1-alpha"
 ```
 
 **Das war's!** Der Git Hook übernimmt automatisch:
@@ -159,9 +159,9 @@ npm run version-sync
 Calchas verwendet ein **Dual-Versioning-System** mit zwei unabhängigen Versionsnummern:
 
 ```
-APP_VERSION  = "0.1.1-alpha"        (SemVer - Semantic Versioning)
-BUILD_ID     = "2026-02-01-1840"     (Timestamp - Build-Zeitstempel)
-CACHE_NAME   = "calchas-2026-02-01-1840"  (Cache-Identifier)
+APP_VERSION  = "0.7.1-alpha"        (SemVer - Semantic Versioning)
+BUILD_ID     = "2026-02-01-1819"     (Timestamp - Build-Zeitstempel)
+CACHE_NAME   = "calchas-2026-02-01-1819"  (Cache-Identifier)
 ```
 
 #### Zweck der Versionen:
