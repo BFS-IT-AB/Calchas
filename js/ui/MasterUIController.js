@@ -521,7 +521,7 @@
    * @param {string} modalId - The modal ID to open
    * @param {HTMLElement} [sourceElement] - Optional source element (for future use)
    */
-  function openModal(modalId, sourceElement) {
+  async function openModal(modalId, sourceElement) {
     console.log("[MasterUI] openModal called:", modalId);
 
     if (state.isAnimating) {
@@ -581,7 +581,7 @@
       global.ModalContentRenderer || global.ModalController;
     if (contentRenderer?.renderSheetContent) {
       try {
-        contentRenderer.renderSheetContent(resolvedId);
+        await contentRenderer.renderSheetContent(resolvedId);
       } catch (e) {
         console.warn("[MasterUI] Content render failed:", e);
       }
@@ -1009,8 +1009,8 @@
   /**
    * Open a sheet (legacy ModalController compatibility)
    */
-  function openSheet(idOrMetric, sourceElement) {
-    openModal(idOrMetric, sourceElement);
+  async function openSheet(idOrMetric, sourceElement) {
+    await openModal(idOrMetric, sourceElement);
   }
 
   /**
