@@ -16,7 +16,7 @@
   "use strict";
 
   // Mapping von Sheet-IDs zu Render-Funktionen
-  function renderSheetContent(sheetId) {
+  async function renderSheetContent(sheetId) {
     // Get appState with fallback to default structure
     let appState = global.appState;
     if (!appState && global.AppState) {
@@ -513,7 +513,7 @@
 
     if (renderMap[sheetId]) {
       try {
-        renderMap[sheetId]();
+        await renderMap[sheetId]();
       } catch (e) {
         console.warn("[ModalController] Render failed for " + sheetId + ":", e);
       }
@@ -551,11 +551,11 @@
    * Open a bottom sheet by ID or metric name
    * PHASE 4: Delegates to MasterUIController for unified backdrop/scroll management
    */
-  function openSheet(idOrMetric, sourceElement) {
+  async function openSheet(idOrMetric, sourceElement) {
     // PHASE 4: Prefer MasterUIController
     if (global.MasterUIController?.openModal) {
       const resolvedId = resolveSheetId(idOrMetric);
-      renderSheetContent(resolvedId);
+      await renderSheetContent(resolvedId);
       return global.MasterUIController.openModal(resolvedId, sourceElement);
     }
 
@@ -572,7 +572,7 @@
     }
 
     // Render sheet content before opening
-    renderSheetContent(resolvedId);
+    await renderSheetContent(resolvedId);
 
     // Ensure Health-style drag handle exists at top of sheet
     ensureDragHandle(sheet);
