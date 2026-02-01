@@ -130,6 +130,7 @@ class CacheManager {
 
   /**
    * Speichert Cache in localStorage
+   * Handles QuotaExceededError with automatic cleanup
    * @private
    */
   _saveToLocalStorage(key) {
@@ -139,7 +140,76 @@ class CacheManager {
         localStorage.setItem(`cache_${key}`, JSON.stringify(item));
       }
     } catch (e) {
-      console.warn("localStorage voll oder deaktiviert:", e);
+      if (e.name === "QuotaExceededError" || e.code === 22 || e.code === 1014) {
+        console.warn("localStorage quota exceeded, cleaning up old entries...");
+        this._handleQuotaExceeded(key);
+      } else {
+        console.warn("localStorage voll oder deaktiviert:", e);
+      }
+    }
+  }
+
+  /**
+   * Handles QuotaExceededError by removing oldest entries
+   * @private
+   */
+  _handleQuotaExceeded(retryKey) {
+    try {
+      // 1. Sammle alle cache_* Einträge mit Alter
+      const cacheEntries = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("cache_")) {
+          try {
+            const item = JSON.parse(localStorage.getItem(key));
+            cacheEntries.push({
+              key,
+              createdAt: item.createdAt || 0,
+              size: localStorage.getItem(key).length,
+            });
+          } catch (parseErr) {
+            // Korrupter Eintrag - sofort löschen
+            localStorage.removeItem(key);
+          }
+        }
+      }
+
+      // 2. Sortiere nach Alter (älteste zuerst)
+      cacheEntries.sort((a, b) => a.createdAt - b.createdAt);
+
+      // 3. Lösche älteste 25% der Einträge
+      const deleteCount = Math.max(1, Math.ceil(cacheEntries.length * 0.25));
+      let freedSpace = 0;
+      for (let i = 0; i < deleteCount && i < cacheEntries.length; i++) {
+        freedSpace += cacheEntries[i].size;
+        localStorage.removeItem(cacheEntries[i].key);
+        this.cache.delete(cacheEntries[i].key.replace("cache_", ""));
+      }
+
+      console.log(
+        `Cache cleanup: Removed ${deleteCount} entries, freed ~${(freedSpace / 1024).toFixed(1)}KB`,
+      );
+
+      // 4. Versuche erneut zu speichern
+      if (retryKey) {
+        const item = this.cache.get(retryKey);
+        if (item) {
+          try {
+            localStorage.setItem(`cache_${retryKey}`, JSON.stringify(item));
+          } catch (retryErr) {
+            console.warn(
+              "Storage still full after cleanup, skipping localStorage save",
+            );
+          }
+        }
+      }
+
+      this._emitAnalyticsEvent("cache_quota_cleanup", {
+        deletedEntries: deleteCount,
+        freedSpace,
+      });
+    } catch (cleanupErr) {
+      console.error("Cache quota cleanup failed:", cleanupErr);
     }
   }
 
@@ -289,7 +359,7 @@ function setCacheInvalidation() {
     const cleaned = weatherCache.cleanupExpired();
     if (cleaned > 0) {
       console.log(
-        `🧹 Cache bereinigt: ${cleaned} abgelaufene Einträge entfernt`
+        `🧹 Cache bereinigt: ${cleaned} abgelaufene Einträge entfernt`,
       );
     }
   }, 60 * 1000); // 60 Sekunden

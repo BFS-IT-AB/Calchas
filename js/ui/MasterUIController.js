@@ -582,10 +582,10 @@
     if (contentRenderer?.renderSheetContent) {
       try {
         await contentRenderer.renderSheetContent(resolvedId);
-        
+
         // CRITICAL FIX: Nach async content rendering muss der Browser das DOM updaten
         // Warte einen Frame, damit der neue Content im Layout berücksichtigt wird
-        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise((resolve) => requestAnimationFrame(resolve));
       } catch (e) {
         console.warn("[MasterUI] Content render failed:", e);
       }

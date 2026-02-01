@@ -1,7 +1,9 @@
 # Version Management System
 
 ## Überblick
+
 Calchas verwendet ein Dual-Versioning System:
+
 - **APP_VERSION** (SemVer): Für Major/Minor Releases (z.B. `0.7.0-alpha`)
 - **BUILD_ID** (Timestamp): Für jeden Deploy/Bugfix (z.B. `2026-02-01-1753`)
 
@@ -21,17 +23,29 @@ Die Version wird **nur einmal** in `manifest.json` gepflegt:
 ## Workflow
 
 ### 1. Version ändern (bei Releases)
+
 ```bash
 # Öffne manifest.json und ändere "version"
 "version": "0.7.1-alpha"
 ```
 
 ### 2. Service Worker synchronisieren
+
+**Automatisch (bei Git Commit):**
+
+```bash
+git commit -m "Release v0.7.1-alpha"
+# Hook führt automatisch version-sync aus
+```
+
+**Manuell:**
+
 ```bash
 npm run version-sync
 ```
 
 **Was passiert:**
+
 - Liest Version aus `manifest.json`
 - Generiert automatisch neuen Timestamp für `BUILD_ID`
 - Aktualisiert `service-worker.js`:
@@ -41,16 +55,21 @@ npm run version-sync
   const BUILD_ID = "2026-02-01-1753";
   ```
 
+**💡 Tipp:** Git Pre-Commit Hook ist eingerichtet! Siehe [GIT-HOOKS-SETUP.md](GIT-HOOKS-SETUP.md)
+
 ### 3. Deploy vorbereiten
+
 ```bash
 npm run pre-deploy
 ```
 
 **Was passiert:**
+
 - Führt `version-sync` aus
 - Fügt `service-worker.js` automatisch zu Git hinzu
 
 ### 4. Commit & Push
+
 ```bash
 git commit -m "chore: bump version to 0.7.1-alpha"
 git push origin main
@@ -69,8 +88,9 @@ Build: 01.02.26 17:53
 ### Technische Details
 
 **1. Version Service** (`js/utils/version.js`)
+
 ```javascript
-import { getVersionInfo } from './utils/version.js';
+import { getVersionInfo } from "./utils/version.js";
 
 const versionInfo = await getVersionInfo();
 // {
@@ -81,13 +101,14 @@ const versionInfo = await getVersionInfo();
 ```
 
 **2. Service Worker Message Handler**
+
 ```javascript
-self.addEventListener('message', (event) => {
-  if (event.data.type === 'GET_VERSION') {
+self.addEventListener("message", (event) => {
+  if (event.data.type === "GET_VERSION") {
     event.ports[0].postMessage({
       appVersion: APP_VERSION,
       buildId: BUILD_ID,
-      cacheVersion: CACHE_NAME
+      cacheVersion: CACHE_NAME,
     });
   }
 });
@@ -96,6 +117,7 @@ self.addEventListener('message', (event) => {
 ## Best Practices
 
 ### ❌ Nicht machen
+
 ```javascript
 // Service Worker NICHT manuell bearbeiten
 const APP_VERSION = "0.7.0-alpha"; // ❌ Nicht hier ändern
@@ -103,6 +125,7 @@ const CACHE_NAME = "calchas-2026-02-01-1753"; // ❌ Nicht hier ändern
 ```
 
 ### ✅ Immer so
+
 ```bash
 # 1. manifest.json bearbeiten
 # 2. npm run version-sync
@@ -114,6 +137,7 @@ const CACHE_NAME = "calchas-2026-02-01-1753"; // ❌ Nicht hier ändern
 **Problem:** Nach Bugfix wird alter Cache verwendet!
 
 **Lösung:** Automatisch durch `version-sync`
+
 ```bash
 npm run version-sync
 # Generiert neuen CACHE_NAME mit aktuellem Timestamp
@@ -122,19 +146,19 @@ npm run version-sync
 
 ## Vorteile
 
-✅ **Eine Quelle der Wahrheit** - Version nur in `manifest.json`  
-✅ **Automatische Cache-Invalidierung** - Jeder Deploy = neuer Cache  
-✅ **Keine manuellen Fehler** - Script übernimmt Synchronisation  
-✅ **Build-Tracking** - Genauer Timestamp jedes Builds  
-✅ **Dynamische Anzeige** - Echte Version direkt vom Service Worker  
+✅ **Eine Quelle der Wahrheit** - Version nur in `manifest.json`
+✅ **Automatische Cache-Invalidierung** - Jeder Deploy = neuer Cache
+✅ **Keine manuellen Fehler** - Script übernimmt Synchronisation
+✅ **Build-Tracking** - Genauer Timestamp jedes Builds
+✅ **Dynamische Anzeige** - Echte Version direkt vom Service Worker
 
 ## Scripts
 
-| Script | Befehl | Zweck |
-|--------|--------|-------|
-| `version-sync` | `node dev/tools/sync-version.js` | Synchronisiert Version von manifest.json → service-worker.js |
-| `pre-deploy` | `npm run version-sync && git add service-worker.js` | Deploy-Vorbereitung |
-| `predeploy` | `npm test && npm run lint` | Pre-Deploy Checks |
+| Script         | Befehl                                              | Zweck                                                        |
+| -------------- | --------------------------------------------------- | ------------------------------------------------------------ |
+| `version-sync` | `node dev/tools/sync-version.js`                    | Synchronisiert Version von manifest.json → service-worker.js |
+| `pre-deploy`   | `npm run version-sync && git add service-worker.js` | Deploy-Vorbereitung                                          |
+| `predeploy`    | `npm test && npm run lint`                          | Pre-Deploy Checks                                            |
 
 ## Beispiel Workflow
 
@@ -161,18 +185,19 @@ git push origin main
 ## Debugging
 
 ### Version prüfen (Browser Console)
+
 ```javascript
 // Im Browser
 const mc = new MessageChannel();
 mc.port1.onmessage = (e) => console.log(e.data);
-navigator.serviceWorker.controller.postMessage(
-  { type: 'GET_VERSION' },
-  [mc.port2]
-);
+navigator.serviceWorker.controller.postMessage({ type: "GET_VERSION" }, [
+  mc.port2,
+]);
 // Output: { appVersion: "0.7.0-alpha", buildId: "2026-02-01-1753", ... }
 ```
 
 ### Service Worker Version prüfen
+
 ```javascript
 // service-worker.js aktivieren und Console checken
 // ✓ App Version: 0.7.0-alpha

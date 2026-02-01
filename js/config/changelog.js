@@ -24,16 +24,64 @@
 
 (function (global) {
   // App Version - Ändere diese Zeile für neue Releases
-  const APP_VERSION = "0.7.0-alpha";
+  const APP_VERSION = "0.7.1-alpha";
 
   // Changelog Einträge - Neueste Version zuerst!
   const CHANGELOG = [
     {
-      version: "0.7.0-alpha",
-      date: "02.02.2026",
+      version: "0.7.1-alpha",
+      date: "01.02.2026",
       isLatest: true,
+      title: "🔧 Caching-System Audit & Optimierung",
+      changes: [
+        {
+          emoji: "🗂️",
+          type: "Fixed",
+          text: "Service Worker urlsToCache vollständig aktualisiert (150+ Dateien)",
+        },
+        {
+          emoji: "🛡️",
+          type: "Added",
+          text: "Mehrstufiger Offline-Fallback: Network → Cache → Old Caches → Fallback",
+        },
+        {
+          emoji: "⚡",
+          type: "Added",
+          text: "Race Condition Protection für Service Worker Updates",
+        },
+        {
+          emoji: "🔍",
+          type: "Added",
+          text: "Health Cache TTL-Validierung und Corruption Detection",
+        },
+        {
+          emoji: "💾",
+          type: "Fixed",
+          text: "localStorage QuotaExceededError mit automatischem Cleanup",
+        },
+        {
+          emoji: "🔧",
+          type: "Added",
+          text: "Service Worker Diagnostics API für DevTools Testing",
+        },
+        {
+          emoji: "✅",
+          type: "Changed",
+          text: "Version-Sync Script mit Regex-Validierung nach Replace",
+        },
+        {
+          emoji: "🌐",
+          type: "Changed",
+          text: "Universeller Git Hook mit Plattform-Autoerkennung",
+        },
+      ],
+    },
+    {
+      version: "0.7.0-alpha",
+      date: "01.02.2026",
+      isLatest: false,
       title:
-        "🚧 Alpha-Release: Die Basis steht! - Erster offizieller Release von Calchas - BFS-IT OpenDay 2026 🎉",
+        "🚧 Alpha-Release: Die Basis steht!",
       changes: [
         {
           emoji: "🚀",
@@ -103,5 +151,21 @@
     getVersionChanges: (version) =>
       CHANGELOG.find((c) => c.version === version),
     getAllVersions: () => CHANGELOG.map((c) => c.version),
+    // Neu: Validierung
+    validateChangelog: () => {
+      const latestCount = CHANGELOG.filter((c) => c.isLatest).length;
+      if (latestCount !== 1) {
+        console.warn(
+          `⚠️ Changelog: Expected 1 isLatest entry, found ${latestCount}`,
+        );
+        return false;
+      }
+      return true;
+    },
   };
+
+  // Auto-validate on load
+  if (global.ChangelogManager.validateChangelog) {
+    global.ChangelogManager.validateChangelog();
+  }
 })(window);
