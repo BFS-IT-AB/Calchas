@@ -1,7 +1,7 @@
 # 📚 Calchas - Vollständige Dokumentation
 
-> **Version:** 0.1.1-alpha  
-> **Letzte Aktualisierung:** 01.02.2026  
+> **Version:** 0.1.1-alpha
+> **Letzte Aktualisierung:** 01.02.2026
 > **Status:** Erste funktionale Alpha-Version
 
 ---
@@ -33,14 +33,14 @@ Calchas ist eine moderne **Progressive Web App (PWA)** für Wetterdaten mit:
 
 ### Features
 
-| Feature | Beschreibung |
-|---------|--------------|
-| **Dual-API System** | Open-Meteo & BrightSky Fallback |
-| **Radar-Karten** | Niederschlag, Temperatur, Wind, Wolken |
-| **Historie** | Wetterdaten-Rückblick und Analysen |
-| **PWA** | Installierbar, Offline-Modus |
-| **Mehrsprachig** | Deutsch & Englisch |
-| **Themes** | Dark/Light Mode |
+| Feature             | Beschreibung                           |
+| ------------------- | -------------------------------------- |
+| **Dual-API System** | Open-Meteo & BrightSky Fallback        |
+| **Radar-Karten**    | Niederschlag, Temperatur, Wind, Wolken |
+| **Historie**        | Wetterdaten-Rückblick und Analysen     |
+| **PWA**             | Installierbar, Offline-Modus           |
+| **Mehrsprachig**    | Deutsch & Englisch                     |
+| **Themes**          | Dark/Light Mode                        |
 
 ### Tech Stack
 
@@ -183,24 +183,24 @@ git commit -m "chore: bump version to v0.2.0-alpha"
 // js/config/changelog.js
 const CHANGELOG = [
   {
-    version: "0.2.0-alpha",          // Neue Version
+    version: "0.2.0-alpha", // Neue Version
     date: "05.02.2026",
-    isLatest: true,                  // WICHTIG!
+    isLatest: true, // WICHTIG!
     title: "Feature XYZ hinzugefügt",
     changes: [
       {
         emoji: "✨",
         type: "Added",
         text: "Neue Funktion XYZ",
-      }
-    ]
+      },
+    ],
   },
   {
     version: "0.1.1-alpha",
-    isLatest: false,                 // Alte Version auf false!
+    isLatest: false, // Alte Version auf false!
     // ...
-  }
-]
+  },
+];
 ```
 
 ### Git Pre-Commit Hook
@@ -208,6 +208,7 @@ const CHANGELOG = [
 **Automatisch aktiv** (nach `chmod +x .git/hooks/pre-commit`):
 
 Bei jedem Commit:
+
 1. Liest Version aus `manifest.json`
 2. Generiert neue `BUILD_ID` (Timestamp)
 3. Prüft ob `service-worker.js` synchron ist
@@ -246,10 +247,10 @@ npm run version-sync
 
 Calchas nutzt **zwei separate Caches**:
 
-| Cache | Inhalt | TTL | Lifecycle |
-|-------|--------|-----|-----------|
-| `CACHE_NAME` | App Shell (HTML, CSS, JS) | Permanent | Bei jedem Deploy neu |
-| `HEALTH_CACHE_NAME` | Health-Berechnungen | 30 Min | Persistent über Updates |
+| Cache               | Inhalt                    | TTL       | Lifecycle               |
+| ------------------- | ------------------------- | --------- | ----------------------- |
+| `CACHE_NAME`        | App Shell (HTML, CSS, JS) | Permanent | Bei jedem Deploy neu    |
+| `HEALTH_CACHE_NAME` | Health-Berechnungen       | 30 Min    | Persistent über Updates |
 
 ### Service Worker Cache
 
@@ -304,23 +305,20 @@ Bei vollem localStorage: Löscht automatisch **älteste 25%** der Einträge.
 ```javascript
 // Cache-Statistiken
 const mc = new MessageChannel();
-mc.port1.onmessage = e => console.log(e.data);
-navigator.serviceWorker.controller.postMessage(
-  { type: 'GET_DIAGNOSTICS' },
-  [mc.port2]
-);
+mc.port1.onmessage = (e) => console.log(e.data);
+navigator.serviceWorker.controller.postMessage({ type: "GET_DIAGNOSTICS" }, [
+  mc.port2,
+]);
 
 // Cache-Integrität prüfen
-navigator.serviceWorker.controller.postMessage(
-  { type: 'VALIDATE_CACHE' },
-  [mc.port2]
-);
+navigator.serviceWorker.controller.postMessage({ type: "VALIDATE_CACHE" }, [
+  mc.port2,
+]);
 
 // Alle Caches löschen (Testing)
-navigator.serviceWorker.controller.postMessage(
-  { type: 'CLEAR_ALL_CACHES' },
-  [mc.port2]
-);
+navigator.serviceWorker.controller.postMessage({ type: "CLEAR_ALL_CACHES" }, [
+  mc.port2,
+]);
 ```
 
 ---
@@ -362,13 +360,13 @@ User Input → UI Component → API Service → WeatherDataService
 
 ### Key Files
 
-| Datei | Zeilen | Verantwortung |
-|-------|--------|---------------|
-| `app.js` | ~400 | App-Initialisierung, Routing |
-| `service-worker.js` | ~1015 | PWA Cache, Background Sync, Diagnostics |
-| `MasterUIController.js` | ~800 | UI-State-Management |
-| `WeatherDataService.js` | ~500 | API-Abstraktion, Fallback-Logic |
-| `HealthEngine.js` | ~300 | Health-Berechnungen (Windchill, UV, etc.) |
+| Datei                   | Zeilen | Verantwortung                             |
+| ----------------------- | ------ | ----------------------------------------- |
+| `app.js`                | ~400   | App-Initialisierung, Routing              |
+| `service-worker.js`     | ~1015  | PWA Cache, Background Sync, Diagnostics   |
+| `MasterUIController.js` | ~800   | UI-State-Management                       |
+| `WeatherDataService.js` | ~500   | API-Abstraktion, Fallback-Logic           |
+| `HealthEngine.js`       | ~300   | Health-Berechnungen (Windchill, UV, etc.) |
 
 ---
 
@@ -424,9 +422,10 @@ User sieht sofort neue Version (kein Hard-Reload nötig)!
 **Problem:** About-Modal zeigt alte Version
 
 **Lösung:**
+
 ```javascript
 // Browser Console
-caches.keys().then(names => Promise.all(names.map(n => caches.delete(n))));
+caches.keys().then((names) => Promise.all(names.map((n) => caches.delete(n))));
 location.reload(true);
 ```
 
@@ -435,6 +434,7 @@ location.reload(true);
 **Problem:** Offline-Modus funktioniert nicht
 
 **Lösung:**
+
 1. DevTools → Application → Service Workers → Unregister
 2. DevTools → Application → Clear storage
 3. Page reload (F5)
@@ -444,6 +444,7 @@ location.reload(true);
 **Problem:** Hook wird nicht ausgeführt
 
 **Lösung:**
+
 ```bash
 # Linux/macOS
 chmod +x .git/hooks/pre-commit
@@ -460,6 +461,12 @@ chmod +x .git/hooks/pre-commit
 - **GitHub:** https://github.com/BFS-IT-AB/calchas
 - **Datenschutz:** [legal/privacy.html](legal/privacy.html)
 - **Nutzungsbedingungen:** [legal/terms.html](legal/terms.html)
+
+### Feature-spezifische Dokumentation
+
+- **TimeRangeSystem:** [dev/docs/TimeRangeSystem-ANLEITUNG.md](dev/docs/TimeRangeSystem-ANLEITUNG.md) - Vollständige Anleitung für Granularitäts-basierte Zeitraum-Vergleiche
+- **TimeRangeSystem Beispiele:** [dev/docs/TimeRangeSystem-EXAMPLES.js](dev/docs/TimeRangeSystem-EXAMPLES.js) - Code-Beispiele
+- **User Journey:** [dev/docs/user-journey-visualization.html](dev/docs/user-journey-visualization.html) - Visualisierung
 
 ---
 
