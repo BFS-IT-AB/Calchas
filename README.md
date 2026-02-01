@@ -7,10 +7,12 @@ Calchas ist eine moderne, mobile Wetter-App als Progressive Web App (PWA). Sie b
 
 ## Schnellzugriff
 
-- Website: https://calchas.dev
-- Installation: PWA „Zur Startseite hinzufügen“ (siehe unten)
-- Datenschutz: legal/privacy.html
-- Nutzungsbedingungen: legal/terms.html
+- **Website:** https://calchas.dev
+- **Dokumentation:** [DOCUMENTATION.md](DOCUMENTATION.md) - Vollständige Entwickler-Doku
+- **Architektur:** [SYSTEM-ARCHITEKTUR-ANALYSE.md](SYSTEM-ARCHITEKTUR-ANALYSE.md)
+- **Installation:** PWA „Zur Startseite hinzufügen" (siehe unten)
+- **Datenschutz:** [legal/privacy.html](legal/privacy.html)
+- **Nutzungsbedingungen:** [legal/terms.html](legal/terms.html)
 
 ## Highlights
 
