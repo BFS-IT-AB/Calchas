@@ -1,7 +1,9 @@
 // Service Worker für Calchas
 // Ermöglicht Offline-Funktionalität, Caching und Push-Notifications
 
-const CACHE_NAME = "calchas-2026-02-01-1746"; // Icon-Update: PNG statt SVG data-URIs
+const APP_VERSION = "0.7.0-alpha"; // SemVer - manuell bei Releases ändern
+const CACHE_NAME = "calchas-2026-02-01-1753"; // Timestamp - bei jedem Deploy
+const BUILD_ID = CACHE_NAME.replace("calchas-", ""); // Extrahiert Timestamp
 const HEALTH_CACHE_NAME = "calchas-health-data"; // Separate cache for health data
 const urlsToCache = [
   "/",
@@ -72,13 +74,16 @@ self.addEventListener("install", (event) => {
 // Aktivierung
 self.addEventListener("activate", (event) => {
   console.log("Service Worker: Activating...");
+  console.log(`✓ App Version: ${APP_VERSION}`);
+  console.log(`✓ Build ID: ${BUILD_ID}`);
+  console.log(`✓ Cache Name: ${CACHE_NAME}`);
 
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log("Service Worker: Deleting old cache", cacheName);
+          if (cacheName !== CACHE_NAME && cacheName !== HEALTH_CACHE_NAME) {
+            console.log(`Deleting old cache: ${cacheName}`);
             return caches.delete(cacheName);
           }
         }),
@@ -556,6 +561,14 @@ async function staleWhileRevalidate(request) {
 
 // Message: Register Periodic Sync (Client -> SW)
 self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "GET_VERSION") {
+    event.ports[0].postMessage({
+      appVersion: APP_VERSION,
+      buildId: BUILD_ID,
+      cacheVersion: CACHE_NAME
+    });
+  }
+
   if (event.data && event.data.type === "REGISTER_PERIODIC_SYNC") {
     if ("periodicSync" in self.registration) {
       self.registration.periodicSync
