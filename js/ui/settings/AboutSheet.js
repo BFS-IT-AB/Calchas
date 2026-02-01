@@ -39,7 +39,7 @@
       let buildId = "unknown";
       try {
         const cacheNames = await caches.keys();
-        const calchaskCache = cacheNames.find((name) =>
+        const calchasCache = cacheNames.find((name) =>
           name.startsWith("calchas-"),
         );
         if (calchasCache) {
