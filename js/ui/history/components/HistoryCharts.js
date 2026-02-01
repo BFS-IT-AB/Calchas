@@ -441,6 +441,9 @@
      * OPTIMIERT: Metrik wird korrekt aus Chart-ID inferiert und übergeben
      */
     _openDayDetailModal(dayData, sourceChartId) {
+      // Remove all active tooltips before opening modal
+      this.removeAllTooltips();
+
       const controller = getHistoryController();
       const metric = this._inferMetricFromChartId(sourceChartId);
 
@@ -710,6 +713,9 @@
     }
 
     _openDirectModal(modalId, content, masterUI) {
+      // Remove all active tooltips before opening modal
+      this.removeAllTooltips();
+
       let modal = document.getElementById(modalId);
       if (!modal) {
         modal = document.createElement("div");

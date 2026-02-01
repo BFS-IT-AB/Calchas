@@ -1721,6 +1721,12 @@
       const modalElement = this._createOrGetModal(modalId, modalContent);
 
       if (modalElement) {
+        // Remove all active tooltips before opening modal
+        const chartManager = getChartManager();
+        if (chartManager?.removeAllTooltips) {
+          chartManager.removeAllTooltips();
+        }
+
         // Nutze toggleModal für konsistentes State-Management
         this.toggleModal(modalId, true);
 
