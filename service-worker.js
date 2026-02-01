@@ -1,7 +1,7 @@
 // Service Worker für Calchas
 // Ermöglicht Offline-Funktionalität, Caching und Push-Notifications
 
-const CACHE_NAME = "calchas-v0.7.0-alpha"; // Icon-Update: PNG statt SVG data-URIs
+const CACHE_NAME = "calchas-2026-02-01-1746"; // Icon-Update: PNG statt SVG data-URIs
 const HEALTH_CACHE_NAME = "calchas-health-data"; // Separate cache for health data
 const urlsToCache = [
   "/",
