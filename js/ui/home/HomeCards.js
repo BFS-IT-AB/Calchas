@@ -89,20 +89,20 @@
     const maxPrecipProb = Math.max(
       daily.precipProbMax || 0,
       daily.precipitationProbabilityMax || 0,
-      ...hourly.map((h) => h.precipitationProbability || h.precipProb || 0)
+      ...hourly.map((h) => h.precipitationProbability || h.precipProb || 0),
     );
 
     // UV-Index Maximum
     const maxUv = Math.max(
       daily.uvIndexMax || 0,
-      ...hourly.map((h) => h.uvIndex || h.uv || 0)
+      ...hourly.map((h) => h.uvIndex || h.uv || 0),
     );
 
     // Windgeschwindigkeit Maximum
     const maxWind = Math.max(
       daily.windSpeedMax || 0,
       current.windSpeed || 0,
-      ...hourly.map((h) => h.windSpeed || 0)
+      ...hourly.map((h) => h.windSpeed || 0),
     );
 
     // Generiere Insight basierend auf echten Wetterdaten
@@ -115,17 +115,17 @@
       iconEmoji = "🌡️";
     } else if (maxPrecipProb >= 70) {
       insightText = `Hohe Regenwahrscheinlichkeit von ${Math.round(
-        maxPrecipProb
+        maxPrecipProb,
       )}% — Regenschirm nicht vergessen!`;
       iconEmoji = "🌧️";
     } else if (maxUv >= 8) {
       insightText = `Sehr hoher UV-Index von ${maxUv.toFixed(
-        1
+        1,
       )} erwartet — Sonnenschutz ist wichtig!`;
       iconEmoji = "☀️";
     } else if (maxWind >= 50) {
       insightText = `Starker Wind mit bis zu ${Math.round(
-        maxWind
+        maxWind,
       )} km/h erwartet — Vorsicht bei Outdoor-Aktivitäten!`;
       iconEmoji = "💨";
     } else if (maxHumidity >= 85 && maxHumidityTime) {
@@ -134,12 +134,12 @@
         minute: "2-digit",
       });
       insightText = `Um ${timeStr} werden schwüle Bedingungen mit einer Luftfeuchtigkeit von ${Math.round(
-        maxHumidity
+        maxHumidity,
       )}% erwartet.`;
       iconEmoji = "💧";
     } else if (current.humidity >= 80) {
       insightText = `Aktuell schwüle Bedingungen mit einer Luftfeuchtigkeit von etwa ${Math.round(
-        current.humidity
+        current.humidity,
       )}%.`;
       iconEmoji = "💧";
     } else if (tempDelta != null && tempDelta >= 8) {
@@ -147,12 +147,12 @@
       iconEmoji = "🌡️";
     } else if (maxUv >= 5) {
       insightText = `Erhöhter UV-Index von ${maxUv.toFixed(
-        1
+        1,
       )} erwartet — Sonnenschutz empfohlen.`;
       iconEmoji = "☀️";
     } else if (maxPrecipProb >= 40) {
       insightText = `Leichte Regenwahrscheinlichkeit von ${Math.round(
-        maxPrecipProb
+        maxPrecipProb,
       )}% — eventuell Regenschirm mitnehmen.`;
       iconEmoji = "🌦️";
     } else {
@@ -250,7 +250,7 @@
     const maxPrecipProb = Math.max(
       daily.precipProbMax || 0,
       daily.precipitationProbabilityMax || 0,
-      ...hourly.map((h) => h.precipitationProbability || h.precipProb || 0)
+      ...hourly.map((h) => h.precipitationProbability || h.precipProb || 0),
     );
 
     // Baue Liste der Bulletpoints
@@ -260,8 +260,8 @@
     if (maxHumidity >= 80 && humidityTime) {
       bullets.push(
         `Um ${humidityTime} werden schwüle Bedingungen mit einer Luftfeuchtigkeit von ${Math.round(
-          maxHumidity
-        )}% erwartet.`
+          maxHumidity,
+        )}% erwartet.`,
       );
     }
 
@@ -273,7 +273,7 @@
     // Regenwahrscheinlichkeit wenn relevant
     if (maxPrecipProb >= 30) {
       bullets.push(
-        `Regenwahrscheinlichkeit: bis zu ${Math.round(maxPrecipProb)}%.`
+        `Regenwahrscheinlichkeit: bis zu ${Math.round(maxPrecipProb)}%.`,
       );
     }
 
@@ -293,18 +293,18 @@
     }
 
     el.innerHTML = `
-      <div class="summary-card" data-expanded="true">
-        <button class="summary-card__header" type="button" aria-expanded="true" aria-controls="summary-content">
-          <div class="summary-card__title-row">
-            <span class="summary-card__icon">📊</span>
-            <h2 class="summary-card__title">Tagesübersicht</h2>
+      <div class="insight-card insight-card--collapsible" data-expanded="true">
+        <button class="insight-card__header insight-card__header--clickable" type="button" aria-expanded="true" aria-controls="day-summary-content">
+          <div class="insight-card__header-left">
+            <span class="insight-card__icon">📊</span>
+            <h2 class="insight-card__title">Tagesübersicht</h2>
           </div>
-          <span class="summary-card__chevron material-symbols-outlined">expand_less</span>
+          <span class="insight-card__chevron material-symbols-outlined">expand_less</span>
         </button>
-        <div class="summary-card__content" id="summary-content">
+        <div class="insight-card__content" id="day-summary-content">
           ${
             morningDesc
-              ? `<p class="summary-card__intro">${morningDesc}</p>`
+              ? `<p class="insight-card__text" style="margin-bottom: 12px; font-weight: 500;">${morningDesc}</p>`
               : ""
           }
           <ul class="summary-card__list">
@@ -315,8 +315,8 @@
     `;
 
     // Toggle-Logik
-    const header = el.querySelector(".summary-card__header");
-    const card = el.querySelector(".summary-card");
+    const header = el.querySelector(".insight-card__header--clickable");
+    const card = el.querySelector(".insight-card--collapsible");
     if (header && card) {
       header.addEventListener("click", () => {
         const expanded = card.dataset.expanded === "true";
@@ -353,8 +353,8 @@
           h.precipProb != null
             ? Math.round(h.precipProb)
             : h.precipitationProbability != null
-            ? Math.round(h.precipitationProbability)
-            : null;
+              ? Math.round(h.precipitationProbability)
+              : null;
         const showPrecip = precipProb != null;
 
         return `
@@ -429,7 +429,7 @@
         else if (precip >= 20) precipClass = "daily-item__precip--medium";
 
         return `
-        <button class="daily-item" type="button" data-day-index="${index}" aria-label="Details für ${
+        <button class="hourly-item daily-item" type="button" data-day-index="${index}" aria-label="Details für ${
           isToday ? "Heute" : weekday
         }">
           <span class="daily-item__max">${max}°</span>
@@ -446,12 +446,12 @@
       .join("");
 
     el.innerHTML = `
-      <div class="daily-card">
-        <div class="daily-card__header">
-          <span class="daily-card__icon">📅</span>
-          <h2 class="daily-card__title">Die nächsten Tage</h2>
+      <div class="hourly-card">
+        <div class="hourly-card__header">
+          <span class="hourly-card__icon">📅</span>
+          <h2 class="hourly-card__title">Die nächsten Tage</h2>
         </div>
-        <div class="daily-card__grid">
+        <div class="hourly-card__scroll" style="margin-left: 10px;">
           ${items}
         </div>
       </div>
@@ -546,6 +546,7 @@
       document.getElementById("bottom-sheet-overlay")?.appendChild(sheet);
     }
 
+    // Setze Inhalt (ersetzt auch Loading-State)
     sheet.innerHTML = `
       <header class="bottom-sheet__header">
         <span class="bottom-sheet__icon">📅</span>
@@ -664,8 +665,8 @@
           visibility > 10
             ? "Sehr gut"
             : visibility >= 5
-            ? "Gut"
-            : "Eingeschränkt",
+              ? "Gut"
+              : "Eingeschränkt",
       });
     }
 
@@ -685,7 +686,7 @@
     const cards = buildMetricCards(appState);
     window.MetricCard.renderMetricCards(
       container,
-      cards.map((card) => ({ ...card, onClick: handleMetricClick }))
+      cards.map((card) => ({ ...card, onClick: handleMetricClick })),
     );
   }
 
