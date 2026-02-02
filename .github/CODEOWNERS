@@ -1,0 +1,16 @@
+# Calchas Code Owners - Core Team muss PRs reviewen
+
+# Alle Dateien
+
+- @BFS-IT-AB/Core-Team
+
+# Service Worker & Caching System (extra kritisch)
+
+/service-worker.js @felixontv
+/js/utils/cache.js @felixontv
+/dev/tools/sync-version.js @felixontv
+
+# Manifest & Config
+
+/manifest.json @felixontv
+/js/config/\*\* @felixontv
