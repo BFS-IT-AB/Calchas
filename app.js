@@ -556,22 +556,9 @@ function setupPullToRefresh() {
 
       // Prüfe ob Pull-Distanz ausreichend war
       if (pullDistance > pullThreshold && scrollContainer.scrollTop <= 5) {
-        // Prüfe Rate-Limit
+        // Prüfe Rate-Limit (ohne visuelle Warnung)
         if (!canRefresh()) {
-          const minutesLeft = getTimeUntilNextRefresh();
-          if (minutesLeft > 0) {
-            showPullRefreshIndicator(
-              `⏳ Bitte warte noch ${minutesLeft} Min.`,
-              "warning",
-              2500,
-            );
-          } else {
-            showPullRefreshIndicator(
-              "✓ Bereits auf dem neuesten Stand",
-              "info",
-              2000,
-            );
-          }
+          // Silent return - keine Warnung anzeigen
           return;
         }
 
