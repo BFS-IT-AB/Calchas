@@ -520,21 +520,7 @@ function setupPullToRefresh() {
       touchCurrentY = e.touches[0].clientY;
       const pullDistance = touchCurrentY - touchStartY;
 
-      // Zeige visuelles Feedback beim Ziehen
-      if (pullDistance > 30 && scrollContainer.scrollTop <= 0) {
-        const indicator = document.getElementById("pull-refresh-indicator");
-        if (indicator) {
-          indicator.classList.add("pulling");
-          if (pullDistance > pullThreshold) {
-            indicator.textContent = "↻ Loslassen zum Aktualisieren";
-          } else {
-            indicator.textContent = "↓ Zum Aktualisieren ziehen";
-          }
-          indicator.classList.add("visible");
-        } else {
-          showPullRefreshIndicator("↓ Zum Aktualisieren ziehen", "info", 500);
-        }
-      }
+      // Kein visuelles Feedback mehr beim Ziehen
     },
     { passive: true },
   );
