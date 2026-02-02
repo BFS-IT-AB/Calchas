@@ -1,7 +1,7 @@
 # 🏗️ Calchas System-Architektur - Vollständige Analyse
 
 > **Erstellt:** 01.02.2026
-> **Aktualisiert:** 01.02.2026 (v0.1.1-alpha)
+> **Aktualisiert:** 02.02.2026 (v0.1.1-alpha)
 > **Version:** 0.1.1-alpha
 > **Zweck:** Detaillierte Dokumentation der gesamten Caching-, Service-Worker-, Versions- und Changelog-Architektur
 

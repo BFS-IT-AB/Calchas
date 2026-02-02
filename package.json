@@ -1,6 +1,6 @@
 {
   "name": "calchas",
-  "version": "0.7.0-alpha",
+  "version": "0.1.1-alpha",
   "description": "Calchas PWA Weather App with Push Notifications, Dual APIs, Favorites, Maps, Alerts",
   "main": "app.js",
   "scripts": {

@@ -1,7 +1,7 @@
 # 📚 Calchas - Vollständige Dokumentation
 
 > **Version:** 0.1.1-alpha
-> **Letzte Aktualisierung:** 01.02.2026
+> **Letzte Aktualisierung:** 02.02.2026
 > **Status:** Erste funktionale Alpha-Version
 
 ---

@@ -24,37 +24,14 @@
 
 (function (global) {
   // App Version - wird durch sync-version.js aus package.json synchronisiert
-  const APP_VERSION = "0.7.0-alpha";
+  const APP_VERSION = "0.1.1-alpha";
 
   // Changelog Einträge - Neueste Version zuerst!
   const CHANGELOG = [
     {
-      version: "0.7.0-alpha",
+      version: "0.1.1-alpha",
       date: "02.02.2026",
       isLatest: true,
-      title: "🔧 Build-System & Versionierung verbessert",
-      changes: [
-        {
-          emoji: "🔄",
-          type: "Fixed",
-          text: "Build-ID wird nun automatisch bei jedem Commit aktualisiert",
-        },
-        {
-          emoji: "📦",
-          type: "Changed",
-          text: "package.json ist jetzt Single Source of Truth für Versionen",
-        },
-        {
-          emoji: "🛠️",
-          type: "Added",
-          text: "Git pre-commit Hook für automatische Versionssynchronisierung",
-        },
-      ],
-    },
-    {
-      version: "0.1.1-alpha",
-      date: "01.02.2026",
-      isLatest: false,
       title: "🎉 Erste funktionale Alpha-Version",
       changes: [
         {
