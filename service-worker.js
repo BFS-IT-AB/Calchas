@@ -16,7 +16,7 @@ const urlsToCache = [
   "/",
   "/index.html",
   "/app.js",
-  "/manifest.json",
+  // "/manifest.json", // NICHT cachen - enthält Build-ID die immer aktuell sein muss
 
   // CSS Files
   "/css/style.css",
@@ -305,6 +305,15 @@ self.addEventListener("fetch", (event) => {
       try {
         // 1. Versuche Netzwerk mit Cache-Busting für kritische Dateien
         const reqUrl = new URL(request.url);
+
+        // manifest.json NIEMALS cachen - enthält Build-ID die immer aktuell sein muss
+        if (
+          reqUrl.pathname === "/manifest.json" ||
+          reqUrl.pathname.endsWith("/manifest.json")
+        ) {
+          return fetch(request, { cache: "no-store" });
+        }
+
         const isAppShellFile =
           reqUrl.origin === self.location.origin &&
           (reqUrl.pathname.endsWith(".js") ||
@@ -326,7 +335,7 @@ self.addEventListener("fetch", (event) => {
 
         const networkResponse = await fetch(request.clone(), fetchOptions);
 
-        // Speichere erfolgreiche Responses im Cache
+        // Speichere erfolgreiche Responses im Cache (außer manifest.json)
         if (
           networkResponse &&
           networkResponse.ok &&
@@ -335,7 +344,9 @@ self.addEventListener("fetch", (event) => {
           try {
             if (
               (reqUrl.protocol === "http:" || reqUrl.protocol === "https:") &&
-              reqUrl.origin === self.location.origin
+              reqUrl.origin === self.location.origin &&
+              reqUrl.pathname !== "/manifest.json" && // NIEMALS manifest.json cachen
+              !reqUrl.pathname.endsWith("/manifest.json")
             ) {
               const cache = await caches.open(CACHE_NAME);
               await cache.put(reqUrl.href, networkResponse.clone());

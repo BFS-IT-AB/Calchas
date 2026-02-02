@@ -31,9 +31,11 @@ export async function getVersionInfo() {
     }
   }
 
-  // Fallback: Lade Version aus manifest.json
+  // Fallback: Lade Version aus manifest.json (mit Cache-Busting)
   try {
-    const manifest = await fetch("/manifest.json").then((r) => r.json());
+    const manifest = await fetch(`/manifest.json?v=${Date.now()}`).then((r) =>
+      r.json(),
+    );
     return {
       appVersion: manifest.version || "unknown",
       buildId: "unknown",

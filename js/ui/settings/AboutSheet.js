@@ -31,9 +31,11 @@
       }
     }
 
-    // Fallback: Lade Version aus manifest.json + extrahiere BUILD_ID aus Cache-Namen
+    // Fallback: Lade Version aus manifest.json (mit Cache-Busting) + extrahiere BUILD_ID aus Cache-Namen
     try {
-      const manifest = await fetch("/manifest.json").then((r) => r.json());
+      const manifest = await fetch(`/manifest.json?v=${Date.now()}`).then((r) =>
+        r.json(),
+      );
 
       // Versuche BUILD_ID aus Cache-Namen zu extrahieren
       let buildId = "unknown";
@@ -111,8 +113,10 @@
 
     // Lade echte Version vom Service Worker
     const versionInfo = await getVersionInfo();
+    console.log("[AboutSheet] Version Info:", versionInfo); // DEBUG
     const version = versionInfo.appVersion;
     const buildId = formatBuildId(versionInfo.buildId);
+    console.log("[AboutSheet] Formatted Build ID:", buildId); // DEBUG
 
     container.innerHTML = `
       <div class="about-settings">
@@ -254,12 +258,64 @@
       .querySelector('[data-action="changelog"]')
       ?.addEventListener("click", showChangelog);
 
-    // Refresh button
-    container
-      .querySelector('[data-action="refresh"]')
-      ?.addEventListener("click", () => {
-        window.location.reload();
+    // Refresh button - Force Service Worker Update & Cache Clear
+    const refreshBtn = container.querySelector('[data-action="refresh"]');
+    if (refreshBtn) {
+      refreshBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        console.log(
+          "[AboutSheet] 🔄 Starting full cache clear and SW update...",
+        );
+
+        try {
+          // 1. Clear all caches (App Caches, nicht localStorage!)
+          const cacheNames = await caches.keys();
+          console.log(
+            `[AboutSheet] Found ${cacheNames.length} caches:`,
+            cacheNames,
+          );
+
+          for (const cacheName of cacheNames) {
+            const deleted = await caches.delete(cacheName);
+            console.log(
+              `[AboutSheet] ${deleted ? "✅" : "❌"} Cache deleted: ${cacheName}`,
+            );
+          }
+
+          // 2. Unregister all service workers
+          if ("serviceWorker" in navigator) {
+            const registrations =
+              await navigator.serviceWorker.getRegistrations();
+            console.log(
+              `[AboutSheet] Found ${registrations.length} Service Worker(s)`,
+            );
+
+            for (const registration of registrations) {
+              const success = await registration.unregister();
+              console.log(
+                `[AboutSheet] ${success ? "✅" : "❌"} Service Worker unregistered`,
+              );
+            }
+          }
+
+          console.log("[AboutSheet] ✅ Cache clear complete! Reloading...");
+
+          // 3. Hard reload (localStorage bleibt erhalten)
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
+        } catch (error) {
+          console.error("[AboutSheet] ❌ Error during cache clear:", error);
+          alert(
+            "Fehler beim Leeren des Caches. Bitte versuche es über die Browser-Einstellungen.",
+          );
+        }
       });
+    } else {
+      console.warn("[AboutSheet] Refresh button not found!");
+    }
 
     // Row actions
     container.querySelectorAll("[data-about-action]").forEach((btn) => {
