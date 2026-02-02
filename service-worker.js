@@ -2,7 +2,7 @@
 // Ermöglicht Offline-Funktionalität, Caching und Push-Notifications
 
 const APP_VERSION = "0.1.1-alpha"; // SemVer - manuell bei Releases ändern
-const CACHE_NAME = "calchas-2026-02-02-0941"; // Timestamp - bei jedem Deploy
+const CACHE_NAME = "calchas-2026-02-02-0942"; // Timestamp - bei jedem Deploy
 const BUILD_ID = CACHE_NAME.replace("calchas-", ""); // Extrahiert Timestamp
 const HEALTH_CACHE_NAME = "calchas-health-data"; // Separate cache for health data
 const HEALTH_CACHE_TTL = 30 * 60 * 1000; // 30 Minuten TTL für Health-Daten
@@ -853,7 +853,9 @@ async function staleWhileRevalidate(request) {
 self.addEventListener("message", (event) => {
   // SKIP_WAITING - Sofortige Aktivierung bei Update
   if (event.data && event.data.type === "SKIP_WAITING") {
-    console.log("Service Worker: SKIP_WAITING received - activating immediately");
+    console.log(
+      "Service Worker: SKIP_WAITING received - activating immediately",
+    );
     self.skipWaiting();
   }
 
