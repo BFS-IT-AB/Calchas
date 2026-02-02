@@ -2,7 +2,7 @@
 // Ermöglicht Offline-Funktionalität, Caching und Push-Notifications
 
 const APP_VERSION = "0.1.1-alpha"; // SemVer - manuell bei Releases ändern
-const CACHE_NAME = "calchas-2026-02-02-0942"; // Timestamp - bei jedem Deploy
+const CACHE_NAME = "calchas-2026-02-02-0949"; // Timestamp - bei jedem Deploy
 const BUILD_ID = CACHE_NAME.replace("calchas-", ""); // Extrahiert Timestamp
 const HEALTH_CACHE_NAME = "calchas-health-data"; // Separate cache for health data
 const HEALTH_CACHE_TTL = 30 * 60 * 1000; // 30 Minuten TTL für Health-Daten
@@ -306,10 +306,12 @@ self.addEventListener("fetch", (event) => {
         // 1. Versuche Netzwerk mit Cache-Busting für kritische Dateien
         const reqUrl = new URL(request.url);
 
-        // manifest.json NIEMALS cachen - enthält Build-ID die immer aktuell sein muss
+        // manifest.json und service-worker.js NIEMALS cachen - enthalten Build-ID
         if (
           reqUrl.pathname === "/manifest.json" ||
-          reqUrl.pathname.endsWith("/manifest.json")
+          reqUrl.pathname.endsWith("/manifest.json") ||
+          reqUrl.pathname === "/service-worker.js" ||
+          reqUrl.pathname.endsWith("/service-worker.js")
         ) {
           return fetch(request, { cache: "no-store" });
         }
@@ -335,7 +337,7 @@ self.addEventListener("fetch", (event) => {
 
         const networkResponse = await fetch(request.clone(), fetchOptions);
 
-        // Speichere erfolgreiche Responses im Cache (außer manifest.json)
+        // Speichere erfolgreiche Responses im Cache (außer manifest.json und service-worker.js)
         if (
           networkResponse &&
           networkResponse.ok &&
@@ -346,7 +348,9 @@ self.addEventListener("fetch", (event) => {
               (reqUrl.protocol === "http:" || reqUrl.protocol === "https:") &&
               reqUrl.origin === self.location.origin &&
               reqUrl.pathname !== "/manifest.json" && // NIEMALS manifest.json cachen
-              !reqUrl.pathname.endsWith("/manifest.json")
+              !reqUrl.pathname.endsWith("/manifest.json") &&
+              reqUrl.pathname !== "/service-worker.js" && // NIEMALS service-worker.js cachen
+              !reqUrl.pathname.endsWith("/service-worker.js")
             ) {
               const cache = await caches.open(CACHE_NAME);
               await cache.put(reqUrl.href, networkResponse.clone());
