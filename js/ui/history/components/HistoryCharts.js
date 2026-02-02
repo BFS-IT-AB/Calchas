@@ -294,14 +294,18 @@
     constructor() {
       this.instances = new Map();
       this._dataStore = new Map(); // Store associated data for click handlers
+      this._scrollListenersSetup = false;
       this._setupScrollListener();
     }
 
     /**
-     * Setup scroll listener to hide tooltips when scrolling
+     * Setup scroll listener to hide tooltips when scrolling OUTSIDE the chart container
+     * FIXES: Tooltip bleibt nicht im Chart-Block wenn außerhalb gescrollt wird
      */
     _setupScrollListener() {
-      let scrollTimeout;
+      if (this._scrollListenersSetup) return;
+      this._scrollListenersSetup = true;
+
       const hideTooltips = () => {
         const tooltips = document.querySelectorAll(".chart-popup-tooltip");
         tooltips.forEach((tooltip) => {
@@ -310,35 +314,132 @@
         });
       };
 
-      // Listen to scroll events on the main scroll container
-      const scrollHandler = () => {
-        hideTooltips();
+      // Handler für Scroll-Events AUSSERHALB des Chart-Containers
+      const scrollHandler = (event) => {
+        // Prüfe ob der Scroll innerhalb eines Chart-Containers stattfindet
+        const chartContainers = document.querySelectorAll(
+          "#history-chart-container, .chart-canvas-wrapper, .extreme-modal__chart",
+        );
 
-        // Clear existing timeout
-        if (scrollTimeout) {
-          clearTimeout(scrollTimeout);
+        let isInsideChart = false;
+        for (const container of chartContainers) {
+          if (container.contains(event.target)) {
+            isInsideChart = true;
+            break;
+          }
         }
 
-        // Hide tooltips immediately when scrolling starts
-        scrollTimeout = setTimeout(() => {
-          // Keep tooltips hidden for a bit after scrolling stops
-        }, 100);
+        // Wenn NICHT innerhalb eines Chart-Containers gescrollt wird → Tooltip verstecken
+        if (!isInsideChart) {
+          hideTooltips();
+        }
       };
 
-      // Find the scroll container
-      const scrollContainer =
-        document.querySelector(".app-main-views") ||
-        document.querySelector(".history-view") ||
-        window;
-
-      if (scrollContainer) {
-        scrollContainer.addEventListener("scroll", scrollHandler, {
+      // Listener auf mehreren Ebenen für vollständige Abdeckung
+      // 1. Haupt-Scroll-Container der App
+      const appMainViews = document.querySelector(".app-main-views");
+      if (appMainViews) {
+        appMainViews.addEventListener("scroll", scrollHandler, {
           passive: true,
         });
-        console.log(
-          "📜 [HistoryCharts] Scroll listener attached to hide tooltips",
-        );
       }
+
+      // 2. History-View spezifisch
+      const historyView = document.querySelector(".history-view");
+      if (historyView) {
+        historyView.addEventListener("scroll", scrollHandler, {
+          passive: true,
+        });
+      }
+
+      // 3. Window/Document für alle anderen Scroll-Events
+      window.addEventListener("scroll", scrollHandler, {
+        passive: true,
+        capture: true,
+      });
+      document.addEventListener("scroll", scrollHandler, {
+        passive: true,
+        capture: true,
+      });
+
+      // 4. Touch-Move Events für mobiles Scrolling
+      document.addEventListener(
+        "touchmove",
+        (event) => {
+          // Bei Touch-Scroll außerhalb des Charts: Tooltip verstecken
+          const chartContainers = document.querySelectorAll(
+            "#history-chart-container, .chart-canvas-wrapper",
+          );
+
+          let isInsideChart = false;
+          for (const container of chartContainers) {
+            if (container.contains(event.target)) {
+              isInsideChart = true;
+              break;
+            }
+          }
+
+          if (!isInsideChart) {
+            hideTooltips();
+          }
+        },
+        { passive: true },
+      );
+
+      // 5. Intersection Observer: Verstecke Tooltip wenn Chart-Container aus Viewport scrollt
+      this._setupChartVisibilityObserver(hideTooltips);
+
+      console.log(
+        "📜 [HistoryCharts] Enhanced scroll listeners attached to contain tooltips within chart",
+      );
+    }
+
+    /**
+     * IntersectionObserver: Versteckt Tooltip wenn Chart-Container nicht mehr sichtbar ist
+     */
+    _setupChartVisibilityObserver(hideTooltipsCallback) {
+      if (typeof IntersectionObserver === "undefined") return;
+
+      const observerOptions = {
+        root: null, // Viewport
+        rootMargin: "0px",
+        threshold: 0.1, // Tooltip verstecken wenn weniger als 10% sichtbar
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          // Wenn Chart-Container weniger als 10% sichtbar → Tooltip verstecken
+          if (!entry.isIntersecting || entry.intersectionRatio < 0.1) {
+            hideTooltipsCallback();
+          }
+        });
+      }, observerOptions);
+
+      // Beobachte alle Chart-Container (auch zukünftige via MutationObserver)
+      const observeChartContainers = () => {
+        const containers = document.querySelectorAll(
+          "#history-chart-container, .chart-canvas-wrapper, .extreme-modal__chart",
+        );
+        containers.forEach((container) => {
+          if (!container.dataset.tooltipObserved) {
+            observer.observe(container);
+            container.dataset.tooltipObserved = "true";
+          }
+        });
+      };
+
+      // Initial beobachten
+      observeChartContainers();
+
+      // MutationObserver für dynamisch hinzugefügte Chart-Container
+      const mutationObserver = new MutationObserver(() => {
+        observeChartContainers();
+      });
+
+      mutationObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
     }
 
     /**
@@ -431,6 +532,9 @@
           chart.$sourceData = sourceData; // Attach to chart for tooltip access
         }
 
+        // FIX: Tooltip verstecken wenn Maus den Canvas verlässt
+        this._setupCanvasMouseLeaveHandler(canvas);
+
         console.log(
           `📊 [HistoryCharts] Created: ${canvasId} (${canvas.offsetWidth}x${canvas.offsetHeight})`,
         );
@@ -439,6 +543,31 @@
         console.error("[HistoryCharts] Creation failed:", error);
         return null;
       }
+    }
+
+    /**
+     * Setup mouseleave handler to hide tooltip when mouse leaves the chart canvas
+     */
+    _setupCanvasMouseLeaveHandler(canvas) {
+      if (!canvas || canvas.dataset.tooltipMouseLeaveSetup) return;
+      canvas.dataset.tooltipMouseLeaveSetup = "true";
+
+      const hideTooltips = () => {
+        const tooltips = document.querySelectorAll(".chart-popup-tooltip");
+        tooltips.forEach((tooltip) => {
+          tooltip.style.opacity = "0";
+          tooltip.style.pointerEvents = "none";
+        });
+      };
+
+      // Verstecke Tooltip wenn Maus den Canvas verlässt
+      canvas.addEventListener("mouseleave", hideTooltips);
+
+      // Auch bei touch-end auf mobilen Geräten
+      canvas.addEventListener("touchend", () => {
+        // Kurze Verzögerung, damit Touch-Events noch verarbeitet werden können
+        setTimeout(hideTooltips, 300);
+      });
     }
 
     /**
@@ -1308,6 +1437,7 @@
   /**
    * External Tooltip Handler - VOLLSTÄNDIG ÜBERARBEITET
    * Intelligente Datenextraktion und metrik-spezifisches Rendering
+   * FIX: Tooltip bleibt innerhalb des Chart-Containers
    */
   function externalTooltipHandler(context, metricType = "temperature") {
     const { chart, tooltip } = context;
@@ -1315,6 +1445,33 @@
 
     // Hide if no tooltip
     if (tooltip.opacity === 0) {
+      tooltipEl.style.opacity = "0";
+      tooltipEl.style.pointerEvents = "none";
+      return;
+    }
+
+    // VISIBILITY CHECK: Prüfe ob Chart-Container noch im sichtbaren Bereich ist
+    const canvasRect = chart.canvas.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+
+    // Wenn Chart fast vollständig aus dem Viewport gescrollt ist → Tooltip verstecken
+    const chartVisibleHeight =
+      Math.min(canvasRect.bottom, viewportHeight) - Math.max(canvasRect.top, 0);
+    const chartVisibleWidth =
+      Math.min(canvasRect.right, viewportWidth) - Math.max(canvasRect.left, 0);
+    const chartHeight = canvasRect.height;
+    const chartWidth = canvasRect.width;
+
+    // Verstecke Tooltip wenn weniger als 20% des Charts sichtbar ist
+    const visibilityThreshold = 0.2;
+    const isChartSufficientlyVisible =
+      chartVisibleHeight > chartHeight * visibilityThreshold &&
+      chartVisibleWidth > chartWidth * visibilityThreshold &&
+      canvasRect.bottom > 0 &&
+      canvasRect.top < viewportHeight;
+
+    if (!isChartSufficientlyVisible) {
       tooltipEl.style.opacity = "0";
       tooltipEl.style.pointerEvents = "none";
       return;
@@ -1421,7 +1578,7 @@
     }
 
     // INTELLIGENTE RAND-POSITIONIERUNG - Vermeide Chart-Überlagerung
-    const canvasRect = chart.canvas.getBoundingClientRect();
+    // Hinweis: canvasRect, viewportWidth, viewportHeight wurden bereits oben im visibility check definiert
 
     // Get tooltip dimensions (must be visible to measure)
     tooltipEl.style.opacity = "0";
@@ -1435,9 +1592,7 @@
     const cursorX = canvasRect.left + tooltip.caretX;
     const cursorY = canvasRect.top + tooltip.caretY;
 
-    // Viewport und Chart boundaries
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+    // Weitere Berechnungen mit bereits definierten viewport-Werten
     const padding = 15;
     const gap = 30; // ERHÖHTER Abstand zum Cursor für bessere Lesbarkeit
 
@@ -1527,17 +1682,53 @@
       tooltipY = idealY;
     }
 
-    // Clamp zu Viewport
+    // Clamp zu Viewport UND zum sichtbaren Chart-Bereich
+    // WICHTIG: Tooltip darf nicht außerhalb des sichtbaren Chart-Bereichs erscheinen
+    const visibleChartTop = Math.max(canvasRect.top, 0);
+    const visibleChartBottom = Math.min(canvasRect.bottom, viewportHeight);
+    const visibleChartLeft = Math.max(canvasRect.left, 0);
+    const visibleChartRight = Math.min(canvasRect.right, viewportWidth);
+
+    // Vertikal: Clamp zum Viewport, aber bevorzuge den sichtbaren Chart-Bereich
     tooltipY = Math.max(
       padding,
       Math.min(tooltipY, viewportHeight - tooltipHeight - padding),
     );
+
+    // Wenn Tooltip außerhalb des sichtbaren Chart-Bereichs wäre, korrigiere Position
+    // oder verstecke wenn keine gute Position möglich
+    if (
+      tooltipY + tooltipHeight < visibleChartTop ||
+      tooltipY > visibleChartBottom
+    ) {
+      // Tooltip wäre komplett außerhalb des sichtbaren Chart-Bereichs
+      // Versuche innerhalb zu positionieren
+      if (visibleChartBottom - visibleChartTop >= tooltipHeight + 2 * padding) {
+        // Genug Platz innerhalb des sichtbaren Bereichs
+        tooltipY = Math.max(
+          visibleChartTop + padding,
+          Math.min(tooltipY, visibleChartBottom - tooltipHeight - padding),
+        );
+      }
+    }
 
     // Final clamp horizontal (Sicherheit)
     tooltipX = Math.max(
       padding,
       Math.min(tooltipX, viewportWidth - tooltipWidth - padding),
     );
+
+    // Finaler Visibility-Check: Wenn Tooltip-Position außerhalb des sinnvollen Bereichs liegt, verstecken
+    const tooltipCenterY = tooltipY + tooltipHeight / 2;
+    const isTooltipInReasonablePosition =
+      tooltipCenterY >= visibleChartTop - 50 &&
+      tooltipCenterY <= visibleChartBottom + 50;
+
+    if (!isTooltipInReasonablePosition) {
+      tooltipEl.style.opacity = "0";
+      tooltipEl.style.pointerEvents = "none";
+      return;
+    }
 
     // Apply final position
     tooltipEl.style.opacity = "1";
