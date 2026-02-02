@@ -289,9 +289,12 @@
               </div>
               <p>Unsere E-Mail-Adresse ist bereits registriert:</p>
               <div class="email-modal__address">
-                <a href="mailto:team@calchas.dev">team@calchas.dev</a>
+                <span style="color:#aaa; pointer-events:none; cursor:default; text-decoration:line-through;">team@calchas.dev</span>
               </div>
-              <p class="email-modal__hint">⚠️ Der E-Mail-Server befindet sich noch im Aufbau – Nachrichten können aktuell nicht empfangen werden.</p>
+              <p class="email-modal__hint">Der E-Mail-Server ist noch nicht eingerichtet. Du kannst uns aber gerne hier erreichen:</p>
+              <div class="email-modal__address" style="margin-top: 16px;">
+                <a href="mailto:mail@felix-winkel.de">mail@felix-winkel.de</a>
+              </div>
             </div>
           `;
           createModal("about-email-modal", "Kontakt – Calchas Team", content);
