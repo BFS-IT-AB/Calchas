@@ -50,12 +50,15 @@ if (!semverRegex.test(appVersion)) {
 // 2. BUILD-ID GENERIEREN (Timestamp für Cache-Invalidierung)
 // ═══════════════════════════════════════════════════════════════════════════
 const now = new Date();
-const timestamp = now
-  .toISOString()
-  .replace(/T/, "-")
-  .replace(/\..+/, "")
-  .replace(/:/g, "")
-  .slice(0, 15); // Format: 2026-02-01-1753
+
+// Lokale Zeit verwenden (nicht UTC!)
+const year = now.getFullYear();
+const month = String(now.getMonth() + 1).padStart(2, "0");
+const day = String(now.getDate()).padStart(2, "0");
+const hours = String(now.getHours()).padStart(2, "0");
+const minutes = String(now.getMinutes()).padStart(2, "0");
+
+const timestamp = `${year}-${month}-${day}-${hours}${minutes}`; // Format: 2026-02-02-1100
 
 const buildId = timestamp;
 const cacheName = `calchas-${buildId}`;
