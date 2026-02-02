@@ -1937,29 +1937,51 @@
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker
           .register("service-worker.js")
-          .then((reg) => {
+          .then(async (reg) => {
             console.log("✅ Service Worker registriert:", reg);
 
-            // Force update check bei jedem Seitenaufruf
-            reg.update();
+            // 1. SOFORT prüfen: Gibt es einen wartenden Worker? → Aktivieren!
+            if (reg.waiting) {
+              console.log("🔄 Wartender Service Worker gefunden - aktiviere sofort...");
+              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
 
-            // Automatischer Reload bei neuem Service Worker
+            // 2. Force update check bei jedem Seitenaufruf
+            await reg.update();
+
+            // 3. Nach Update nochmal prüfen ob einer wartet
+            if (reg.waiting) {
+              console.log("🔄 Nach Update: Wartender SW gefunden - aktiviere...");
+              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+
+            // 4. Automatischer Reload bei neuem Service Worker
             reg.addEventListener('updatefound', () => {
               const newWorker = reg.installing;
               console.log("🔄 Neuer Service Worker gefunden, Update wird vorbereitet...");
 
               newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log("✨ Neue App-Version verfügbar! Seite wird neu geladen...");
-                  // Warte 1 Sekunde, dann reload
-                  setTimeout(() => {
-                    window.location.reload();
-                  }, 1000);
+                if (newWorker.state === 'installed') {
+                  if (navigator.serviceWorker.controller) {
+                    // Es gibt einen alten Controller → Update!
+                    console.log("✨ Neue App-Version verfügbar! Aktiviere...");
+                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                  }
                 }
               });
             });
 
-            // Check alle 60 Sekunden nach Updates (während App offen ist)
+            // 5. Reload wenn neuer SW die Kontrolle übernimmt
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+              if (!refreshing) {
+                refreshing = true;
+                console.log("🔃 Neuer Service Worker aktiv - Seite wird neu geladen...");
+                window.location.reload();
+              }
+            });
+
+            // 6. Check alle 60 Sekunden nach Updates (während App offen ist)
             setInterval(() => {
               reg.update();
             }, 60 * 1000);
