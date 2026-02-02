@@ -1,16 +1,17 @@
 /**
  * version.js - Version Information Service
- * Holt Version und Build-Info vom Service Worker oder Manifest
+ * Holt Version und Build-Info vom Service Worker oder service-worker.js Datei
  */
 
 /**
- * Holt Versions-Informationen vom Service Worker
+ * Holt Versions-Informationen - Robuste Implementierung mit mehreren Fallbacks
  * @returns {Promise<{appVersion: string, buildId: string, cacheVersion: string}>}
  */
 export async function getVersionInfo() {
+  // Methode 1: Service Worker Controller vorhanden
   if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
     try {
-      return await new Promise((resolve, reject) => {
+      const swVersion = await new Promise((resolve, reject) => {
         const messageChannel = new MessageChannel();
         const timeout = setTimeout(() => {
           reject(new Error("Service Worker timeout"));
@@ -26,23 +27,46 @@ export async function getVersionInfo() {
           [messageChannel.port2],
         );
       });
+      return swVersion;
     } catch (error) {
-      console.warn("[Version] Service Worker nicht erreichbar:", error);
+      console.warn("[Version] Service Worker Methode fehlgeschlagen:", error);
     }
   }
 
-  // Fallback: Lade Version aus manifest.json (mit Cache-Busting)
+  // Methode 2: Direkt service-worker.js fetchen und Build-ID extrahieren
   try {
-    const manifest = await fetch(`/manifest.json?v=${Date.now()}`).then((r) =>
-      r.json(),
-    );
+    const swResponse = await fetch(`/service-worker.js?v=${Date.now()}`, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache" }
+    });
+    const swText = await swResponse.text();
+    
+    // Extrahiere CACHE_NAME aus dem Service Worker Code
+    const cacheMatch = swText.match(/CACHE_NAME\s*=\s*["']calchas-([^"']+)["']/);
+    const versionMatch = swText.match(/APP_VERSION\s*=\s*["']([^"']+)["']/);
+    
+    if (cacheMatch && versionMatch) {
+      return {
+        appVersion: versionMatch[1],
+        buildId: cacheMatch[1],
+        cacheVersion: `calchas-${cacheMatch[1]}`,
+      };
+    }
+  } catch (error) {
+    console.warn("[Version] Service Worker Datei-Methode fehlgeschlagen:", error);
+  }
+
+  // Methode 3: Nur manifest.json (letzter Fallback)
+  try {
+    const manifest = await fetch(`/manifest.json?v=${Date.now()}`, { cache: "no-store" })
+      .then((r) => r.json());
     return {
       appVersion: manifest.version || "unknown",
       buildId: "unknown",
       cacheVersion: "none",
     };
   } catch (error) {
-    console.error("[Version] Konnte Version nicht laden:", error);
+    console.error("[Version] Alle Methoden fehlgeschlagen:", error);
     return {
       appVersion: "unknown",
       buildId: "unknown",
