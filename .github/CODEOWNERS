@@ -6,11 +6,11 @@
 
 # Service Worker & Caching System (extra kritisch)
 
-/service-worker.js @felixontv
-/js/utils/cache.js @felixontv
-/dev/tools/sync-version.js @felixontv
+/service-worker.js @BFS-IT-AB/Core-Team
+/js/utils/cache.js @BFS-IT-AB/Core-Team
+/dev/tools/sync-version.js @BFS-IT-AB/Core-Team
 
 # Manifest & Config
 
-/manifest.json @felixontv
-/js/config/\*\* @felixontv
+/manifest.json @BFS-IT-AB/Core-Team
+/js/config/\*\* @BFS-IT-AB/Core-Team
