@@ -1934,62 +1934,108 @@
     <div id="modal-overlay" class="modal-overlay" hidden role="presentation"></div>
 
     <script>
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker
-          .register("service-worker.js")
-          .then(async (reg) => {
-            console.log("✅ Service Worker registriert:", reg);
-
-            // 1. SOFORT prüfen: Gibt es einen wartenden Worker? → Aktivieren!
-            if (reg.waiting) {
-              console.log("🔄 Wartender Service Worker gefunden - aktiviere sofort...");
-              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      // ═══════════════════════════════════════════════════════════════════
+      // AGGRESSIVE AUTO-UPDATE SYSTEM
+      // Bei JEDEM App-Öffnen: Prüfe Server-Version → Update wenn nötig
+      // ═══════════════════════════════════════════════════════════════════
+      (async function() {
+        const STORAGE_KEY = 'calchas_build_id';
+        
+        try {
+          // 1. Hole IMMER die aktuelle Build-ID vom Server (bypass alle Caches)
+          const swResponse = await fetch('/service-worker.js?_=' + Date.now(), {
+            cache: 'no-store',
+            headers: { 
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache'
             }
-
-            // 2. Force update check bei jedem Seitenaufruf
-            await reg.update();
-
-            // 3. Nach Update nochmal prüfen ob einer wartet
-            if (reg.waiting) {
-              console.log("🔄 Nach Update: Wartender SW gefunden - aktiviere...");
-              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-            }
-
-            // 4. Automatischer Reload bei neuem Service Worker
-            reg.addEventListener('updatefound', () => {
-              const newWorker = reg.installing;
-              console.log("🔄 Neuer Service Worker gefunden, Update wird vorbereitet...");
-
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed') {
-                  if (navigator.serviceWorker.controller) {
-                    // Es gibt einen alten Controller → Update!
-                    console.log("✨ Neue App-Version verfügbar! Aktiviere...");
+          });
+          const swText = await swResponse.text();
+          
+          // Extrahiere Build-ID aus service-worker.js
+          const match = swText.match(/CACHE_NAME\s*=\s*["']calchas-([^"']+)["']/);
+          const serverBuildId = match ? match[1] : null;
+          
+          if (!serverBuildId) {
+            console.warn('⚠️ Konnte Build-ID nicht extrahieren');
+            return;
+          }
+          
+          // 2. Vergleiche mit gespeicherter Build-ID
+          const storedBuildId = localStorage.getItem(STORAGE_KEY);
+          
+          console.log(`🔍 Build-ID Check: Server=${serverBuildId}, Lokal=${storedBuildId || 'keine'}`);
+          
+          // 3. Wenn unterschiedlich → ALLES löschen und neu laden!
+          if (storedBuildId && storedBuildId !== serverBuildId) {
+            console.log('🚨 NEUE VERSION ERKANNT! Lösche alle Caches...');
+            
+            // Alle Caches löschen
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map(name => caches.delete(name)));
+            console.log(`✅ ${cacheNames.length} Caches gelöscht`);
+            
+            // Alle Service Worker deregistrieren
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map(reg => reg.unregister()));
+            console.log(`✅ ${registrations.length} Service Worker deregistriert`);
+            
+            // Neue Build-ID speichern
+            localStorage.setItem(STORAGE_KEY, serverBuildId);
+            
+            // Hard Reload
+            console.log('🔄 Lade Seite neu mit neuer Version...');
+            window.location.reload(true);
+            return; // Stop hier, Seite wird neu geladen
+          }
+          
+          // 4. Build-ID speichern (für ersten Besuch oder wenn gleich)
+          localStorage.setItem(STORAGE_KEY, serverBuildId);
+          console.log(`✅ Build-ID aktuell: ${serverBuildId}`);
+          
+        } catch (err) {
+          console.warn('⚠️ Auto-Update Check fehlgeschlagen:', err.message);
+        }
+        
+        // 5. Service Worker normal registrieren
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker
+            .register("service-worker.js")
+            .then(async (reg) => {
+              console.log("✅ Service Worker registriert");
+              
+              // Force update check
+              await reg.update();
+              
+              // Wartenden SW sofort aktivieren
+              if (reg.waiting) {
+                reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+              }
+              
+              // Bei neuem SW → aktivieren
+              reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                     newWorker.postMessage({ type: 'SKIP_WAITING' });
                   }
+                });
+              });
+              
+              // Reload bei Controller-Wechsel
+              let refreshing = false;
+              navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                  refreshing = true;
+                  window.location.reload();
                 }
               });
+            })
+            .catch((err) => {
+              console.warn("⚠️ Service Worker Fehler:", err);
             });
-
-            // 5. Reload wenn neuer SW die Kontrolle übernimmt
-            let refreshing = false;
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-              if (!refreshing) {
-                refreshing = true;
-                console.log("🔃 Neuer Service Worker aktiv - Seite wird neu geladen...");
-                window.location.reload();
-              }
-            });
-
-            // 6. Check alle 60 Sekunden nach Updates (während App offen ist)
-            setInterval(() => {
-              reg.update();
-            }, 60 * 1000);
-          })
-          .catch((err) => {
-            console.warn("⚠️ Service Worker Registrierung fehlgeschlagen:", err);
-          });
-      }
+        }
+      })();
     </script>
 
     <script src="js/vendor/leaflet/leaflet.js"></script>
