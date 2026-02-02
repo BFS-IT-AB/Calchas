@@ -1940,78 +1940,78 @@
       // ═══════════════════════════════════════════════════════════════════
       (async function() {
         const STORAGE_KEY = 'calchas_build_id';
-        
+
         try {
           // 1. Hole IMMER die aktuelle Build-ID vom Server (bypass alle Caches)
           const swResponse = await fetch('/service-worker.js?_=' + Date.now(), {
             cache: 'no-store',
-            headers: { 
+            headers: {
               'Cache-Control': 'no-cache, no-store, must-revalidate',
               'Pragma': 'no-cache'
             }
           });
           const swText = await swResponse.text();
-          
+
           // Extrahiere Build-ID aus service-worker.js
           const match = swText.match(/CACHE_NAME\s*=\s*["']calchas-([^"']+)["']/);
           const serverBuildId = match ? match[1] : null;
-          
+
           if (!serverBuildId) {
             console.warn('⚠️ Konnte Build-ID nicht extrahieren');
             return;
           }
-          
+
           // 2. Vergleiche mit gespeicherter Build-ID
           const storedBuildId = localStorage.getItem(STORAGE_KEY);
-          
+
           console.log(`🔍 Build-ID Check: Server=${serverBuildId}, Lokal=${storedBuildId || 'keine'}`);
-          
+
           // 3. Wenn unterschiedlich → ALLES löschen und neu laden!
           if (storedBuildId && storedBuildId !== serverBuildId) {
             console.log('🚨 NEUE VERSION ERKANNT! Lösche alle Caches...');
-            
+
             // Alle Caches löschen
             const cacheNames = await caches.keys();
             await Promise.all(cacheNames.map(name => caches.delete(name)));
             console.log(`✅ ${cacheNames.length} Caches gelöscht`);
-            
+
             // Alle Service Worker deregistrieren
             const registrations = await navigator.serviceWorker.getRegistrations();
             await Promise.all(registrations.map(reg => reg.unregister()));
             console.log(`✅ ${registrations.length} Service Worker deregistriert`);
-            
+
             // Neue Build-ID speichern
             localStorage.setItem(STORAGE_KEY, serverBuildId);
-            
+
             // Hard Reload
             console.log('🔄 Lade Seite neu mit neuer Version...');
             window.location.reload(true);
             return; // Stop hier, Seite wird neu geladen
           }
-          
+
           // 4. Build-ID speichern (für ersten Besuch oder wenn gleich)
           localStorage.setItem(STORAGE_KEY, serverBuildId);
           console.log(`✅ Build-ID aktuell: ${serverBuildId}`);
-          
+
         } catch (err) {
           console.warn('⚠️ Auto-Update Check fehlgeschlagen:', err.message);
         }
-        
+
         // 5. Service Worker normal registrieren
         if ("serviceWorker" in navigator) {
           navigator.serviceWorker
             .register("service-worker.js")
             .then(async (reg) => {
               console.log("✅ Service Worker registriert");
-              
+
               // Force update check
               await reg.update();
-              
+
               // Wartenden SW sofort aktivieren
               if (reg.waiting) {
                 reg.waiting.postMessage({ type: 'SKIP_WAITING' });
               }
-              
+
               // Bei neuem SW → aktivieren
               reg.addEventListener('updatefound', () => {
                 const newWorker = reg.installing;
@@ -2021,7 +2021,7 @@
                   }
                 });
               });
-              
+
               // Reload bei Controller-Wechsel
               let refreshing = false;
               navigator.serviceWorker.addEventListener('controllerchange', () => {
