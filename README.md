@@ -45,6 +45,7 @@ Einige Eindrücke befinden sich im Projekt unter `src/assets/screenshots/`.
 ## Support
 
 - Website: https://calchas.dev
+- App: https://app.calchas.dev
 - Feedback & Hilfe: GitHub Issues im Repository
 - Datenschutz & Nutzungsbedingungen: legal/privacy.html, legal/terms.html
 
