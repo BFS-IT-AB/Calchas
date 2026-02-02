@@ -50,4 +50,4 @@ Einige Eindrücke befinden sich im Projekt unter `src/assets/screenshots/`.
 
 ---
 
-Calchas ist Open‑Source und wird von einem kleinen Team gepflegt. Danke fürs Nutzen und Teilen! 🌤️
+Calchas ist Open‑Source und wird von einem kleinen Team gepflegt. Danke fürs Nutzen, Teilen und Mitmachen! 🌤️
