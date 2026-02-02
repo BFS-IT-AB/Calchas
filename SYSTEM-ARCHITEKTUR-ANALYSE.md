@@ -1219,30 +1219,30 @@ sequenceDiagram
 ```javascript
 (function (global) {
   // App Version - Ändere diese Zeile für neue Releases
-  const APP_VERSION = "0.7.0-alpha";
+  const APP_VERSION = "0.1.1-alpha";
 
   // Changelog Einträge - Neueste Version zuerst!
   const CHANGELOG = [
     {
-      version: "0.7.0-alpha",
+      version: "0.1.1-alpha",
       date: "02.02.2026",
       isLatest: true,
-      title: "🚧 Alpha-Release: Die Basis steht! - Erster offizieller Release",
+      title: "🎉 Erste funktionale Alpha-Version",
       changes: [
         {
-          emoji: "🚀",
-          type: "Added",
-          text: "Launch von Calchas v0.7.0-alpha: Die moderne PWA für Wetterdaten.",
+          emoji: "📂",
+          type: "Fixed",
+          text: "Service Worker urlsToCache vollständig aktualisiert.",
         },
         {
-          emoji: "📡",
+          emoji: "🛡️",
           type: "Added",
-          text: "Dual-API System: Zuverlässige Daten durch Open-Meteo & BrightSky.",
+          text: "Mehrstufiger Offline-Fallback implementiert.",
         },
         {
-          emoji: "🗺️",
+          emoji: "⚡",
           type: "Added",
-          text: "Interaktives Wetter-Radar mit Zeitsteuerung.",
+          text: "Race Condition Protection für Service Worker Updates.",
         },
         {
           emoji: "❤️",
@@ -1386,7 +1386,7 @@ function showChangelog() {
 // 1. In changelog.js: Neuen Entry an Index 0 einfügen
 const CHANGELOG = [
   {
-    version: "0.7.1-alpha",          // Neue Version
+    version: "0.1.2-alpha",          // Neue Version
     date: "05.02.2026",
     isLatest: true,                  // WICHTIG: Auf true setzen
     title: "Bugfixes & Verbesserungen",
@@ -1404,10 +1404,10 @@ const CHANGELOG = [
     ],
   },
   {
-    version: "0.7.0-alpha",
+    version: "0.1.1-alpha",
     date: "02.02.2026",
     isLatest: false,                 // Alte Version auf false setzen!
-    title: "🚧 Alpha-Release: Die Basis steht!",
+    title: "🎉 Erste funktionale Alpha-Version",
     changes: [ ... ],
   },
   // ...
@@ -1416,7 +1416,7 @@ const CHANGELOG = [
 
 ```bash
 # 2. manifest.json aktualisieren
-"version": "0.7.1-alpha"
+"version": "0.1.2-alpha"
 
 # 3. Version synchronisieren
 npm run version-sync
@@ -1525,7 +1525,7 @@ sequenceDiagram
     participant S as sync-version.js
     participant SW as service-worker.js
 
-    Dev->>M: Ändert "version": "0.7.1-alpha"
+    Dev->>M: Ändert "version": "0.1.2-alpha"
     Dev->>S: npm run version-sync
     S->>M: Liest version
     S->>S: Generiert BUILD_ID (timestamp)
@@ -1579,7 +1579,7 @@ sequenceDiagram
         SW-->>UI: { appVersion, buildId, cacheVersion }
     else Service Worker nicht verfügbar
         UI->>M: fetch("/manifest.json")
-        M-->>UI: { version: "0.7.0-alpha" }
+        M-->>UI: { version: "0.1.1-alpha" }
         UI->>UI: Fallback: buildId = "unknown"
     end
 
@@ -1726,12 +1726,12 @@ vim service-worker.js
 // Neue Version IMMER an Index 0
 const CHANGELOG = [
   {
-    version: "0.7.1-alpha", // NEU
+    version: "0.1.2-alpha", // NEU
     isLatest: true, // NEU
     // ...
   },
   {
-    version: "0.7.0-alpha", // ALT
+    version: "0.1.1-alpha", // ALT
     isLatest: false, // isLatest auf false setzen!
     // ...
   },
@@ -1743,14 +1743,14 @@ const CHANGELOG = [
 ```javascript
 // NICHT am Ende anfügen!
 const CHANGELOG = [
-  { version: "0.7.0-alpha", ... },
-  { version: "0.7.1-alpha", ... },  // FALSCH!
+  { version: "0.1.1-alpha", ... },
+  { version: "0.1.2-alpha", ... },  // FALSCH!
 ];
 
 // NICHT mehrere isLatest: true
 const CHANGELOG = [
-  { version: "0.7.1-alpha", isLatest: true },
-  { version: "0.7.0-alpha", isLatest: true },  // FALSCH!
+  { version: "0.1.2-alpha", isLatest: true },
+  { version: "0.1.1-alpha", isLatest: true },  // FALSCH!
 ];
 ```
 
