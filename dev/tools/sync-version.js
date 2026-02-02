@@ -1,20 +1,38 @@
 const fs = require("fs");
 const path = require("path");
 
-// Version aus manifest.json lesen
-const manifestPath = path.join(__dirname, "../../manifest.json");
-let manifest;
+/**
+ * sync-version.js - Zentrale Versionssynchronisierung für Calchas
+ *
+ * Synchronisiert Versionen zwischen:
+ * - package.json (Source of Truth für APP_VERSION)
+ * - manifest.json (PWA Version)
+ * - service-worker.js (Cache-Version und Build-ID)
+ *
+ * Wird ausgeführt:
+ * - Manuell: npm run version-sync
+ * - Automatisch: Git pre-commit Hook
+ * - Bei Deploy: npm run pre-deploy
+ */
+
+const ROOT_DIR = path.join(__dirname, "../..");
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 1. VERSION AUS PACKAGE.JSON LESEN (Single Source of Truth)
+// ═══════════════════════════════════════════════════════════════════════════
+const packagePath = path.join(ROOT_DIR, "package.json");
+let packageJson;
 try {
-  manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  packageJson = JSON.parse(fs.readFileSync(packagePath, "utf8"));
 } catch (err) {
-  console.error("❌ Error: Could not read manifest.json:", err.message);
+  console.error("❌ Error: Could not read package.json:", err.message);
   process.exit(1);
 }
 
-const appVersion = manifest.version;
+const appVersion = packageJson.version;
 
 if (!appVersion) {
-  console.error("❌ Error: No version field found in manifest.json");
+  console.error("❌ Error: No version field found in package.json");
   process.exit(1);
 }
 
@@ -26,7 +44,9 @@ if (!semverRegex.test(appVersion)) {
   );
 }
 
-// Timestamp generieren
+// ═══════════════════════════════════════════════════════════════════════════
+// 2. BUILD-ID GENERIEREN (Timestamp für Cache-Invalidierung)
+// ═══════════════════════════════════════════════════════════════════════════
 const now = new Date();
 const timestamp = now
   .toISOString()
@@ -38,8 +58,29 @@ const timestamp = now
 const buildId = timestamp;
 const cacheName = `calchas-${buildId}`;
 
-// service-worker.js updaten
-const swPath = path.join(__dirname, "../../service-worker.js");
+// ═══════════════════════════════════════════════════════════════════════════
+// 3. MANIFEST.JSON SYNCHRONISIEREN
+// ═══════════════════════════════════════════════════════════════════════════
+const manifestPath = path.join(ROOT_DIR, "manifest.json");
+let manifestUpdated = false;
+
+try {
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+
+  if (manifest.version !== appVersion) {
+    manifest.version = appVersion;
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+    manifestUpdated = true;
+    console.log(`✓ manifest.json updated: ${manifest.version} → ${appVersion}`);
+  }
+} catch (err) {
+  console.warn("⚠️ Warning: Could not update manifest.json:", err.message);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 4. SERVICE-WORKER.JS AKTUALISIEREN
+// ═══════════════════════════════════════════════════════════════════════════
+const swPath = path.join(ROOT_DIR, "service-worker.js");
 let sw;
 try {
   sw = fs.readFileSync(swPath, "utf8");
@@ -87,21 +128,35 @@ try {
   process.exit(1);
 }
 
-console.log("✓ Version synchronization complete:");
-console.log(`  App Version: ${appVersion}`);
-console.log(`  Build ID: ${buildId}`);
-console.log(`  Cache Name: ${cacheName}`);
 console.log("");
-if (hasChanges) {
-  console.log("✓ service-worker.js updated");
+console.log(
+  "═══════════════════════════════════════════════════════════════════════════",
+);
+console.log("✓ VERSION SYNCHRONIZATION COMPLETE");
+console.log(
+  "═══════════════════════════════════════════════════════════════════════════",
+);
+console.log(`  📦 App Version:  ${appVersion}`);
+console.log(`  🔖 Build ID:     ${buildId}`);
+console.log(`  📁 Cache Name:   ${cacheName}`);
+console.log("");
+
+if (hasChanges || manifestUpdated) {
+  console.log("📝 Updated files:");
+  if (manifestUpdated) console.log("   - manifest.json");
+  if (hasChanges) console.log("   - service-worker.js");
+  console.log("");
+  console.log("⚠️  Don't forget to commit these changes!");
 } else {
   console.log(
-    "ℹ service-worker.js was already up-to-date (only BUILD_ID changed)",
+    "ℹ️  All files were already up-to-date (only BUILD_ID refreshed)",
   );
 }
 
-// Optional: Auch changelog.js prüfen
-const changelogPath = path.join(__dirname, "../../js/config/changelog.js");
+// ═══════════════════════════════════════════════════════════════════════════
+// 5. CHANGELOG VERSION PRÜFEN (Optional - nur Warnung)
+// ═══════════════════════════════════════════════════════════════════════════
+const changelogPath = path.join(ROOT_DIR, "js/config/changelog.js");
 if (fs.existsSync(changelogPath)) {
   const changelog = fs.readFileSync(changelogPath, "utf8");
   const changelogVersionMatch = changelog.match(

@@ -1,7 +1,7 @@
 {
   "name": "Calchas - Aktuelle Wetterdaten",
   "short_name": "Calchas",
-  "version": "0.1.1-alpha",
+  "version": "0.7.0-alpha",
   "description": "Calchas mit Open-Meteo und BrightSky Integration für aktuelle Wetterdaten und Vorhersagen. Optimiert für Smartphones.",
   "start_url": "/",
   "scope": "/",
@@ -9,7 +9,10 @@
   "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#007BFF",
-  "categories": ["weather", "utilities"],
+  "categories": [
+    "weather",
+    "utilities"
+  ],
   "screenshots": [
     {
       "src": "/assets/screenshots/iPhone-13-PRO-127.0.0.1 (4).png",

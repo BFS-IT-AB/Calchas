@@ -12,9 +12,9 @@
     "test:watch": "jest --watch",
     "test:browser": "http-server dev/tests/ -p 9000",
     "lint": "eslint js/ --fix",
-    "build": "echo 'Production-ready structure - no build needed'",
+    "build": "node dev/tools/sync-version.js",
     "version-sync": "node dev/tools/sync-version.js",
-    "pre-deploy": "npm run version-sync && git add service-worker.js",
+    "pre-deploy": "npm run version-sync && git add service-worker.js manifest.json",
     "predeploy": "npm test && npm run lint"
   },
   "dependencies": {
