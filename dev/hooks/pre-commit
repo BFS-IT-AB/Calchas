@@ -1,0 +1,31 @@
+#!/bin/sh
+# Calchas Pre-Commit Hook
+# Synchronizes Build-ID automatically before each commit
+# Works on Windows (Git Bash) and Unix
+
+echo ""
+echo "======================================================================="
+echo "[PRE-COMMIT] Calchas: Running version sync..."
+echo "======================================================================="
+echo ""
+
+# Run Node.js script
+node dev/tools/sync-version.js
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "[ERROR] Version sync failed! Commit aborted."
+    exit 1
+fi
+
+# Stage changed files (only if they changed)
+if git diff --quiet service-worker.js 2>/dev/null; then
+    : # No changes
+else
+    git add service-worker.js
+    echo "[STAGED] service-worker.js"
+fi
+
+echo ""
+echo "[SUCCESS] Pre-commit hook completed"
+echo ""

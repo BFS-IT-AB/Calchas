@@ -14,7 +14,9 @@
     "lint": "eslint js/ --fix",
     "build": "node dev/tools/sync-version.js",
     "version-sync": "node dev/tools/sync-version.js",
-    "pre-deploy": "npm run version-sync && git add service-worker.js manifest.json",
+    "setup-hooks": "node dev/tools/setup-hooks.js",
+    "postinstall": "node dev/tools/setup-hooks.js",
+    "pre-deploy": "npm run version-sync && git add service-worker.js",
     "predeploy": "npm test && npm run lint"
   },
   "dependencies": {

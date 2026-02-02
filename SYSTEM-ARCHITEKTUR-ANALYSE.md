@@ -109,30 +109,22 @@ navigator.serviceWorker.controller.postMessage({ type: "CLEAR_ALL_CACHES" }, [
 ]);
 ```
 
-##### 4️⃣ **Git Hook Aktivierung (einmalig)**
+##### 4️⃣ **Git Hook Aktivierung (automatisch!)**
 
-**Windows (Git Bash nutzen - empfohlen):**
-
-```bash
-# Hook ist bereits erstellt, funktioniert automatisch
-git commit -m "test"
-```
-
-**Linux/macOS:**
+Der Git Hook wird **automatisch** bei `npm install` installiert:
 
 ```bash
-chmod +x .git/hooks/pre-commit
-git commit -m "test"
+npm install
+# Output: ✓ Installed: pre-commit
 ```
 
-**Alternativ Husky (für bessere Kompatibilität):**
+**Manuelle Installation (falls nötig):**
 
 ```bash
-npm install --save-dev husky
-npx husky init
-# Erstelle .husky/pre-commit mit:
-npm run version-sync
+npm run setup-hooks
 ```
+
+Der Hook liegt versioniert in `dev/hooks/pre-commit` und wird nach `.git/hooks/` kopiert.
 
 ##### 5️⃣ **Manueller Version-Sync (optional)**
 
@@ -1439,12 +1431,14 @@ calchas/
 ├── package.json
 │   └── scripts:
 │       ├── version-sync                  → dev/tools/sync-version.js
+│       ├── setup-hooks                   → dev/tools/setup-hooks.js
+│       ├── postinstall                   → setup-hooks (automatisch!)
 │       └── pre-deploy                    → version-sync + git add
-├── .git/hooks/
-│   ├── pre-commit                        ← Bash (Linux/macOS/Git Bash)
-│   └── pre-commit.ps1                    ← PowerShell (Windows)
+├── dev/hooks/
+│   └── pre-commit                        ← Versionierter Hook (wird nach .git/hooks kopiert)
 ├── dev/tools/
-│   └── sync-version.js                   ← Version-Sync-Script
+│   ├── sync-version.js                   ← Version-Sync-Script
+│   └── setup-hooks.js                    ← Hook-Installer (via postinstall)
 ├── js/
 │   ├── config/
 │   │   └── changelog.js                  ← Changelog-Konfiguration
@@ -1453,8 +1447,6 @@ calchas/
 │   │   └── cache.js                      ← Client-Side Cache Manager
 │   └── ui/settings/
 │       └── AboutSheet.js                 ← About-Modal + integrierte Version-API
-├── VERSION-MANAGEMENT.md                 ← Dokumentation
-├── GIT-HOOKS-SETUP.md                    ← Hook-Dokumentation
 └── SYSTEM-ARCHITEKTUR-ANALYSE.md         ← Dieses Dokument
 ```
 
@@ -1465,10 +1457,14 @@ graph TD
     M[manifest.json] -->|npm run version-sync| S[sync-version.js]
     S -->|aktualisiert| SW[service-worker.js]
 
-    G[git commit] -->|triggert| H[pre-commit Hook]
-    H -->|liest| M
-    H -->|generiert| B[BUILD_ID]
-    H -->|aktualisiert| SW
+    NI[npm install] -->|postinstall| SH[setup-hooks.js]
+    SH -->|kopiert| H[.git/hooks/pre-commit]
+
+    G[git commit] -->|triggert| H
+    H -->|führt aus| S
+    S -->|liest| M
+    S -->|generiert| B[BUILD_ID]
+    S -->|aktualisiert| SW
 
     SW -->|GET_VERSION message| A[AboutSheet.js]
     A -->|rendert| V[Version-Badge]
