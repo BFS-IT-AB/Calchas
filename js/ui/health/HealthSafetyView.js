@@ -2279,6 +2279,46 @@
       );
     }
 
+    // Remove existing touch handlers if any
+    if (healthView._touchStartHandler) {
+      healthView.removeEventListener(
+        "touchstart",
+        healthView._touchStartHandler,
+      );
+    }
+    if (healthView._touchMoveHandler) {
+      healthView.removeEventListener("touchmove", healthView._touchMoveHandler);
+    }
+
+    // Touch tracking state
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+    let isTouchMove = false;
+
+    // Track touch start position
+    healthView._touchStartHandler = (event) => {
+      const touch = event.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      touchStartTime = Date.now();
+      isTouchMove = false;
+    };
+
+    // Track touch movement to detect scrolling
+    healthView._touchMoveHandler = (event) => {
+      if (!event.touches[0]) return;
+
+      const touch = event.touches[0];
+      const deltaX = Math.abs(touch.clientX - touchStartX);
+      const deltaY = Math.abs(touch.clientY - touchStartY);
+
+      // If moved more than 10px, consider it a scroll/swipe, not a tap
+      if (deltaX > 10 || deltaY > 10) {
+        isTouchMove = true;
+      }
+    };
+
     // Create delegated click handler with touch support
     healthView._delegatedClickHandler = (event) => {
       // DEBUG: Log every click to verify event binding
@@ -2288,8 +2328,21 @@
         event.target.className,
       );
 
-      // Prevent double-firing on touch devices
+      // For touch events, check if it was a scroll/swipe
       if (event.type === "touchend") {
+        const touchDuration = Date.now() - touchStartTime;
+
+        // Ignore if:
+        // 1. Touch moved (scrolling/swiping)
+        // 2. Touch was too long (> 500ms indicates a long press or scroll)
+        if (isTouchMove || touchDuration > 500) {
+          console.log(
+            "[HealthSafetyView] Ignoring touchend - detected scroll/swipe or long press",
+          );
+          return;
+        }
+
+        // Prevent double-firing on touch devices (click event will also fire)
         event.preventDefault();
       }
 
@@ -2378,6 +2431,14 @@
       // Open the modal
       openHealthModal(detailType, appState, currentAnalysis);
     };
+
+    // Attach touch tracking handlers
+    healthView.addEventListener("touchstart", healthView._touchStartHandler, {
+      passive: true,
+    });
+    healthView.addEventListener("touchmove", healthView._touchMoveHandler, {
+      passive: true,
+    });
 
     // Attach for both click and touch events for mobile compatibility
     healthView.addEventListener("click", healthView._delegatedClickHandler);
