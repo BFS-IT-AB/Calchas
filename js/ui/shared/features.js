@@ -126,6 +126,7 @@ class WeatherMap {
       this._injectOverlayNotice(container);
       this._ensureRadarControlsTarget();
       this._bindViewportListeners();
+      this._initRadarTileService(); // RadarTileService initialisieren
     }
 
     this._setMarker(lat, lon, city);
@@ -369,10 +370,12 @@ class WeatherMap {
         if (rainUrl) {
           url = rainUrl;
         } else {
+          // Dynamische Fallback-URL mit gerundetem Timestamp
+          url = this._getDynamicFallbackUrl();
           pendingRainViewer = true;
           state = "loading";
           detail = "Radar wird geladen";
-          shouldSkipLayer = true;
+          // Don't skip - create layer with fallback URL
         }
       }
 
@@ -401,23 +404,23 @@ class WeatherMap {
       const layerOptions = {
         attribution: config.attribution || config.provider,
         opacity: config.key === "radar" ? 0.85 : 0.65,
-        maxZoom: config.key === "radar" ? 12 : 18,
+        maxZoom: 20,
       };
 
       if (config.key === "radar") {
-        Object.assign(layerOptions, {
-          tileSize: 512,
-          zoomOffset: -1,
-          detectRetina: true,
-          updateWhenIdle: true,
-          updateInterval: 150,
-          className: "rainviewer-tiles",
-        });
+        // Robuste Radar-Layer-Konfiguration für alle Zoomlevel
+        const radarOptions = this._getRadarLayerOptions();
+        Object.assign(layerOptions, radarOptions);
       }
 
       const layer = this.leaflet.tileLayer(url, layerOptions);
 
-      layer.on("tileerror", () => this._handleTileError(config));
+      // Radar-Layer bekommt spezielle Fehlerbehandlung
+      if (config.key === "radar") {
+        this._attachRadarErrorHandlers(layer, config);
+      } else {
+        layer.on("tileerror", () => this._handleTileError(config));
+      }
 
       overlays[config.label] = layer;
       this.overlayLookup.set(layer, config);
@@ -1147,8 +1150,8 @@ class WeatherMap {
   }
 
   _useRainViewerFallback(message) {
-    const fallbackUrl =
-      "https://tilecache.rainviewer.com/v2/radar/nowcast_0/512/{z}/{x}/{y}/2/1_1.png";
+    // Dynamische Fallback-URL mit gerundetem Timestamp
+    const fallbackUrl = this._getDynamicFallbackUrl();
     this.rainViewerFallbackActive = true;
     this.rainViewerTileUrl = fallbackUrl;
     this.rainViewerError =
@@ -1326,21 +1329,32 @@ class WeatherMap {
     return frames[index];
   }
 
+  /**
+   * Generiert eine dynamische Fallback-URL mit gerundetem Timestamp
+   */
+  _getDynamicFallbackUrl() {
+    const now = Math.floor(Date.now() / 1000);
+    const rounded = Math.floor(now / 600) * 600; // Auf 10 Minuten runden
+    return `https://tilecache.rainviewer.com/v2/radar/${rounded}/256/{z}/{x}/{y}/2/1_1.png`;
+  }
+
   _getActiveRainViewerTileUrl() {
     const frame = this._getActiveRainViewerFrame();
     if (frame) {
-      return this._buildRainViewerTileUrl(frame);
+      const url = this._buildRainViewerTileUrl(frame);
+      if (url) return url;
     }
     if (this.rainViewerFallbackActive && this.rainViewerTileUrl) {
       return this.rainViewerTileUrl;
     }
-    return null;
+    // Immer eine funktionierende URL zurückgeben
+    return this._getDynamicFallbackUrl();
   }
 
   _buildRainViewerTileUrl(frame) {
-    if (!frame?.path) return null;
+    if (!frame?.path) return this._getDynamicFallbackUrl();
     const host = this.rainViewerHost || "https://tilecache.rainviewer.com";
-    const tileSize = frame.type === "infrared" ? "256" : "512";
+    const tileSize = "256"; // Always use 256 to match layer config
     const renderParams = frame.type === "infrared" ? "0/0_0" : "2/1_1";
     if (frame.path.startsWith("http")) {
       if (frame.path.includes("{z}")) {
@@ -1610,6 +1624,212 @@ class WeatherMap {
     this._syncToolbarAvailability();
   }
 
+  /**
+   * Gibt optimierte Optionen für den Radar-Layer zurück
+   * Diese Konfiguration stellt sicher, dass Tiles auf allen Zoomlevels korrekt angezeigt werden
+   */
+  _getRadarLayerOptions() {
+    return {
+      tileSize: 256,
+      maxNativeZoom: 12, // RainViewer liefert nur bis Zoom 12
+      maxZoom: 20, // Erlaubt Upscaling bis Zoom 20
+      minZoom: 1,
+      className: "rainviewer-tiles rainviewer-radar-layer",
+      crossOrigin: "anonymous",
+      // Transparente 1x1 Pixel GIF als Fallback bei Fehlern
+      errorTileUrl:
+        "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+      // Wichtig für flüssiges Zoom-Verhalten
+      updateWhenZooming: false,
+      updateWhenIdle: true,
+      keepBuffer: 4, // Mehr Tiles im Speicher behalten
+      // Bounds für globale Radar-Daten
+      bounds: [
+        [-90, -180],
+        [90, 180],
+      ],
+      // Verhindert Tile-Flackern
+      detectRetina: false,
+      // Retry bei langsamen Verbindungen
+      zoomReverse: false,
+    };
+  }
+
+  /**
+   * Hängt robuste Fehlerbehandlung an den Radar-Layer
+   */
+  _attachRadarErrorHandlers(layer, config) {
+    if (!layer) return;
+
+    let consecutiveErrors = 0;
+    let lastErrorTime = 0;
+    const errorThreshold = 10;
+    const errorResetTime = 30000; // 30 Sekunden
+
+    layer.on("tileerror", (event) => {
+      const now = Date.now();
+
+      // Error-Counter zurücksetzen wenn genug Zeit vergangen ist
+      if (now - lastErrorTime > errorResetTime) {
+        consecutiveErrors = 0;
+      }
+
+      consecutiveErrors++;
+      lastErrorTime = now;
+
+      // Bei zu vielen Fehlern: Host wechseln und neu laden
+      if (consecutiveErrors >= errorThreshold) {
+        console.warn(
+          "[WeatherMap] Zu viele Tile-Fehler, versuche alternativen Host",
+        );
+        consecutiveErrors = 0;
+
+        // Nutze RadarTileService falls verfügbar
+        if (typeof window !== "undefined" && window.RadarTileService) {
+          const state = window.RadarTileService.getState();
+          if (state.currentTileUrl) {
+            layer.setUrl(state.currentTileUrl);
+          }
+        } else {
+          // Fallback: Versuche alternativen Host
+          this._rotateRadarHost(layer);
+        }
+      }
+    });
+
+    // Erfolgreiches Tile-Laden tracken
+    layer.on("tileload", () => {
+      // Bei erfolgreichem Laden Error-Count reduzieren
+      if (consecutiveErrors > 0) {
+        consecutiveErrors = Math.max(0, consecutiveErrors - 1);
+      }
+    });
+
+    // Alle Tiles geladen
+    layer.on("load", () => {
+      consecutiveErrors = 0;
+      this._updateLegendEntry(
+        config,
+        "available",
+        config.provider || "RainViewer",
+      );
+      this._renderOverlayLegend();
+    });
+  }
+
+  /**
+   * Wechselt zum nächsten verfügbaren Radar-Host
+   */
+  _rotateRadarHost(layer) {
+    const hosts = [
+      "https://tilecache.rainviewer.com",
+      "https://a.tilecache.rainviewer.com",
+      "https://b.tilecache.rainviewer.com",
+    ];
+
+    if (!this._currentRadarHostIndex) {
+      this._currentRadarHostIndex = 0;
+    }
+
+    this._currentRadarHostIndex =
+      (this._currentRadarHostIndex + 1) % hosts.length;
+    const newHost = hosts[this._currentRadarHostIndex];
+
+    // Aktuelle URL anpassen
+    const frame = this._getActiveRainViewerFrame();
+    if (frame?.path) {
+      const newUrl = this._buildRainViewerTileUrlWithHost(frame, newHost);
+      layer.setUrl(newUrl);
+      console.log(`[WeatherMap] Gewechselt zu Radar-Host: ${newHost}`);
+    }
+  }
+
+  /**
+   * Baut eine Tile-URL mit spezifischem Host
+   */
+  _buildRainViewerTileUrlWithHost(frame, host) {
+    if (!frame?.path) return null;
+
+    const tileSize = "256";
+    const renderParams = frame.type === "infrared" ? "0/0_0" : "2/1_1";
+
+    const normalizedPath = frame.path.startsWith("/")
+      ? frame.path
+      : `/${frame.path}`;
+
+    if (normalizedPath.includes("{z}")) {
+      return `${host}${normalizedPath}`;
+    }
+
+    return `${host}${normalizedPath}/${tileSize}/{z}/{x}/{y}/${renderParams}.png`;
+  }
+
+  /**
+   * Initialisiert den RadarTileService und verbindet ihn mit der WeatherMap
+   */
+  _initRadarTileService() {
+    if (typeof window === "undefined" || !window.RadarTileService) {
+      console.log(
+        "[WeatherMap] RadarTileService nicht verfügbar, nutze Legacy-Modus",
+      );
+      return;
+    }
+
+    window.RadarTileService.init({
+      onUpdate: (state) => this._handleRadarServiceUpdate(state),
+      onError: (error, state) => this._handleRadarServiceError(error, state),
+    });
+  }
+
+  /**
+   * Handler für Updates vom RadarTileService
+   */
+  _handleRadarServiceUpdate(serviceState) {
+    if (!serviceState || !this.map) return;
+
+    // Interne State synchronisieren
+    this.rainViewerFrames = {
+      past: serviceState.frames.past || [],
+      nowcast: serviceState.frames.nowcast || [],
+    };
+    this.rainViewerSatelliteFrames = serviceState.frames.infrared || [];
+    this.rainViewerHost = serviceState.currentHost;
+    this.rainViewerTileUrl = serviceState.currentTileUrl;
+    this.rainViewerFetchedAt = serviceState.lastFetch;
+    this.rainViewerLoading = serviceState.loading;
+    this.rainViewerError = serviceState.lastError;
+    this.rainViewerMode = serviceState.activeMode;
+    this.rainViewerFrameIndex = serviceState.activeFrameIndex;
+
+    // Radar-Layer aktualisieren
+    const radarLayer = this.overlayLayerByKey.get("radar");
+    if (radarLayer && serviceState.currentTileUrl) {
+      radarLayer.setUrl(serviceState.currentTileUrl);
+    }
+
+    // UI aktualisieren
+    this._renderRadarControls();
+    this._updateOverlayStatus();
+    this._renderOverlayLegend();
+  }
+
+  /**
+   * Handler für Fehler vom RadarTileService
+   */
+  _handleRadarServiceError(error, serviceState) {
+    console.warn("[WeatherMap] RadarTileService Fehler:", error);
+
+    this.rainViewerLoading = false;
+    this.rainViewerError = error?.message || "Radar-Daten nicht verfügbar";
+
+    // Fallback aktivieren
+    if (!serviceState?.hasFrames) {
+      this._useRainViewerFallback(this.rainViewerError);
+    }
+
+    this._renderRadarControls();
+  }
+
   destroy() {
     if (this.layerControl) {
       this.layerControl.remove();
@@ -1648,6 +1868,12 @@ class WeatherMap {
     }
 
     this._stopRainViewerPlayback({ silent: true });
+
+    // RadarTileService aufräumen
+    if (typeof window !== "undefined" && window.RadarTileService) {
+      window.RadarTileService.destroy();
+    }
+
     if (this.radarControlsEl && this._radarControlHandler) {
       this.radarControlsEl.removeEventListener(
         "click",

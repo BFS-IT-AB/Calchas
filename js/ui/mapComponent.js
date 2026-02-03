@@ -626,12 +626,26 @@ class MapComponent {
         delete this.overlays[layerType];
       }
 
-      // Overlay Layer hinzufügen (angepasste Deckkraft für bessere Lesbarkeit der Karte)
-      const overlayLayer = L.tileLayer(layerUrl, {
+      // Spezielle Optionen für RainViewer Radar-Layer
+      let layerOptions = {
         attribution,
-        opacity: 0.6, // Reduced intensity as requested
+        opacity: 0.6,
         maxZoom: 18,
-      }).addTo(this.map);
+      };
+
+      if (
+        provider === "rainviewer" ||
+        layerType === "rain" ||
+        layerType === "radar"
+      ) {
+        layerOptions = {
+          ...this._getRadarTileOptions(),
+          attribution,
+        };
+      }
+
+      // Overlay Layer hinzufügen
+      const overlayLayer = L.tileLayer(layerUrl, layerOptions).addTo(this.map);
 
       // Store the overlay for future management
       this.overlays[layerType] = overlayLayer;
@@ -937,22 +951,78 @@ class MapComponent {
 
   async _fetchRainViewerData() {
     try {
+      // Nutze RadarTileService falls verfügbar
+      if (typeof window !== "undefined" && window.RadarTileService) {
+        const state = await window.RadarTileService.refresh();
+        if (state && state.activeFrames) {
+          this.rainViewerCache = state.activeFrames;
+          this.rainViewerHost = state.currentHost || this.rainViewerHost;
+          console.log(
+            "[MapComponent] RainViewer via RadarTileService geladen:",
+            this.rainViewerCache.length,
+          );
+
+          if (
+            global.RadarController &&
+            typeof global.RadarController.regenerateFrames === "function"
+          ) {
+            global.RadarController.regenerateFrames();
+          }
+
+          if (this.currentTimestamp) {
+            this.handleTimelineUpdate(this.currentTimestamp);
+          }
+          return;
+        }
+      }
+
+      // Fallback: Direkte API-Anfrage mit Retry-Logik
       if (this.rainViewerCache.length > 0) return; // Already loaded
-      const response = await fetch(
+
+      const endpoints = [
         "https://api.rainviewer.com/public/weather-maps.json",
-      );
-      const data = await response.json();
-      this.rainViewerCache = [
-        ...(data.radar?.past || []),
-        ...(data.radar?.nowcast || []),
+        "https://tilecache.rainviewer.com/api/maps.json",
       ];
-      if (data.host) this.rainViewerHost = data.host;
+
+      let data = null;
+      let lastError = null;
+
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(endpoint, { cache: "no-store" });
+          if (response.ok) {
+            data = await response.json();
+            break;
+          }
+        } catch (e) {
+          lastError = e;
+          console.warn(`[MapComponent] ${endpoint} fehlgeschlagen:`, e.message);
+        }
+      }
+
+      if (!data) {
+        throw lastError || new Error("Keine RainViewer-Daten verfügbar");
+      }
+
+      // Legacy-Format unterstützen
+      if (Array.isArray(data)) {
+        this.rainViewerCache = data.map((time) => ({
+          time,
+          path: `/v2/radar/${time}`,
+        }));
+      } else {
+        this.rainViewerCache = [
+          ...(data.radar?.past || []),
+          ...(data.radar?.nowcast || []),
+        ];
+        if (data.host) this.rainViewerHost = data.host;
+      }
+
       console.log(
         "[MapComponent] RainViewer frames loaded:",
         this.rainViewerCache.length,
       );
 
-      // Regenerate RadarController frames now that data is available
       if (
         global.RadarController &&
         typeof global.RadarController.regenerateFrames === "function"
@@ -960,41 +1030,134 @@ class MapComponent {
         global.RadarController.regenerateFrames();
       }
 
-      // If we have a pending specific timestamp, update now
       if (this.currentTimestamp) {
         this.handleTimelineUpdate(this.currentTimestamp);
       }
     } catch (e) {
       console.warn("[MapComponent] Failed to fetch RainViewer frames", e);
+      // Fallback: Nutze statische URL
+      this._useStaticRadarFallback();
+    }
+  }
+
+  /**
+   * Aktiviert statischen Radar-Fallback wenn API nicht erreichbar
+   */
+  _useStaticRadarFallback() {
+    console.log("[MapComponent] Aktiviere statischen Radar-Fallback");
+    const now = Math.floor(Date.now() / 1000);
+    const rounded = Math.floor(now / 600) * 600; // Auf 10 Minuten runden
+    this.rainViewerCache = [{ time: rounded, path: `/v2/radar/${rounded}` }];
+    this.currentTimestamp = Date.now();
+
+    // Layer aktualisieren falls vorhanden
+    const targetLayer = this.overlays["rain"] || this.overlays["radar"];
+    if (targetLayer && this.map?.hasLayer(targetLayer)) {
+      const fallbackUrl = `https://tilecache.rainviewer.com/v2/radar/${rounded}/256/{z}/{x}/{y}/2/1_1.png`;
+      targetLayer.setUrl(fallbackUrl);
     }
   }
 
   _buildRainViewerUrl(ts) {
-    // Find closest timestamp in cache
-    let useTime = ts;
-    if (this.rainViewerCache.length > 0 && typeof ts === "number") {
-      // Find closest
-      // RadarController sends ms. RainViewer is seconds.
-      const tsSec = ts / 1000;
-      const closest = this.rainViewerCache.reduce((prev, curr) => {
-        return Math.abs(curr.time - tsSec) < Math.abs(prev.time - tsSec)
-          ? curr
-          : prev;
-      });
-      if (closest) {
-        useTime = closest.time; // This is in seconds
+    // Dynamische Fallback-URL mit gerundetem Timestamp
+    const now = Math.floor(Date.now() / 1000);
+    const rounded = Math.floor(now / 600) * 600;
+    const dynamicFallback = `https://tilecache.rainviewer.com/v2/radar/${rounded}/256/{z}/{x}/{y}/2/1_1.png`;
+
+    // Nutze RadarTileService falls verfügbar und hat Daten
+    if (typeof window !== "undefined" && window.RadarTileService) {
+      try {
+        const serviceState = window.RadarTileService.getState();
+        if (
+          serviceState.currentTileUrl &&
+          serviceState.activeFrames?.length > 0
+        ) {
+          return serviceState.currentTileUrl;
+        }
+      } catch (e) {
+        console.warn("[MapComponent] RadarTileService Fehler:", e);
       }
-    } else {
-      // Fallback for initial load or no data
-      useTime = Math.floor(Date.now() / 1000);
     }
 
-    // URL pattern: {host}/v2/radar/{ts}/{size}/{z}/{x}/{y}/{color}/{smooth}_{snow}.png
-    return `${this.rainViewerHost}/v2/radar/${useTime}/512/{z}/{x}/{y}/2/1_1.png`;
+    // Wenn kein Cache vorhanden, nutze dynamische Fallback-URL
+    if (!this.rainViewerCache || this.rainViewerCache.length === 0) {
+      return dynamicFallback;
+    }
+
+    // Find closest timestamp in cache
+    let closestFrame = null;
+    if (typeof ts === "number") {
+      const tsSec = ts / 1000;
+      closestFrame = this.rainViewerCache.reduce((prev, curr) => {
+        const prevTime = prev?.time || 0;
+        const currTime = curr?.time || 0;
+        return Math.abs(currTime - tsSec) < Math.abs(prevTime - tsSec)
+          ? curr
+          : prev;
+      }, null);
+    } else {
+      // Nutze den letzten Frame (aktuellster)
+      closestFrame = this.rainViewerCache[this.rainViewerCache.length - 1];
+    }
+
+    // Wenn kein gültiger Frame gefunden, nutze Fallback
+    if (!closestFrame || !closestFrame.time) {
+      return staticFallback;
+    }
+
+    // URL mit echtem Timestamp aus der API bauen
+    const useTime = closestFrame.time;
+    return `${this.rainViewerHost}/v2/radar/${useTime}/256/{z}/{x}/{y}/2/1_1.png`;
+  }
+
+  /**
+   * Gibt optimierte Tile-Layer-Optionen für Radar zurück
+   */
+  _getRadarTileOptions() {
+    return {
+      tileSize: 256,
+      maxNativeZoom: 12, // RainViewer liefert nur bis Zoom 12
+      maxZoom: 19, // Erlaubt Upscaling
+      minZoom: 1,
+      opacity: 0.75,
+      className: "rainviewer-tiles rainviewer-radar-layer",
+      crossOrigin: "anonymous",
+      errorTileUrl:
+        "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+      updateWhenZooming: false,
+      updateWhenIdle: true,
+      keepBuffer: 4,
+      bounds: [
+        [-90, -180],
+        [90, 180],
+      ],
+    };
   }
 
   handleTimelineUpdate(timestamp) {
     this.currentTimestamp = timestamp;
+
+    // RadarTileService nutzen falls verfügbar
+    if (typeof window !== "undefined" && window.RadarTileService) {
+      const frames = window.RadarTileService.getActiveFrames();
+      if (frames && frames.length > 0) {
+        // Finde nächsten Frame zum Timestamp
+        const tsSec = timestamp / 1000;
+        let closestIndex = 0;
+        let closestDiff = Infinity;
+
+        frames.forEach((frame, index) => {
+          const frameTime = (frame.time || 0) / 1000;
+          const diff = Math.abs(frameTime - tsSec);
+          if (diff < closestDiff) {
+            closestDiff = diff;
+            closestIndex = index;
+          }
+        });
+
+        window.RadarTileService.setFrameIndex(closestIndex);
+      }
+    }
 
     // Fallback: If cache is empty, try to fetch if we haven't
     if (this.rainViewerCache.length === 0 && !this._fetchingRainViewer) {
@@ -1004,11 +1167,10 @@ class MapComponent {
       });
     }
 
-    // Attempt to update common RainViewer layers
+    // Update Radar-Layer
     const targetLayer = this.overlays["rain"] || this.overlays["radar"];
-    if (targetLayer && this.map.hasLayer(targetLayer)) {
+    if (targetLayer && this.map?.hasLayer(targetLayer)) {
       const newUrl = this._buildRainViewerUrl(timestamp);
-      // Optimize: Only setUrl if changed
       if (targetLayer._url !== newUrl) {
         targetLayer.setUrl(newUrl);
       }

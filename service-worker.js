@@ -2,7 +2,7 @@
 // Ermöglicht Offline-Funktionalität, Caching und Push-Notifications
 
 const APP_VERSION = "0.1.1-alpha"; // SemVer - manuell bei Releases ändern
-const CACHE_NAME = "calchas-2026-02-03-0703"; // Timestamp - bei jedem Deploy
+const CACHE_NAME = "calchas-2026-02-03-1846"; // Timestamp - bei jedem Deploy
 const BUILD_ID = CACHE_NAME.replace("calchas-", ""); // Extrahiert Timestamp
 const HEALTH_CACHE_NAME = "calchas-health-data"; // Separate cache for health data
 const HEALTH_CACHE_TTL = 30 * 60 * 1000; // 30 Minuten TTL für Health-Daten
@@ -140,6 +140,7 @@ const urlsToCache = [
   "/js/ui/map/MapLayerManager.js",
   "/js/ui/map/MapContainer.js",
   "/js/ui/map/GlobalMapLayerManager.js",
+  "/js/ui/map/services/RadarTileService.js",
   "/js/ui/map/layers/AQILayer.js",
   "/js/ui/map/layers/AlertLayer.js",
   "/js/ui/map/layers/CloudLayer.js",

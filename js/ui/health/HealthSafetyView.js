@@ -2328,7 +2328,19 @@
         event.target.className,
       );
 
-      // For touch events, check if it was a scroll/swipe
+      // Find closest interactive element - expanded selector
+      const trigger = event.target.closest(
+        ".js-open-details, [data-detail-type], [data-clickable-alerts], " +
+          ".health-card--outdoor, .outdoor-quality-card, .quick-check-card, " +
+          ".bio-card, .safety-alert, .timeline-slot",
+      );
+
+      if (!trigger) {
+        console.log("[HealthSafetyView] No matching trigger found for click");
+        return;
+      }
+
+      // For touch events, check if it was a scroll/swipe (only for valid triggers)
       if (event.type === "touchend") {
         const touchDuration = Date.now() - touchStartTime;
 
@@ -2344,18 +2356,6 @@
 
         // Prevent double-firing on touch devices (click event will also fire)
         event.preventDefault();
-      }
-
-      // Find closest interactive element - expanded selector
-      const trigger = event.target.closest(
-        ".js-open-details, [data-detail-type], [data-clickable-alerts], " +
-          ".health-card--outdoor, .outdoor-quality-card, .quick-check-card, " +
-          ".bio-card, .safety-alert, .timeline-slot",
-      );
-
-      if (!trigger) {
-        console.log("[HealthSafetyView] No matching trigger found for click");
-        return;
       }
 
       // Determine the detail type
